@@ -77,6 +77,10 @@ class MultiFab {
   template <class F>
   void forEachCellFlat(F&& f) const;
 
+  /// Reducing variant of forEachCellFlat, for norms and dot products.
+  template <class F, class Reducer>
+  void forEachCellFlatReduce(F&& f, Reducer& r) const;
+
   /// Device view of per-local-patch accessors, so a kernel can reach a second
   /// MultiFab field with the same layout: `other(b)`.
   View<Array4<Real>> boxArrays() const;
@@ -236,6 +240,56 @@ void MultiFab::forEachCellFlat(F&& f) const {
 
         f(b, a, bx.lo[0] + i, bx.lo[1] + j, bx.lo[2] + k);
       });
+}
+
+template <class F, class Reducer>
+void MultiFab::forEachCellFlatReduce(F&& f, Reducer& red) const {
+  const int nb = numLocalBoxes();
+  if (nb == 0) return;
+
+  auto d_boxes = m_d_boxes;
+  auto d_off = m_d_off;
+  auto d_cnt = m_d_counts;
+  auto d_data = m_data;
+  const int ng = m_nghost;
+  const int nc = m_ncomp;
+  const BigIndex total = d_cnt(nb);
+
+  Kokkos::parallel_reduce(
+      "saturn::MultiFab::forEachCellFlatReduce", Kokkos::RangePolicy<>(0, total),
+      KOKKOS_LAMBDA(BigIndex t, typename Reducer::value_type& acc) {
+        int lo = 0, hi = nb - 1;
+        while (lo < hi) {
+          const int mid = (lo + hi) >> 1;
+          if (d_cnt(mid + 1) <= t) lo = mid + 1;
+          else hi = mid;
+        }
+        const int b = lo;
+        const Box bx = d_boxes(b);
+        const BigIndex idx = t - d_cnt(b);
+
+        const int nx = bx.length(0);
+        const int ny = bx.length(1);
+        const int i = static_cast<int>(idx % nx);
+        const int r = static_cast<int>(idx / nx);
+        const int j = r % ny;
+        const int k = (NDIM == 3) ? (r / ny) : 0;
+
+        Array4<Real> a;
+        a.p = d_data.data() + d_off(b);
+        for (int d = 0; d < NDIM; ++d) {
+          a.begin[d] = bx.lo[d] - ng;
+          a.n[d] = bx.length(d) + 2 * ng;
+        }
+        if (NDIM == 2) {
+          a.begin[2] = 0;
+          a.n[2] = 1;
+        }
+        a.ncomp = nc;
+
+        f(b, a, bx.lo[0] + i, bx.lo[1] + j, bx.lo[2] + k, acc);
+      },
+      red);
 }
 
 template <class F>

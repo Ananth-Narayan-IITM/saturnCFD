@@ -43,6 +43,8 @@ struct CopyOp {
 
 class HaloExchange {
  public:
+  HaloExchange() = default;
+
   HaloExchange(const BoxArray& ba, const DistributionMapping& dm,
                const Geometry& geom, int nghost, int myrank, int nranks);
 
@@ -64,9 +66,9 @@ class HaloExchange {
   BoxArray m_ba;
   DistributionMapping m_dm;
   Geometry m_geom;
-  int m_nghost;
-  int m_myrank;
-  int m_nranks;
+  int m_nghost = 0;
+  int m_myrank = 0;
+  int m_nranks = 1;
   std::string m_name = "halo";
 
   std::vector<CopyOp> m_localOps;

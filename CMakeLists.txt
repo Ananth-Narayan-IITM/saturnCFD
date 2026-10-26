@@ -37,6 +37,8 @@ set(SATURN_SOURCES
   src/comm/HaloExchange.cpp
   src/core/Config.cpp
   src/core/Timer.cpp
+  src/linalg/Poisson.cpp
+  src/solver/CavitySolver.cpp
   src/io/VTKWriter.cpp
 )
 
@@ -73,6 +75,9 @@ endif()
 add_executable(saturnCFD apps/main.cpp)
 target_link_libraries(saturnCFD PRIVATE saturn::core)
 
+add_executable(saturn_cavity apps/cavity.cpp)
+target_link_libraries(saturn_cavity PRIVATE saturn::core)
+
 # ------------------------------------------------------------------- tests ---
 if(SATURN_BUILD_TESTS)
   enable_testing()
@@ -82,6 +87,7 @@ if(SATURN_BUILD_TESTS)
     tests/test_multifab.cpp
     tests/test_halo.cpp
     tests/test_config.cpp
+    tests/test_poisson.cpp
   )
   target_link_libraries(saturn_tests PRIVATE saturn::core)
   target_include_directories(saturn_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)

@@ -6,3 +6,4 @@ output/
 *.pvd
 compile_commands.json
 .cache/
+runs/
