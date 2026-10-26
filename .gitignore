@@ -1,0 +1,8 @@
+build/
+output/
+*.o
+*.vtk
+*.vti
+*.pvd
+compile_commands.json
+.cache/

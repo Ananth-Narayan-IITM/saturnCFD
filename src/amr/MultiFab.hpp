@@ -1,0 +1,247 @@
+// saturnCFD — MultiFab: the distributed field container.
+//
+// One MultiFab holds `ncomp` cell-centred components on ONE AMR level, with
+// `nghost` ghost layers, distributed over boxes according to a
+// DistributionMapping.
+//
+// Storage is a single flat Kokkos::View<Real*> covering only the boxes this rank
+// owns, plus a per-box offset table. Kernels are launched over boxes, which is
+// the canonical GPU-AMR pattern: regular inner loops, no indirect addressing
+// beyond one box lookup per team.
+//
+// Access inside kernels goes through Array4, which takes global indices.
+#pragma once
+
+#include <string>
+#include <vector>
+
+#include "amr/Array4.hpp"
+#include "amr/BoxArray.hpp"
+#include "amr/DistributionMapping.hpp"
+#include "core/Types.hpp"
+
+namespace saturn {
+
+class MultiFab {
+ public:
+  MultiFab() = default;
+
+  MultiFab(const BoxArray& ba, const DistributionMapping& dm, int ncomp,
+           int nghost, int myrank = 0, const std::string& name = "fab");
+
+  // ------------------------------------------------------------------ info --
+  int numComp() const { return m_ncomp; }
+  int nGrow() const { return m_nghost; }
+  int numLocalBoxes() const { return static_cast<int>(m_local.size()); }
+  int numGlobalBoxes() const { return m_ba.size(); }
+  int myRank() const { return m_myrank; }
+  BigIndex numLocalPts() const { return m_local_pts; }
+  BigIndex numGlobalPts() const { return m_global_pts; }
+
+  /// Global index of the i'th local box.
+  int localToGlobal(int i) const { return m_local[i]; }
+
+  const BoxArray& boxArray() const { return m_ba; }
+  const DistributionMapping& distributionMap() const { return m_dm; }
+  const std::string& name() const { return m_name; }
+
+  // ---------------------------------------------------------------- access --
+  /// Accessor for a LOCAL box index (0..numLocalBoxes-1).
+  Array4<Real> array(int localBox) const;
+
+  /// Accessor for a local box, and a component range starting at comp.
+  Array4<Real> array(int localBox, int comp) const;
+
+  /// Accessor addressed by GLOBAL box index. Throws if the box is not local.
+  Array4<Real> arrayByGlobal(int globalBox) const;
+
+  /// Global box index -> local index, or -1 if not owned by this rank.
+  int globalToLocal(int globalBox) const;
+
+  View<Real>& data() { return m_data; }
+  const View<Real>& data() const { return m_data; }
+
+  // ---------------------------------------------------------------- kernels --
+  /// Launch `f(int localBox, Array4<Real>, i, j, k)` over every local cell.
+  /// One kernel launch, one Kokkos team per patch. Good for GPU (long-running
+  /// teams, high occupancy) and for few patches.
+  template <class F>
+  void forEachCell(F&& f) const;
+  template <class F>
+  void forEachCell(F&& f);
+
+  /// Same visitor, but flattened: ONE kernel over all local cells, the owning
+  /// patch found by binary search on a cumulative-count table. This is the
+  /// AMReX approach, and it is the right one when a level has many small
+  /// patches, because it removes per-patch launch overhead entirely.
+  template <class F>
+  void forEachCellFlat(F&& f) const;
+
+  /// Device view of per-local-patch accessors, so a kernel can reach a second
+  /// MultiFab field with the same layout: `other(b)`.
+  View<Array4<Real>> boxArrays() const;
+
+  /// Dispatch to whichever of the two paths is better for this patch count.
+  /// Measured on OpenMP/x86 (see docs/BENCHMARKS.md): the flat kernel wins for
+  /// 1-4 patches because a single-team TeamPolicy cannot fill the machine; the
+  /// team kernel wins from ~16 patches up because it avoids the per-cell binary
+  /// search. The threshold is backend dependent and must be re-tuned on GPUs.
+  static constexpr int kFlatKernelMaxPatches = 8;
+
+  template <class F>
+  void forEachCellAuto(F&& f) const {
+    if (numLocalBoxes() <= kFlatKernelMaxPatches)
+      forEachCellFlat(f);
+    else
+      forEachCell(f);
+  }
+
+  /// Skip the inner parallelisation: one thread per box. Useful for tiny boxes.
+  template <class F>
+  void forEachBoxSerial(F&& f) const;
+
+  // ------------------------------------------------------------ operations --
+  void setVal(Real v);
+  void setVal(Real v, int comp);
+  void copyFrom(const MultiFab& src);
+
+  /// Sum over all components/cells on this rank. (No MPI reduction here.)
+  Accum localSum(int comp = 0) const;
+
+  /// Global sum across ranks (requires MPI build; no-op reduction otherwise).
+  Accum globalSum(int comp = 0) const;
+
+  /// Min / max over the local data.
+  Real localMin(int comp = 0) const;
+  Real localMax(int comp = 0) const;
+
+ private:
+  void allocate();
+
+  BoxArray m_ba;
+  DistributionMapping m_dm;
+  int m_ncomp = 1;
+  int m_nghost = 0;
+  int m_myrank = 0;
+  std::string m_name;
+
+  std::vector<int> m_local;          ///< local index -> global box index
+  View<Box> m_d_boxes;               ///< device copy of local boxes
+  View<BigIndex> m_d_off;            ///< offset of each local box in m_data
+  View<BigIndex> m_d_counts;         ///< cumulative cell counts, size nb+1
+  View<Real> m_data;
+
+  BigIndex m_local_pts = 0;
+  BigIndex m_global_pts = 0;
+};
+
+// ---------------------------------------------------------------------------
+// Template implementations
+// ---------------------------------------------------------------------------
+
+template <class F>
+void MultiFab::forEachCell(F&& f) const {
+  const int nb = numLocalBoxes();
+  if (nb == 0) return;
+
+  auto d_boxes = m_d_boxes;
+  auto d_off = m_d_off;
+  auto d_data = m_data;
+  const int ng = m_nghost;
+  const int nc = m_ncomp;
+
+  Kokkos::parallel_for(
+      "saturn::MultiFab::forEachCell", Kokkos::TeamPolicy<>(nb, Kokkos::AUTO),
+      KOKKOS_LAMBDA(const typename Kokkos::TeamPolicy<>::member_type& team) {
+        const int b = team.league_rank();
+        const Box bx = d_boxes(b);
+        const BigIndex base = d_off(b);
+
+        Array4<Real> a;
+        a.p = d_data.data() + base;
+        for (int d = 0; d < NDIM; ++d) {
+          a.begin[d] = bx.lo[d] - ng;
+          a.n[d] = bx.length(d) + 2 * ng;
+        }
+        if (NDIM == 2) {
+          a.begin[2] = 0;
+          a.n[2] = 1;
+        }
+        a.ncomp = nc;
+
+        const int nx = bx.length(0);
+        const int ny = bx.length(1);
+        const int nz = (NDIM == 3) ? bx.length(2) : 1;
+        const BigIndex np = static_cast<BigIndex>(nx) * ny * nz;
+
+        Kokkos::parallel_for(
+            Kokkos::TeamThreadRange(team, np), [&](BigIndex idx) {
+              const int i = static_cast<int>(idx % nx);
+              const int r = static_cast<int>(idx / nx);
+              const int j = r % ny;
+              const int k = (NDIM == 3) ? (r / ny) : 0;
+              f(b, a, bx.lo[0] + i, bx.lo[1] + j, bx.lo[2] + k);
+            });
+      });
+}
+
+template <class F>
+void MultiFab::forEachCell(F&& f) { static_cast<const MultiFab&>(*this).forEachCell(f); }
+
+template <class F>
+void MultiFab::forEachCellFlat(F&& f) const {
+  const int nb = numLocalBoxes();
+  if (nb == 0) return;
+
+  auto d_boxes = m_d_boxes;
+  auto d_off = m_d_off;
+  auto d_cnt = m_d_counts;
+  auto d_data = m_data;
+  const int ng = m_nghost;
+  const int nc = m_ncomp;
+  const BigIndex total = d_cnt(nb);
+
+  Kokkos::parallel_for(
+      "saturn::MultiFab::forEachCellFlat", Kokkos::RangePolicy<>(0, total),
+      KOKKOS_LAMBDA(BigIndex t) {
+        // Locate the owning patch: largest b with counts[b] <= t.
+        int lo = 0, hi = nb - 1;
+        while (lo < hi) {
+          const int mid = (lo + hi) >> 1;
+          if (d_cnt(mid + 1) <= t) lo = mid + 1;
+          else hi = mid;
+        }
+        const int b = lo;
+        const Box bx = d_boxes(b);
+        const BigIndex idx = t - d_cnt(b);
+
+        const int nx = bx.length(0);
+        const int ny = bx.length(1);
+        const int i = static_cast<int>(idx % nx);
+        const int r = static_cast<int>(idx / nx);
+        const int j = r % ny;
+        const int k = (NDIM == 3) ? (r / ny) : 0;
+
+        Array4<Real> a;
+        a.p = d_data.data() + d_off(b);
+        for (int d = 0; d < NDIM; ++d) {
+          a.begin[d] = bx.lo[d] - ng;
+          a.n[d] = bx.length(d) + 2 * ng;
+        }
+        if (NDIM == 2) {
+          a.begin[2] = 0;
+          a.n[2] = 1;
+        }
+        a.ncomp = nc;
+
+        f(b, a, bx.lo[0] + i, bx.lo[1] + j, bx.lo[2] + k);
+      });
+}
+
+template <class F>
+void MultiFab::forEachBoxSerial(F&& f) const {
+  const int nb = numLocalBoxes();
+  for (int b = 0; b < nb; ++b) f(b, array(b));
+}
+
+}  // namespace saturn
