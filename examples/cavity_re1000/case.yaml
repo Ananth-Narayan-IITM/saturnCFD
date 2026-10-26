@@ -1,0 +1,38 @@
+# saturnCFD case file — lid-driven cavity, Re = 1000, 128 x 128
+#
+# The classical validation point. Note that the diffusion timestep limit
+# (h^2 / 4nu) is no longer binding here: the convective CFL condition controls
+# dt, which is why higher Re needs more steps, not smaller ones, on a fixed grid.
+#
+#   saturnCFD examples/cavity_re1000/case.yaml
+#
+# Expect ~10-30 minutes on a laptop CPU. On a GPU, minutes.
+
+solver: cavity
+
+domain:
+  nx: 128
+  ny: 128
+  length: 1.0
+
+flow:
+  reynolds: 1000
+  lid_velocity: 1.0
+  scheme: minmod
+  cfl: 0.4
+  diffusion_safety: 0.25
+
+time:
+  end_time: 250.0
+  max_steps: 800000
+  steady_tol: 1.0e-5
+  check_every: 200
+
+pressure:
+  max_iter: 5000
+  tolerance: 1.0e-9
+
+output:
+  prefix: results/cavity_re1000
+  centre_lines: true
+  vtk_every: 1000

@@ -22,7 +22,9 @@ class VTKWriter {
   explicit VTKWriter(std::string base);
 
   /// Write all LOCAL boxes of `mf` at this step. One .vti per box.
-  void write(const MultiFab& mf, const Geometry& geom, int step, double time);
+  /// `compNames` lets ParaView show "u", "v" ... instead of "c0", "c1".
+  void write(const MultiFab& mf, const Geometry& geom, int step, double time,
+             const std::vector<std::string>& compNames = {});
 
   /// Flush the .pvd collection index. Call once at the end of the run.
   void finalize();

@@ -1,0 +1,35 @@
+# saturnCFD case file — parallel substrate benchmark
+#
+# This does not solve flow. It exercises the decomposition, halo exchange and
+# kernel-dispatch paths, and reports sustained bandwidth. Use it to check a new
+# build or a new machine before running physics.
+#
+#   saturnCFD examples/substrate/case.yaml --threads 8
+#
+# Vary grid.block_x / block_y to change the patch count (see
+# docs/BENCHMARKS.md for why that matters).
+
+solver: substrate
+
+domain:
+  nx: 1024
+  ny: 1024
+  nz: 64
+  lx: 1.0
+
+grid:
+  block_x: 256
+  block_y: 256
+  block_z: 32
+  nghost: 2
+
+boundary:
+  periodic: true
+
+output:
+  every: 0
+  prefix: results/substrate/field
+
+bench:
+  iters: 50
+  verify_halo: true

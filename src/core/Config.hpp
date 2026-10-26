@@ -42,6 +42,12 @@ class Config {
   /// Write a commented YAML template for every option queried so far.
   void dumpTemplate(std::ostream& os) const;
 
+  /// Report keys present in the file that no option reader ever asked for.
+  /// Catches typos ("reynolds" vs "re") and unsupported syntax (a flow-style
+  /// `{a: 1}` map is stored as one opaque string and shows up here) instead of
+  /// silently running with defaults. Returns the number of such keys.
+  int reportUnknown(std::ostream& os) const;
+
   /// Every key present in the file.
   const std::map<std::string, std::string>& rawValues() const {
     return m_values;

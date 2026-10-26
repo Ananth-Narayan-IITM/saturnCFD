@@ -75,8 +75,6 @@ endif()
 add_executable(saturnCFD apps/main.cpp)
 target_link_libraries(saturnCFD PRIVATE saturn::core)
 
-add_executable(saturn_cavity apps/cavity.cpp)
-target_link_libraries(saturn_cavity PRIVATE saturn::core)
 
 # ------------------------------------------------------------------- tests ---
 if(SATURN_BUILD_TESTS)

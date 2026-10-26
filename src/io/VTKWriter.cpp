@@ -27,7 +27,7 @@ VTKWriter::VTKWriter(std::string base) : m_base(std::move(base)) {
 }
 
 void VTKWriter::write(const MultiFab& mf, const Geometry& geom, int step,
-                      double time) {
+                      double time, const std::vector<std::string>& compNames) {
   const std::string tag = stepTag(step);
 
   for (int lb = 0; lb < mf.numLocalBoxes(); ++lb) {
@@ -70,7 +70,10 @@ void VTKWriter::write(const MultiFab& mf, const Geometry& geom, int step,
     for (int c = 0; c < mf.numComp(); ++c) {
       os << "        <DataArray type=\""
          << (sizeof(Real) == 8 ? "Float64" : "Float32")
-         << "\" Name=\"c" << c << "\" NumberOfComponents=\"1\" format=\"ascii\">\n";
+         << "\" Name=\""
+         << (c < static_cast<int>(compNames.size()) ? compNames[c]
+                                                    : "c" + std::to_string(c))
+         << "\" NumberOfComponents=\"1\" format=\"ascii\">\n";
       for (int k = 0; k < nz; ++k)
         for (int j = 0; j < ny; ++j)
           for (int i = 0; i < nx; ++i)

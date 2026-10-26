@@ -1,0 +1,38 @@
+# saturnCFD case file — lid-driven cavity, quick demo
+#
+# This is the fastest case: 64 x 64, Re = 100, reaches steady state in seconds.
+# Use it to check that your build works.
+#
+#   saturnCFD examples/cavity_demo/case.yaml --threads 8
+#
+# Regenerate every available option with:
+#   saturnCFD --dump-config cavity
+
+solver: cavity
+
+domain:
+  nx: 64
+  ny: 64
+  length: 1.0
+
+flow:
+  reynolds: 100
+  lid_velocity: 1.0
+  scheme: minmod
+  cfl: 0.4
+  diffusion_safety: 0.25
+
+time:
+  end_time: 60.0
+  max_steps: 200000
+  steady_tol: 1.0e-6
+  check_every: 50
+
+pressure:
+  max_iter: 5000
+  tolerance: 1.0e-9
+
+output:
+  prefix: results/cavity_demo
+  centre_lines: true
+  vtk_every: 0

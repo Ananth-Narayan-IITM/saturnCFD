@@ -40,6 +40,7 @@
 // by a second-order Bell-Colella-Glaz scheme later.
 #pragma once
 
+#include <functional>
 #include <string>
 
 #include "amr/MultiFab.hpp"
@@ -56,6 +57,8 @@ struct CavityParams {
   Real diffusionFactor = 0.25; ///< viscous dt safety factor
   int poissonMaxIter = 5000;
   Real poissonTol = Real(1e-9);
+  /// Convection scheme, see solver/Limiters.hpp (4 = MC, a good default).
+  int scheme = 4;
 };
 
 struct SteadyReport {
@@ -79,7 +82,17 @@ class CavitySolver {
   void step(Real dt);
 
   /// March until `tEnd`, or until max|du| < tol between checks.
-  SteadyReport runToSteady(Real tEnd, int maxSteps, Real tol, int checkEvery);
+  /// `onOutput(step, time)` is called after initialisation and then every
+  /// `outputEvery` steps, so the driver can write VTK without the solver
+  /// knowing anything about file formats.
+  SteadyReport runToSteady(Real tEnd, int maxSteps, Real tol, int checkEvery,
+                           int outputEvery = 0,
+                           const std::function<void(int, Real)>& onOutput = {});
+
+  /// Interpolate the staggered velocity onto cell centres (components u, v).
+  /// This is what gets written to VTK: ParaView expects cell- or node-centred
+  /// data, not face-centred.
+  void cellCentredVelocity(MultiFab& out) const;
 
   /// u along the vertical centreline x = 0.5, as (y, u) pairs.
   /// v along the horizontal centreline y = 0.5, as (x, v) pairs.

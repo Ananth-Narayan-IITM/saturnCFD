@@ -1,4 +1,6 @@
 build/
+results/
+runs/
 output/
 *.o
 *.vtk
@@ -6,4 +8,3 @@ output/
 *.pvd
 compile_commands.json
 .cache/
-runs/
