@@ -17,11 +17,14 @@ struct Geometry {
   Real origin[NDIM3] = {0, 0, 0};  ///< physical coord of cell-centre of lo[0..]
   bool periodic[NDIM3] = {false, false, false};
 
+  KOKKOS_INLINE_FUNCTION
   int nCells(int d) const { return domain.hi[d] - domain.lo[d] + 1; }
 
+  KOKKOS_INLINE_FUNCTION
   BigIndex domainPts() const { return domain.numPts(); }
 
   /// Physical extent of the domain.
+  KOKKOS_INLINE_FUNCTION
   Real length(int d) const { return static_cast<Real>(nCells(d)) * dx; }
 
   /// Cell-centre coordinate of a global index.

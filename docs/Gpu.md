@@ -17,8 +17,16 @@ cmake --build build-gpu -j
 ```
 
 Kokkos is vendored in `external/kokkos` and built into `build-gpu/`, so nothing
-outside the repository is needed. The first build compiles Kokkos as well and
-takes a while; later builds are incremental.
+outside the repository is needed.
+
+**The first CUDA build is slow.** It compiles Kokkos itself, which on a 4-core
+laptop takes tens of minutes; afterwards it is incremental and only saturnCFD
+recompiles. If you already have a CUDA Kokkos install, skip that entirely:
+
+```bash
+cmake -S . -B build-gpu -DSATURN_BACKEND=cuda \
+      -DSATURN_KOKKOS_ROOT=/path/to/kokkos-install
+```
 
 What the switch does for you:
 
