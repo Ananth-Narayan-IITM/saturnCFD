@@ -192,6 +192,42 @@ schemes and is not an instability.
 
 ---
 
+## 7a. The explicit-diffusion limit is a trap, not just a bound
+
+On a 5-point Laplacian the 2D explicit diffusion limit is
+
+```
+dt  <=  h^2 / (4 nu)
+```
+
+A safety factor of 0.25 sits exactly ON that limit, and there the highest
+wavenumber (the checkerboard) has amplification
+
+```
+1 - dt * (8 nu / h^2)  =  -1
+```
+
+Unit magnitude. The mode neither grows nor decays, so any excitation — the
+singular lid corner is enough — leaves a permanent odd/even oscillation in the
+face velocities.
+
+That mode is **discretely divergence-free** on a staggered grid (`u` and `v`
+oscillate in antiphase), so the projection step cannot remove it, and averaging
+two neighbouring faces to cell centres hides it. The only visible symptom is an
+unphysical `max|u|`: 2.34 in a cavity whose lid moves at 1.0.
+
+Using 0.2 gives an amplification of -0.6 and the mode dies within a few steps.
+Measured on the Re = 100 cavity at 128²:
+
+| `diffusionSafety` | `max\|u\|` | `max\|div u\|` | RMS vs Ghia |
+|---|---:|---:|---:|
+| 0.25 | 2.34 | 6e-5 | 0.0039 |
+| 0.20 | 0.98 | 5e-11 | 0.0024 |
+
+The lesson generalises: for an explicit scheme, never sit on the stability
+limit. The usual "safety factor" is not conservative — it is the boundary
+between decaying and undamped.
+
 ## 8. What is deliberately not here yet
 
 | Missing | Consequence |

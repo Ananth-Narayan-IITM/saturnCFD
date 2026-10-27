@@ -20,7 +20,7 @@ flow:
   lidVelocity: 1.0
   scheme: minmod
   cfl: 0.4
-  diffusionSafety: 0.25
+  diffusionSafety: 0.2
 
 time:
   endTime: 60.0

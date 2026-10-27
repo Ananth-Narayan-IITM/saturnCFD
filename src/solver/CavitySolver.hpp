@@ -59,8 +59,16 @@ namespace saturn {
 struct CavityParams {
   Real reynolds = 100;
   Real lidVelocity = 1;
-  Real cfl = 0.4;               ///< convective dt safety factor
-  Real diffusionFactor = 0.25;  ///< viscous dt safety factor
+  Real cfl = 0.4;  ///< convective dt safety factor
+  /// Explicit viscous stability factor.
+  ///
+  /// In 2D the 5-point Laplacian gives the limit dt <= h^2/(4 nu). Using
+  /// exactly 0.25 sits ON that limit, where the highest-frequency
+  /// (checkerboard) mode has amplification factor exactly -1: it neither grows
+  /// nor decays, so any excitation (the lid corner) leaves a permanent spurious
+  /// odd/even velocity field. 0.2 gives an amplification of -0.6 and it dies
+  /// out. See examples/cavity/cavity.md for the measured evidence.
+  Real diffusionFactor = 0.2;
   // A projection only needs an approximate pressure solve. Asking for 1e-9
   // costs 2.5x the runtime for no visible change in the solution, and in a
   // warm-started solve the relative residual is measured against an already
