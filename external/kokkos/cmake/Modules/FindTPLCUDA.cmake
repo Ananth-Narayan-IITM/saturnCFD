@@ -1,0 +1,26 @@
+if(NOT CUDAToolkit_ROOT)
+  if(NOT CUDA_ROOT)
+    set(CUDA_ROOT $ENV{CUDA_ROOT})
+  endif()
+  if(CUDA_ROOT)
+    set(CUDAToolkit_ROOT ${CUDA_ROOT})
+  endif()
+endif()
+
+set(TPL_CUDA_LIBRARIES "")
+if(KOKKOS_ENABLE_COMPILE_AS_CMAKE_LANGUAGE)
+  set(TPL_CUDA_LIBRARIES CUDA::cuda_driver)
+else()
+  set(TPL_CUDA_LIBRARIES CUDA::cuda_driver CUDA::cudart)
+endif()
+
+find_package(CUDAToolkit REQUIRED)
+kokkos_export_cmake_tpl(CUDAToolkit REQUIRED)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_VERSION VERSION_LESS 3.31.9 AND CUDAToolkit_VERSION
+                                                                                    VERSION_GREATER_EQUAL 13.0
+)
+  find_package(CCCL REQUIRED PATHS "${CUDAToolkit_LIBRARY_DIR}/cmake/cccl" NO_DEFAULT_PATH)
+  list(APPEND TPL_CUDA_LIBRARIES CCCL::CCCL)
+  kokkos_export_cmake_tpl(CCCL REQUIRED)
+endif()
+kokkos_create_imported_tpl(CUDA INTERFACE LINK_LIBRARIES ${TPL_CUDA_LIBRARIES})

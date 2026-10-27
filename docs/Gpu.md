@@ -8,26 +8,32 @@ pitfalls that shaped the code.
 
 ## 1. Build
 
-Two things must match: the Kokkos install must have been built **with CUDA**, and
-the compiler must be Kokkos' `nvcc_wrapper` (not `nvcc` directly).
+One parameter. It picks the compiler, the GPU architecture and the precision:
 
 ```bash
-export NVCC_WRAPPER_DEFAULT_COMPILER=g++-13   # must be a host compiler nvcc supports
-
-cmake -S . -B buildcuda \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_CXX_COMPILER=$HOME/PhD/Kokkos/NVIDIA/bin/nvcc_wrapper \
-  -DCMAKE_PREFIX_PATH=$HOME/PhD/Kokkos/kokkosNVIDIA \
-  -DSATURN_PRECISION=float
-
-cmake --build buildcuda -j
-./buildcuda/saturn_tests        # expect: 80/80 checks passed
+cmake -S . -B build-gpu -DSATURN_BACKEND=cuda -DCMAKE_BUILD_TYPE=Release
+cmake --build build-gpu -j
+./build-gpu/saturn_tests        # expect: 80/80 checks passed
 ```
 
-Check that the backend really is CUDA:
+Kokkos is vendored in `external/kokkos` and built into `build-gpu/`, so nothing
+outside the repository is needed. The first build compiles Kokkos as well and
+takes a while; later builds are incremental.
+
+What the switch does for you:
+
+| | |
+|---|---|
+| compiler | `external/scripts/nvccWrapper.sh` → Kokkos `nvcc_wrapper`, with a host `g++` nvcc supports |
+| arch | read from `nvidia-smi --query-gpu=compute_cap`, mapped to `AMPERE86` etc. |
+| precision | `float` on CUDA (override with `-DSATURN_PRECISION=double`) |
+| Kokkos | built from `external/kokkos`, or use `-DSATURN_KOKKOS_ROOT=/path` |
+
+Check the backend really is CUDA — the configure summary and the run header both
+say so:
 
 ```bash
-./buildcuda/saturnCFD examples/cavity/demo.yaml
+./build-gpu/saturnCFD examples/cavity/demo.yaml
 #   backend   : Cuda
 ```
 
@@ -96,7 +102,7 @@ roadmap.
 ## 3. Verifying the GPU gives the right answer
 
 ```bash
-./buildcuda/saturnCFD examples/cavity/demo.yaml
+./build-gpu/saturnCFD examples/cavity/demo.yaml
 ```
 
 GPU and CPU (both float) agree to **1e-7** on all 64 centreline points, reach the
@@ -172,9 +178,9 @@ pressure:
   tolerance: 1.0e-6
 YAML
 
-./buildcuda/saturnCFD /tmp/bench.yaml     # GPU
-./build/saturnCFD /tmp/bench.yaml --threads 8   # CPU float build
+./build-gpu/saturnCFD /tmp/bench.yaml     # GPU
+./build-cpu/saturnCFD /tmp/bench.yaml --threads 8   # CPU float build
 ```
 
-Profiling: `compute-sanitizer --tool memcheck ./buildcuda/saturnCFD <case>` was
+Profiling: `compute-sanitizer --tool memcheck ./build-gpu/saturnCFD <case>` was
 what located the illegal-access bugs above.

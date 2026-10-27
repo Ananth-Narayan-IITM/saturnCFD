@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// SPDX-FileCopyrightText: Copyright Contributors to the Kokkos project
+
+#include <TestAtomicOperations.hpp>
+
+namespace Test {
+TEST(TEST_CATEGORY, atomic_operations_double) {
+  const int start = -5;
+  const int end   = 11;
+  for (int i = start; i < end; ++i) {
+    for (int t = 0; t < 7; t++) {
+      if (t == 5 && sizeof(void*) == 4) {
+        // 32-bit x86 may do reference division in 80-bit x87, so allow up to
+        // one ULP.
+        ASSERT_TRUE((TestAtomicOperations::AtomicOperationsTestNonIntegralType<
+                     double, TEST_EXECSPACE, true>(i, end - i + start, t)));
+      } else {
+        ASSERT_TRUE((TestAtomicOperations::AtomicOperationsTestNonIntegralType<
+                     double, TEST_EXECSPACE>(i, end - i + start, t)));
+      }
+    }
+  }
+}
+}  // namespace Test

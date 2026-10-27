@@ -1,0 +1,43 @@
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// SPDX-FileCopyrightText: Copyright Contributors to the Kokkos project
+
+#include <gtest/gtest.h>
+
+#include <Kokkos_Macros.hpp>
+#ifdef KOKKOS_ENABLE_EXPERIMENTAL_CXX20_MODULES
+import kokkos.core;
+#else
+#include <Kokkos_InitializeFinalize.hpp>
+#endif
+
+#include "KokkosExecutionEnvironmentNeverInitializedFixture.hpp"
+
+#include <cstdlib>
+
+namespace {
+
+using KokkosHelpCausesNormalProgramTermination_DeathTest =
+    KokkosExecutionEnvironmentNeverInitialized;
+
+TEST_F(KokkosHelpCausesNormalProgramTermination_DeathTest,
+       print_help_and_exit_early) {
+  int argc = 1;
+
+  char const *argv[] = {
+      "--kokkos-help",
+      nullptr,
+  };
+
+  ::testing::internal::CaptureStdout();
+
+  EXPECT_EXIT(
+      {
+        Kokkos::initialize(argc, const_cast<char **>(argv));
+        std::abort();  // should have exited and not reach that line
+      },
+      ::testing::ExitedWithCode(EXIT_SUCCESS), "");
+
+  (void)::testing::internal::GetCapturedStdout();
+}
+
+}  // namespace

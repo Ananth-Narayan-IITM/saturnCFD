@@ -7,52 +7,81 @@ bug in this document.
 
 ## 1. Build
 
+### The one switch
+
+Everything about the build route is decided by a single parameter:
+
+```bash
+-DSATURN_BACKEND=<serial|openmp|cuda|hip|sycl>
+```
+
+It selects the Kokkos backend, the compiler (CUDA uses the bundled
+`nvcc_wrapper`, with a host compiler nvcc actually supports), the GPU
+architecture (auto-detected from `nvidia-smi`), and a sensible precision
+(`float` on CUDA, `double` otherwise). You do not pass compilers, prefixes or
+Kokkos flags by hand.
+
+### Where Kokkos comes from
+
+Kokkos is **vendored** in `external/kokkos` and built as part of this project,
+so its build tree lands in `saturnCFD/build-*/` and nothing outside the
+repository is required. The first configure/build compiles Kokkos too, which
+takes a few minutes (longer with CUDA); afterwards it is incremental.
+
+To reuse a prebuilt Kokkos instead — which is what you want on a cluster — add
+`-DSATURN_KOKKOS_ROOT=/path/to/kokkos-install`.
+
 ### Prerequisites
 
 - CMake >= 3.24
-- A C++20 compiler (Kokkos >= 5 requires C++20)
-- Kokkos, built for the backend you want (Serial / OpenMP / CUDA / HIP / SYCL)
+- A C++20 compiler
+- For CUDA: a CUDA toolkit; a host `g++` that nvcc supports (the shim picks the
+  newest of `g++-13`, `g++-12`, `g++-11`, `g++` it can find)
 
-If Kokkos is not in a standard location, point CMake at it.
+### Commands
 
 ```bash
-# CPU (OpenMP), the default development build
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_PREFIX_PATH=/usr/local
-cmake --build build -j
+# CPU, OpenMP, double precision  (the default backend)
+cmake -S . -B build-cpu -DSATURN_BACKEND=openmp -DCMAKE_BUILD_TYPE=Release
+cmake --build build-cpu -j
 
-# 3D instead of 2D
-cmake -S . -B build3d -DCMAKE_BUILD_TYPE=Release \
-      -DSATURN_NDIM=3 -DCMAKE_PREFIX_PATH=/usr/local
-cmake --build build3d -j
+# NVIDIA GPU (CUDA, float, arch detected from the GPU)
+cmake -S . -B build-gpu -DSATURN_BACKEND=cuda -DCMAKE_BUILD_TYPE=Release
+cmake --build build-gpu -j
 
-# single precision
-cmake -S . -B buildf -DCMAKE_BUILD_TYPE=Release \
-      -DSATURN_PRECISION=float -DCMAKE_PREFIX_PATH=/usr/local
+# single-threaded serial, useful for debugging
+cmake -S . -B build-serial -DSATURN_BACKEND=serial -DCMAKE_BUILD_TYPE=Release
 
-# with MPI (needed for multi-rank runs)
-cmake -S . -B buildmpi -DCMAKE_BUILD_TYPE=Release \
-      -DSATURN_ENABLE_MPI=ON -DCMAKE_PREFIX_PATH=/usr/local
+# 3D
+cmake -S . -B build-3d -DSATURN_BACKEND=openmp -DSATURN_NDIM=3
 
-# CUDA. The Kokkos install must itself have been built with CUDA, and the
-# compiler must be Kokkos' nvcc_wrapper, not nvcc directly. On a consumer GPU
-# build with float: FP64 runs at 1/64 rate there and would be slower than the
-# CPU. See docs/Gpu.md.
-export NVCC_WRAPPER_DEFAULT_COMPILER=g++-13
-cmake -S . -B buildcuda -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_CXX_COMPILER=$HOME/PhD/Kokkos/NVIDIA/bin/nvcc_wrapper \
-      -DCMAKE_PREFIX_PATH=$HOME/PhD/Kokkos/kokkosNVIDIA \
-      -DSATURN_PRECISION=float
-cmake --build buildcuda -j
-./buildcuda/saturn_tests
+# MPI
+cmake -S . -B build-mpi -DSATURN_BACKEND=openmp -DSATURN_ENABLE_MPI=ON
+
+# override the defaults if you really need to
+cmake -S . -B build-x -DSATURN_BACKEND=cuda \
+      -DSATURN_PRECISION=double -DSATURN_CUDA_ARCH=HOPPER90 \
+      -DSATURN_KOKKOS_ROOT=/opt/kokkos
 ```
+
+> **Use a separate build directory per backend.** CMake fixes the compiler at
+> configure time, so switching between `openmp` and `cuda` in the same directory
+> will not work. The configure output always echoes what it chose:
+>
+> ```
+> -- saturnCFD 0.3.0
+> --   backend    : cuda
+> --   kokkos     : vendored (built into this build tree)
+> --   precision  : float
+> --   dimension  : 2D
+> ```
 
 ### Verify the build
 
 ```bash
-ctest --test-dir build --output-on-failure
+ctest --test-dir build-cpu --output-on-failure
 # or directly:
-./build/saturn_tests
+./build-cpu/saturn_tests
 ```
 
 Expected: `80/80 checks passed`. The tests cover the box algebra, the patch
@@ -72,28 +101,28 @@ solver: cavity      # or: substrate
 
 ```bash
 # quick smoke test (~10 s)
-./build/saturnCFD examples/cavity/demo.yaml
+./build-cpu/saturnCFD examples/cavity/demo.yaml
 
 # Re = 100 at 128^2, the Ghia benchmark point
-./build/saturnCFD examples/cavity/re100.yaml
+./build-cpu/saturnCFD examples/cavity/re100.yaml
 
 # Re = 1000, the classical validation point (minutes to tens of minutes)
-./build/saturnCFD examples/cavity/re1000.yaml
+./build-cpu/saturnCFD examples/cavity/re1000.yaml
 
 # Re = 10000 at 256^2 -- see the warning in the file, this is a long run
-./build/saturnCFD examples/cavity/re10000.yaml
+./build-cpu/saturnCFD examples/cavity/re10000.yaml
 
 # parallel substrate benchmark
-./build/saturnCFD examples/substrate/benchmark.yaml --threads 8
+./build-cpu/saturnCFD examples/substrate/benchmark.yaml --threads 8
 ```
 
 Useful flags:
 
 ```bash
-./build/saturnCFD --list-solvers            # what solvers exist
-./build/saturnCFD --dump-config cavity      # every option, with defaults
-./build/saturnCFD --dump-config substrate
-./build/saturnCFD --threads 8 <case.yaml>   # override thread count
+./build-cpu/saturnCFD --list-solvers            # what solvers exist
+./build-cpu/saturnCFD --dump-config cavity      # every option, with defaults
+./build-cpu/saturnCFD --dump-config substrate
+./build-cpu/saturnCFD --threads 8 <case.yaml>   # override thread count
 ```
 
 ### Why `--dump-config` matters
@@ -111,7 +140,7 @@ Copy the example directory and edit the YAML. Nothing is compiled in:
 ```bash
 cp -r examples/cavity/re100.yaml my_case
 sed -i 's/reynolds: 100/reynolds: 500/' my_case/case.yaml
-./build/saturnCFD my_case/case.yaml
+./build-cpu/saturnCFD my_case/case.yaml
 ```
 
 ### Convection schemes
@@ -170,7 +199,7 @@ output:
 Then:
 
 ```bash
-./build/saturnCFD examples/cavity/re1000.yaml
+./build-cpu/saturnCFD examples/cavity/re1000.yaml
 paraview results/cavity/re1000/field.pvd
 ```
 

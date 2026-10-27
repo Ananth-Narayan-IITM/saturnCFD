@@ -85,16 +85,15 @@ builder walks the full grown box, not just faces).
 ## What is deliberately not measured yet
 
 - MPI strong/weak scaling (no MPI on the dev box; cluster task).
-- GPU performance (Kokkos CUDA build exists at `~/PhD/Kokkos/kokkosNVIDIA`,
-  built for `AMPERE86` — a separate tuning exercise).
+- GPU performance is measured separately in `docs/Gpu.md`.
 - Halo exchange cost as a fraction of a timestep (needs the flow solver).
 
 ## Reproduction
 
 ```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/usr/local
-cmake --build build -j
-./build/saturnCFD apps/sample.yaml --threads 8
+cmake -S . -B build-cpu -DSATURN_BACKEND=openmp -DCMAKE_BUILD_TYPE=Release
+cmake --build build-cpu -j
+./build-cpu/saturnCFD examples/substrate/benchmark.yaml --threads 8
 ```
 
 Vary `grid.blockX` / `grid.blockY` in the YAML to change the patch count.
