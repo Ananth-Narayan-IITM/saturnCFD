@@ -29,7 +29,6 @@ endif()
 project(saturnCFD VERSION 0.3.0 LANGUAGES CXX
         DESCRIPTION "Finite-volume incompressible CFD with block-structured AMR")
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
