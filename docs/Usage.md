@@ -34,12 +34,17 @@ cmake -S . -B buildf -DCMAKE_BUILD_TYPE=Release \
 cmake -S . -B buildmpi -DCMAKE_BUILD_TYPE=Release \
       -DSATURN_ENABLE_MPI=ON -DCMAKE_PREFIX_PATH=/usr/local
 
-# CUDA: Kokkos must have been built with CUDA, and the compiler must be
-# nvcc_wrapper, which Kokkos installs. Adjust the arch to your GPU.
+# CUDA. The Kokkos install must itself have been built with CUDA, and the
+# compiler must be Kokkos' nvcc_wrapper, not nvcc directly. On a consumer GPU
+# build with float: FP64 runs at 1/64 rate there and would be slower than the
+# CPU. See docs/Gpu.md.
+export NVCC_WRAPPER_DEFAULT_COMPILER=g++-13
 cmake -S . -B buildcuda -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_CXX_COMPILER=$(which nvcc_wrapper) \
-      -DKokkos_ARCH_AMPERE86=ON \
-      -DCMAKE_PREFIX_PATH=$HOME/PhD/Kokkos/kokkosNVIDIA
+      -DCMAKE_CXX_COMPILER=$HOME/PhD/Kokkos/NVIDIA/bin/nvcc_wrapper \
+      -DCMAKE_PREFIX_PATH=$HOME/PhD/Kokkos/kokkosNVIDIA \
+      -DSATURN_PRECISION=float
+cmake --build buildcuda -j
+./buildcuda/saturn_tests
 ```
 
 ### Verify the build

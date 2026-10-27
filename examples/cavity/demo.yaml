@@ -29,8 +29,8 @@ time:
   checkEvery: 50
 
 pressure:
-  maxIter: 5000
-  tolerance: 1.0e-9
+  maxIter: 200
+  tolerance: 1.0e-6
 
 output:
   prefix: results/cavity/demo

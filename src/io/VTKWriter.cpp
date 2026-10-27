@@ -29,26 +29,54 @@ VTKWriter::VTKWriter(std::string base) : mBase(std::move(base)) {
 void VTKWriter::write(const MultiFab& mf, const Geometry& geom, int step,
                       double time, const std::vector<std::string>& compNames) {
   const std::string tag = stepTag(step);
+  const int ng = mf.nGrow();
+  const int nc = mf.numComp();
+
+  // The field may live in GPU memory. Copy to the host ONCE for the whole
+  // MultiFab, then index the flat layout directly. (Reading through an Array4
+  // on the host would dereference device memory and segfault.)
+  auto host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), mf.data());
+
+  // Walk the local boxes in the same order MultiFab::allocate() laid them out,
+  // accumulating each patch's offset into the flat buffer.
+  std::size_t base = 0;
 
   for (int lb = 0; lb < mf.numLocalBoxes(); ++lb) {
     const int gbox = mf.localToGlobal(lb);
     const Box bx = mf.boxArray()[gbox];
-    const Array4<Real> a = mf.array(lb);
+
+    const int nx = bx.length(0);
+    const int ny = bx.length(1);
+    const int nz = (NDIM == 3) ? bx.length(2) : 1;
+
+    const int ex = nx + 2 * ng;  // extent including ghosts
+    const int ey = ny + 2 * ng;
+    const int ez = (NDIM == 3) ? (nz + 2 * ng) : 1;
+
+    const std::size_t sy = static_cast<std::size_t>(ex);
+    const std::size_t sz = sy * static_cast<std::size_t>(ey);
+    const std::size_t sc = sz * static_cast<std::size_t>(ez);
+    const std::size_t patchSize = sc * static_cast<std::size_t>(nc);
+
+    // (i, j, k) are global indices; convert to the ghost-inclusive local slot.
+    auto at = [&](int c, int i, int j, int k) -> Real {
+      const std::size_t ii = static_cast<std::size_t>(i - bx.lo[0] + ng);
+      const std::size_t jj = static_cast<std::size_t>(j - bx.lo[1] + ng);
+      const std::size_t kk =
+          (NDIM == 3) ? static_cast<std::size_t>(k - bx.lo[2] + ng) : 0u;
+      return host[base + static_cast<std::size_t>(c) * sc + kk * sz + jj * sy +
+                  ii];
+    };
 
     char name[512];
-    std::snprintf(name, sizeof(name), "%s_%sP%04d.vti", mBase.c_str(),
+    std::snprintf(name, sizeof(name), "%s_%s_p%04d.vti", mBase.c_str(),
                   tag.c_str(), gbox);
 
     std::ofstream os(name);
     if (!os)
       throw std::runtime_error(std::string("VTKWriter: cannot open ") + name);
 
-    // Extent in local (0-based) indices.
-    const int nx = bx.length(0);
-    const int ny = bx.length(1);
-    const int nz = (NDIM == 3) ? bx.length(2) : 1;
-
-    // Physical origin of the first cell centre minus half a cell.
     Real org[3] = {0, 0, 0};
     Real spc[3] = {geom.dx, geom.dx, static_cast<Real>(1)};
     for (int d = 0; d < NDIM; ++d)
@@ -69,7 +97,7 @@ void VTKWriter::write(const MultiFab& mf, const Geometry& geom, int step,
     os << "      <CellData>\n";
 
     os << std::setprecision(std::numeric_limits<Real>::max_digits10);
-    for (int c = 0; c < mf.numComp(); ++c) {
+    for (int c = 0; c < nc; ++c) {
       os << "        <DataArray type=\""
          << (sizeof(Real) == 8 ? "Float64" : "Float32") << "\" Name=\""
          << (c < static_cast<int>(compNames.size()) ? compNames[c]
@@ -78,7 +106,7 @@ void VTKWriter::write(const MultiFab& mf, const Geometry& geom, int step,
       for (int k = 0; k < nz; ++k)
         for (int j = 0; j < ny; ++j)
           for (int i = 0; i < nx; ++i)
-            os << a(bx.lo[0] + i, bx.lo[1] + j, bx.lo[2] + k, c)
+            os << at(c, bx.lo[0] + i, bx.lo[1] + j, bx.lo[2] + k)
                << ((i + 1) % nx == 0 ? "\n" : " ");
       os << "        </DataArray>\n";
     }
@@ -89,6 +117,7 @@ void VTKWriter::write(const MultiFab& mf, const Geometry& geom, int step,
     os << "</VTKFile>\n";
 
     mEntries.push_back(Entry{step, time, name, gbox});
+    base += patchSize;
   }
 }
 
@@ -103,7 +132,6 @@ void VTKWriter::finalize() {
         "byte_order=\"LittleEndian\">\n";
   os << "  <Collection>\n";
   for (const auto& e : mEntries) {
-    // Strip the directory part: .pvd and .vti live side by side.
     std::string f = e.file;
     const auto slash = f.find_last_of('/');
     if (slash != std::string::npos)

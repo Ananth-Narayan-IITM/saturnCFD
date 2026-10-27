@@ -82,7 +82,7 @@ TEST(multifabFillAndReduce) {
   CHECKEQ(mf.numLocalBoxes(), ba.size());
   CHECKEQ(mf.numLocalPts(), g.domainPts());
 
-  mf.forEachCell([](int, Array4<Real> a, int i, int j, int k) {
+  mf.forEachCell(KOKKOS_LAMBDA(int, Array4<Real> a, int i, int j, int k) {
     a(i, j, k, 0) = Real(2);
   });
 
@@ -109,14 +109,20 @@ TEST(multifabGlobalBoxLookup) {
     CHECK(a.p != nullptr);
   }
 
-  // Component addressing must not collide.
+  // Component addressing must not collide. NOTE: this must run on the device.
+  // Touching an Array4 from the host would dereference GPU memory on a CUDA
+  // build, so each corner write is its own kernel.
   mf.setVal(0.0);
   for (int lb = 0; lb < mf.numLocalBoxes(); ++lb) {
     const Box bx = mf.boxArray()[mf.localToGlobal(lb)];
     const Array4<Real> a = mf.array(lb);
-    a(bx.lo[0], bx.lo[1], bx.lo[2], 0) = Real(1);
-    a(bx.lo[0], bx.lo[1], bx.lo[2], 1) = Real(5);
+    const int i0 = bx.lo[0], j0 = bx.lo[1], k0 = bx.lo[2];
+    Kokkos::parallel_for(
+        "cornerWrite", Kokkos::RangePolicy<>(0, 1), KOKKOS_LAMBDA(int) {
+          a(i0, j0, k0, 0) = Real(1);
+          a(i0, j0, k0, 1) = Real(5);
+        });
   }
-  CHECKNEAR(mf.localSum(0), static_cast<double>(ba.size()), 1e-12);
-  CHECKNEAR(mf.localSum(1), static_cast<double>(ba.size()) * 5.0, 1e-12);
+  CHECKEQ(mf.localSum(0), static_cast<double>(ba.size()));
+  CHECKEQ(mf.localSum(1), static_cast<double>(ba.size()) * 5.0);
 }

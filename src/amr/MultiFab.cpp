@@ -53,6 +53,7 @@ void MultiFab::allocate() {
     hCounts(b + 1) = hCounts(b) + bx.numPts();
   }
   mLocalCells = total;
+  mLocalValidCells = hCounts(nb);
 
   Kokkos::deep_copy(mDeviceBoxes, hBoxes);
   Kokkos::deep_copy(mDeviceOffsets, hOffsets);

@@ -119,8 +119,7 @@ Real analyticField(const Geometry& g, int i, int j, int k) {
 }
 
 Real substrateGhostError(const MultiFab& mf, const Geometry& geom) {
-  Real mx = Real(0);
-  Kokkos::Max<Real> err(mx);
+  Real best = Real(0);
   for (int lb = 0; lb < mf.numLocalBoxes(); ++lb) {
     const Box bx = mf.boxArray()[mf.localToGlobal(lb)];
     const Array4<Real> a = mf.array(lb);
@@ -128,6 +127,8 @@ Real substrateGhostError(const MultiFab& mf, const Geometry& geom) {
     const int n0 = gb.length(0), n1 = gb.length(1);
     const int n2 = (NDIM == 3) ? gb.length(2) : 1;
     const Box dom = geom.domain;
+    Real m0 = Real(0);
+    Kokkos::Max<Real> err(m0);
     Kokkos::parallel_reduce(
         "substrate::ghostError", Kokkos::RangePolicy<>(0, n0 * n1 * n2),
         KOKKOS_LAMBDA(int idx, Real& m) {
@@ -146,8 +147,10 @@ Real substrateGhostError(const MultiFab& mf, const Geometry& geom) {
             m = d;
         },
         err);
+    if (err.reference() > best)
+      best = err.reference();
   }
-  return err.reference();
+  return best;
 }
 
 int runSubstrate(const SubstrateOptions& opt) {
@@ -178,7 +181,7 @@ int runSubstrate(const SubstrateOptions& opt) {
   MultiFab lap(ba, dm, 1, 0, 0, "lap");
 
   const Geometry g = geom;
-  f.forEachCell([=](int, Array4<Real> a, int i, int j, int k) {
+  f.forEachCell(KOKKOS_LAMBDA(int, Array4<Real> a, int i, int j, int k) {
     a(i, j, k, 0) = analyticField(g, i, j, k);
   });
 

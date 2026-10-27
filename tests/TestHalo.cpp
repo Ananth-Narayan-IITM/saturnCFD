@@ -94,7 +94,7 @@ TEST(haloSingleBoxPeriodicWrapsOntoItself) {
   const DistributionMapping dm = DistributionMapping::roundRobin(ba, 1);
 
   MultiFab mf(ba, dm, 1, 2, 0, "mf");
-  mf.forEachCell([=](int, Array4<Real> a, int i, int j, int k) {
+  mf.forEachCell(KOKKOS_LAMBDA(int, Array4<Real> a, int i, int j, int k) {
     a(i, j, k, 0) = wave(g, i, j, k);
   });
 
@@ -120,7 +120,7 @@ TEST(haloMultiBoxPeriodic) {
   const DistributionMapping dm = DistributionMapping::roundRobin(ba, 1);
 
   MultiFab mf(ba, dm, 1, 2, 0, "mf");
-  mf.forEachCell([=](int, Array4<Real> a, int i, int j, int k) {
+  mf.forEachCell(KOKKOS_LAMBDA(int, Array4<Real> a, int i, int j, int k) {
     a(i, j, k, 0) = wave(g, i, j, k);
   });
 

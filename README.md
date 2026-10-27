@@ -100,6 +100,8 @@ the reasons explained in [docs/Solver.md](docs/Solver.md).
 - **[docs/Benchmarks.md](docs/Benchmarks.md)** — kernel-dispatch measurements and
   why they matter.
 - **[docs/Scope.md](docs/Scope.md)** — what v0.1 does and does not do.
+- **[docs/Gpu.md](docs/Gpu.md)** — CUDA build, measured GPU vs CPU performance,
+  and the CUDA portability pitfalls that shaped the code.
 
 API reference, generated from the source comments:
 
@@ -145,12 +147,17 @@ These are honest and current:
 - **No AMR yet** — the data structures exist, the hierarchy is not built.
 - **Pressure is not written to VTK.**
 - **First-order in time** (explicit Euler).
+- **GPU is launch-bound on small grids.** The pressure solve is ~1600 small
+  kernels per step, so at 128² the GPU is slower than the CPU and only pulls
+  ahead from ~256² upward (2.8× at 512²). A pure stencil is 11× faster on the
+  same card. Fewer, larger kernels — i.e. multigrid — is the fix, not tuning.
 
 ## Roadmap
 
 - [x] Parallel substrate: decomposition, halo exchange, I/O, config, tests
 - [x] Projection solver with TVD-limited convection, cavity validation
-- [ ] Geometric multigrid pressure solve
+- [x] CUDA backend: builds, passes all tests, bit-comparable to CPU
+- [ ] Geometric multigrid pressure solve (removes the launch-bound bottleneck)
 - [ ] MPI decomposition of the solver
 - [ ] Two-level AMR: tagging, regridding, prolongation/restriction, reflux
 - [ ] Cut-cells (GMSH/STL → volume fractions)

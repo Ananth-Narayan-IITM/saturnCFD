@@ -1,4 +1,5 @@
 #include <cmath>
+#include <limits>
 
 #include "TestHarness.hpp"
 #include "amr/BoxArray.hpp"
@@ -105,7 +106,7 @@ TEST(poissonDirichletSecondOrder) {
 
     PoissonParams prm;
     prm.bc = BCType::Dirichlet;
-    prm.relTol = Real(1e-12);
+    prm.relTol = (sizeof(Real) == 8) ? Real(1e-12) : Real(1e-5);
     prm.maxIter = 20000;
 
     const PoissonResult res = solvePoisson(p, rhs, s.geom, s.halo, prm);
@@ -141,7 +142,7 @@ TEST(poissonNeumannManufactured) {
 
   PoissonParams prm;
   prm.bc = BCType::Neumann;
-  prm.relTol = Real(1e-11);
+  prm.relTol = (sizeof(Real) == 8) ? Real(1e-11) : Real(1e-5);
   prm.maxIter = 20000;
 
   const PoissonResult res = solvePoisson(p, rhs, s.geom, s.halo, prm);
