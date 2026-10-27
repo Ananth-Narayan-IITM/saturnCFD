@@ -1,6 +1,6 @@
 // saturnCFD — single solver binary, driven entirely by a case YAML file.
 //
-//   saturnCFD examples/cavity_re100/case.yaml
+//   saturnCFD examples/cavity/re100.yamlcase.yaml
 //   saturnCFD --list-solvers
 //   saturnCFD --dump-config cavity        # commented template for that solver
 //
@@ -50,22 +50,24 @@ struct Cli {
 };
 
 void printUsage() {
-  std::cout <<
-      "saturnCFD — finite-volume incompressible solver\n\n"
-      "usage:\n"
-      "  saturnCFD <case.yaml>          run a case\n"
-      "  saturnCFD --list-solvers       list available solvers\n"
-      "  saturnCFD --dump-config S      print a commented YAML template for S\n\n"
-      "options:\n"
-      "  --threads N                    override the Kokkos thread count\n"
-      "  -h, --help                     this message\n";
+  std::cout
+      << "saturnCFD — finite-volume incompressible solver\n\n"
+         "usage:\n"
+         "  saturnCFD <case.yaml>          run a case\n"
+         "  saturnCFD --list-solvers       list available solvers\n"
+         "  saturnCFD --dump-config S      print a commented YAML template for "
+         "S\n\n"
+         "options:\n"
+         "  --threads N                    override the Kokkos thread count\n"
+         "  -h, --help                     this message\n";
 }
 
 void printSolvers() {
-  std::cout <<
-      "available solvers (select with `solver:` in the case file):\n\n"
-      "  cavity      lid-driven cavity, staggered projection, single level\n"
-      "  substrate   parallel substrate benchmark (halo exchange + bandwidth)\n";
+  std::cout
+      << "available solvers (select with `solver:` in the case file):\n\n"
+         "  cavity      lid-driven cavity, staggered projection, single level\n"
+         "  substrate   parallel substrate benchmark (halo exchange + "
+         "bandwidth)\n";
 }
 
 // ===========================================================================
@@ -89,18 +91,19 @@ SubstrateOptions readSubstrateOptions(const Config& cfg) {
   o.ny = cfg.getInt("domain.ny", o.ny, "cells in y at level 0");
   o.nz = cfg.getInt("domain.nz", o.nz, "cells in z (3D builds only)");
   o.lx = cfg.getDouble("domain.lx", o.lx, "physical length in x");
-  o.bx = cfg.getInt("grid.block_x", o.bx, "max patch size in x");
-  o.by = cfg.getInt("grid.block_y", o.by, "max patch size in y");
-  o.bz = cfg.getInt("grid.block_z", o.bz, "max patch size in z");
+  o.bx = cfg.getInt("grid.blockX", o.bx, "max patch size in x");
+  o.by = cfg.getInt("grid.blockY", o.by, "max patch size in y");
+  o.bz = cfg.getInt("grid.blockZ", o.bz, "max patch size in z");
   o.nghost = cfg.getInt("grid.nghost", o.nghost, "ghost layers per field");
   o.periodic = cfg.getBool("boundary.periodic", o.periodic,
                            "periodic in every direction");
   o.outEvery = cfg.getInt("output.every", o.outEvery,
                           "write VTK every N steps (0 = never)");
-  o.outPrefix = cfg.getString("output.prefix", o.outPrefix, "VTK output prefix");
+  o.outPrefix =
+      cfg.getString("output.prefix", o.outPrefix, "VTK output prefix");
   o.benchIters = cfg.getInt("bench.iters", o.benchIters,
                             "stencil iterations for the bandwidth benchmark");
-  o.verifyHalo = cfg.getBool("bench.verify_halo", o.verifyHalo,
+  o.verifyHalo = cfg.getBool("bench.verifyHalo", o.verifyHalo,
                              "compare ghost cells against the analytic field");
   return o;
 }
@@ -110,7 +113,8 @@ Real analyticField(const Geometry& g, int i, int j, int k) {
   const Real pi = 3.14159265358979323846;
   Real v = Kokkos::sin(2 * pi * g.xc(0, i) / g.length(0)) *
            Kokkos::sin(2 * pi * g.xc(1, j) / g.length(1));
-  if (NDIM == 3) v *= Kokkos::sin(2 * pi * g.xc(2, k) / g.length(2));
+  if (NDIM == 3)
+    v *= Kokkos::sin(2 * pi * g.xc(2, k) / g.length(2));
   return v;
 }
 
@@ -132,11 +136,14 @@ Real substrateGhostError(const MultiFab& mf, const Geometry& geom) {
           const int j = gb.lo[1] + r % n1;
           const int k = (NDIM == 3) ? (gb.lo[2] + r / n1) : 0;
           Idx p{i, j, k};
-          if (bx.contains(p)) return;
-          if (!dom.contains(p)) return;
+          if (bx.contains(p))
+            return;
+          if (!dom.contains(p))
+            return;
           const Real d =
               Kokkos::abs(a(i, j, k, 0) - analyticField(geom, i, j, k));
-          if (d > m) m = d;
+          if (d > m)
+            m = d;
         },
         err);
   }
@@ -148,15 +155,18 @@ int runSubstrate(const SubstrateOptions& opt) {
   Idx ext{};
   ext[0] = opt.nx;
   ext[1] = opt.ny;
-  if (NDIM == 3) ext[2] = opt.nz;
+  if (NDIM == 3)
+    ext[2] = opt.nz;
   geom.domain = Box::fromExtent(ext);
   geom.dx = static_cast<Real>(opt.lx) / static_cast<Real>(opt.nx);
-  for (int d = 0; d < NDIM; ++d) geom.periodic[d] = opt.periodic;
+  for (int d = 0; d < NDIM; ++d)
+    geom.periodic[d] = opt.periodic;
 
   Idx patch{};
   patch[0] = opt.bx;
   patch[1] = opt.by;
-  if (NDIM == 3) patch[2] = opt.bz;
+  if (NDIM == 3)
+    patch[2] = opt.bz;
 
   const BoxArray ba = BoxArray::tileDomain(geom.domain, patch);
   const DistributionMapping dm = DistributionMapping::roundRobin(ba, 1);
@@ -194,14 +204,16 @@ int runSubstrate(const SubstrateOptions& opt) {
   const View<Array4<Real>> lapA = lap.boxArrays();
   auto laplacian = [&]() {
     const View<Array4<Real>> L = lapA;
-    f.forEachCellAuto(KOKKOS_LAMBDA(int b, Array4<Real> a, int i, int j, int k) {
-      Array4<Real> out = L(b);
-      Real v = -2.0 * Real(NDIM) * a(i, j, k, 0);
-      v += a(i + 1, j, k, 0) + a(i - 1, j, k, 0);
-      v += a(i, j + 1, k, 0) + a(i, j - 1, k, 0);
-      if (NDIM == 3) v += a(i, j, k + 1, 0) + a(i, j, k - 1, 0);
-      out(i, j, k, 0) = v;
-    });
+    f.forEachCellAuto(
+        KOKKOS_LAMBDA(int b, Array4<Real> a, int i, int j, int k) {
+          Array4<Real> out = L(b);
+          Real v = -2.0 * Real(NDIM) * a(i, j, k, 0);
+          v += a(i + 1, j, k, 0) + a(i - 1, j, k, 0);
+          v += a(i, j + 1, k, 0) + a(i, j - 1, k, 0);
+          if (NDIM == 3)
+            v += a(i, j, k + 1, 0) + a(i, j, k - 1, 0);
+          out(i, j, k, 0) = v;
+        });
   };
 
   const double cells = static_cast<double>(geom.domainPts());
@@ -214,13 +226,14 @@ int runSubstrate(const SubstrateOptions& opt) {
     for (int rep = 0; rep < 3; ++rep) {
       Timer t;
       t.start();
-      for (int it = 0; it < opt.benchIters; ++it) fn();
+      for (int it = 0; it < opt.benchIters; ++it)
+        fn();
       t.stop();
       best = std::min(best, t.seconds() / opt.benchIters);
     }
     std::cout << "  " << label << " : " << best * 1e3 << " ms/iter, "
-              << cells / best / 1e6 << " Mcell/s, "
-              << bytes / best / 1e9 << " GB/s\n";
+              << cells / best / 1e6 << " Mcell/s, " << bytes / best / 1e9
+              << " GB/s\n";
   };
   timeIt("stencil", laplacian);
   std::cout << "  checksum     : " << lap.globalSum(0) << "\n";
@@ -252,36 +265,35 @@ CavityCase readCavityCase(const Config& cfg) {
   c.prm.reynolds =
       cfg.getDouble("flow.reynolds", c.prm.reynolds, "Re = U*L/nu");
   c.prm.lidVelocity =
-      cfg.getDouble("flow.lid_velocity", c.prm.lidVelocity, "lid speed");
-  const std::string scheme =
-      cfg.getString("flow.scheme", "minmod",
-                    "convection scheme: upwind|minmod|vanleer|superbee|mc|quick|central");
+      cfg.getDouble("flow.lidVelocity", c.prm.lidVelocity, "lid speed");
+  const std::string scheme = cfg.getString(
+      "flow.scheme", "minmod",
+      "convection scheme: upwind|minmod|vanleer|superbee|mc|quick|central");
   c.prm.scheme = parseScheme(scheme);
-  c.prm.cfl = cfg.getDouble("flow.cfl", c.prm.cfl,
-                            "convective CFL safety factor");
+  c.prm.cfl =
+      cfg.getDouble("flow.cfl", c.prm.cfl, "convective CFL safety factor");
   c.prm.diffusionFactor =
-      cfg.getDouble("flow.diffusion_safety", c.prm.diffusionFactor,
+      cfg.getDouble("flow.diffusionSafety", c.prm.diffusionFactor,
                     "explicit viscous stability factor");
 
-  c.endTime = cfg.getDouble("time.end_time", c.endTime, "physical end time");
-  c.maxSteps = cfg.getInt("time.max_steps", c.maxSteps, "hard step limit");
-  c.steadyTol = cfg.getDouble("time.steady_tol", c.steadyTol,
+  c.endTime = cfg.getDouble("time.endTime", c.endTime, "physical end time");
+  c.maxSteps = cfg.getInt("time.maxSteps", c.maxSteps, "hard step limit");
+  c.steadyTol = cfg.getDouble("time.steadyTol", c.steadyTol,
                               "steady state: stop when max|du| below this");
-  c.checkEvery = cfg.getInt("time.check_every", c.checkEvery,
+  c.checkEvery = cfg.getInt("time.checkEvery", c.checkEvery,
                             "steps between steady-state checks");
 
-  c.prm.poissonMaxIter =
-      cfg.getInt("pressure.max_iter", c.prm.poissonMaxIter,
-                 "pressure CG iteration limit");
+  c.prm.poissonMaxIter = cfg.getInt("pressure.maxIter", c.prm.poissonMaxIter,
+                                    "pressure CG iteration limit");
   c.prm.poissonTol =
       cfg.getDouble("pressure.tolerance", (double)c.prm.poissonTol,
                     "pressure CG relative residual");
 
   c.outPrefix = cfg.getString("output.prefix", c.outPrefix,
                               "output path prefix (directory is created)");
-  c.centreLines = cfg.getBool("output.centre_lines", c.centreLines,
+  c.centreLines = cfg.getBool("output.centreLines", c.centreLines,
                               "write centreline CSV for Ghia comparison");
-  c.vtkEvery = cfg.getInt("output.vtk_every", c.vtkEvery,
+  c.vtkEvery = cfg.getInt("output.vtkEvery", c.vtkEvery,
                           "write VTK every N steps (0 = off)");
   return c;
 }
@@ -302,22 +314,23 @@ int runCavity(const CavityCase& c) {
   std::cout << "  scheme    : " << schemeName(c.prm.scheme) << "\n";
 
   std::unique_ptr<VTKWriter> vtk;
-  if (c.vtkEvery > 0) vtk = std::make_unique<VTKWriter>(c.outPrefix + "/field");
+  if (c.vtkEvery > 0)
+    vtk = std::make_unique<VTKWriter>(c.outPrefix + "/field");
 
   const BoxArray ba = sim.velocity().boxArray();
   const DistributionMapping dm = sim.velocity().distributionMap();
 
   auto onOutput = [&](int step, Real t) {
-    if (!vtk) return;
+    if (!vtk)
+      return;
     MultiFab cell(ba, dm, 2, 0, 0, "cell");
     sim.cellCentredVelocity(cell);
     vtk->write(cell, geom, step, static_cast<double>(t), {"u", "v"});
   };
 
-  const SteadyReport rep =
-      sim.runToSteady(static_cast<Real>(c.endTime), c.maxSteps,
-                      static_cast<Real>(c.steadyTol), c.checkEvery,
-                      c.vtkEvery, onOutput);
+  const SteadyReport rep = sim.runToSteady(
+      static_cast<Real>(c.endTime), c.maxSteps, static_cast<Real>(c.steadyTol),
+      c.checkEvery, c.vtkEvery, onOutput);
 
   if (vtk) {
     vtk->finalize();
@@ -334,8 +347,8 @@ int runCavity(const CavityCase& c) {
 
   if (c.centreLines) {
     sim.writeCentreLines(c.outPrefix + "/centreline");
-    std::cout << "  centreline: " << c.outPrefix << "/centreline_u.csv, "
-              << c.outPrefix << "/centreline_v.csv\n";
+    std::cout << "  centreline: " << c.outPrefix << "/centrelineU.csv, "
+              << c.outPrefix << "/centrelineV.csv\n";
   }
   return 0;
 }
@@ -347,17 +360,27 @@ int main(int argc, char** argv) {
   Cli cli;
   for (int i = 1; i < argc; ++i) {
     const std::string a = argv[i];
-    if (a == "--dump-config" && i + 1 < argc) cli.dumpSolver = argv[++i];
-    else if (a == "--list-solvers") cli.listSolvers = true;
-    else if (a == "--threads" && i + 1 < argc) cli.threads = std::atoi(argv[++i]);
-    else if (a == "-h" || a == "--help") { printUsage(); return 0; }
-    else if (!a.empty() && a[0] != '-') cli.casePath = a;
+    if (a == "--dump-config" && i + 1 < argc)
+      cli.dumpSolver = argv[++i];
+    else if (a == "--list-solvers")
+      cli.listSolvers = true;
+    else if (a == "--threads" && i + 1 < argc)
+      cli.threads = std::atoi(argv[++i]);
+    else if (a == "-h" || a == "--help") {
+      printUsage();
+      return 0;
+    } else if (!a.empty() && a[0] != '-')
+      cli.casePath = a;
   }
 
-  if (cli.listSolvers) { printSolvers(); return 0; }
+  if (cli.listSolvers) {
+    printSolvers();
+    return 0;
+  }
 
   Kokkos::InitializationSettings init;
-  if (cli.threads > 0) init.set_num_threads(cli.threads);
+  if (cli.threads > 0)
+    init.set_num_threads(cli.threads);
   Kokkos::initialize(init);
 
   int rc = 0;
@@ -382,8 +405,8 @@ int main(int argc, char** argv) {
     // ---- run a case -------------------------------------------------------
     else if (!cli.casePath.empty()) {
       const Config cfg = Config::fromFile(cli.casePath);
-      const std::string solver = cfg.getString("solver", "cavity",
-                                               "which solver to run");
+      const std::string solver =
+          cfg.getString("solver", "cavity", "which solver to run");
 
       std::cout << "saturnCFD 0.2.0\n";
       std::cout << "  case      : " << cli.casePath << "\n";

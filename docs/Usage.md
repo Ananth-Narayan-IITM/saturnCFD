@@ -67,19 +67,19 @@ solver: cavity      # or: substrate
 
 ```bash
 # quick smoke test (~10 s)
-./build/saturnCFD examples/cavity_demo/case.yaml
+./build/saturnCFD examples/cavity/demo.yaml
 
 # Re = 100 at 128^2, the Ghia benchmark point
-./build/saturnCFD examples/cavity_re100/case.yaml
+./build/saturnCFD examples/cavity/re100.yaml
 
 # Re = 1000, the classical validation point (minutes to tens of minutes)
-./build/saturnCFD examples/cavity_re1000/case.yaml
+./build/saturnCFD examples/cavity/re1000.yaml
 
 # Re = 10000 at 256^2 -- see the warning in the file, this is a long run
-./build/saturnCFD examples/cavity_re10000/case.yaml
+./build/saturnCFD examples/cavity/re10000.yaml
 
 # parallel substrate benchmark
-./build/saturnCFD examples/substrate/case.yaml --threads 8
+./build/saturnCFD examples/substrate/benchmark.yaml --threads 8
 ```
 
 Useful flags:
@@ -104,7 +104,7 @@ automatically.
 Copy the example directory and edit the YAML. Nothing is compiled in:
 
 ```bash
-cp -r examples/cavity_re100 my_case
+cp -r examples/cavity/re100.yaml my_case
 sed -i 's/reynolds: 100/reynolds: 500/' my_case/case.yaml
 ./build/saturnCFD my_case/case.yaml
 ```
@@ -112,7 +112,7 @@ sed -i 's/reynolds: 100/reynolds: 500/' my_case/case.yaml
 ### Convection schemes
 
 `flow.scheme` selects the face reconstruction. The default, `minmod`, is the
-best measured choice at 64^2 (see `docs/SOLVER.md` §7).
+best measured choice at 64^2 (see `docs/Solver.md` §7).
 
 | name | order | bounded | note |
 |---|---|---|---|
@@ -132,16 +132,16 @@ A run writes into the directory named by `output.prefix`:
 
 | file | contents |
 |---|---|
-| `<prefix>/centreline_u.csv` | `y, u` along the vertical centreline `x = 0.5` |
-| `<prefix>/centreline_v.csv` | `x, v` along the horizontal centreline `y = 0.5` |
-| `<prefix>/field.pvd` | ParaView collection (only if `output.vtk_every > 0`) |
+| `<prefix>/centrelineU.csv` | `y, u` along the vertical centreline `x = 0.5` |
+| `<prefix>/centrelineV.csv` | `x, v` along the horizontal centreline `y = 0.5` |
+| `<prefix>/field.pvd` | ParaView collection (only if `output.vtkEvery > 0`) |
 | `<prefix>/field_*.vti` | one XML VTK file per patch per output step |
 
 ### Comparing against Ghia
 
 ```bash
-python3 tools/compare_cavity.py results/cavity_re100/centreline_u.csv --re 100
-python3 tools/compare_cavity.py results/cavity_re1000/centreline_u.csv --re 1000
+python3 tools/compareCavity.py results/cavity/re100/centrelineU.csv --re 100
+python3 tools/compareCavity.py results/cavity/re1000/centrelineU.csv --re 1000
 ```
 
 The script interpolates the computed profile onto Ghia's tabulated `y`
@@ -154,19 +154,19 @@ coordinates and reports per-point differences, RMS and max deviation.
 
 ## 4. Visualising in ParaView
 
-Set `output.vtk_every` to a positive number in the case file:
+Set `output.vtkEvery` to a positive number in the case file:
 
 ```yaml
 output:
-  prefix: results/cavity_re1000
-  vtk_every: 1000        # write a field snapshot every 1000 steps
+  prefix: results/cavity/re1000
+  vtkEvery: 1000        # write a field snapshot every 1000 steps
 ```
 
 Then:
 
 ```bash
-./build/saturnCFD examples/cavity_re1000/case.yaml
-paraview results/cavity_re1000/field.pvd
+./build/saturnCFD examples/cavity/re1000.yaml
+paraview results/cavity/re1000/field.pvd
 ```
 
 **Open the `.pvd` file, not the individual `.vti` files.** The `.pvd` is the
@@ -199,7 +199,7 @@ Notes and current limitations:
 python3 - <<'EOF'
 import matplotlib.pyplot as plt
 ys, us = [], []
-for line in open("results/cavity_re100/centreline_u.csv"):
+for line in open("results/cavity/re100/centrelineU.csv"):
     if line.startswith("#"): continue
     a, b = line.split(",")[:2]; ys.append(float(a)); us.append(float(b))
 plt.plot(us, ys); plt.xlabel("u"); plt.ylabel("y"); plt.show()

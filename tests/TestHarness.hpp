@@ -50,8 +50,8 @@ inline int runAll() {
     std::cout << (failures() == before ? "  ok   " : "  FAIL ") << c.name
               << "\n";
   }
-  std::cout << "\n" << (checks() - failures()) << "/" << checks()
-            << " checks passed\n";
+  std::cout << "\n"
+            << (checks() - failures()) << "/" << checks() << " checks passed\n";
   return failures() == 0 ? 0 : 1;
 }
 
@@ -60,18 +60,17 @@ inline int runAll() {
 #define CHECK(cond) \
   ::t::report(__FILE__, __LINE__, std::string("CHECK(") + #cond + ")", (cond))
 
-#define CHECK_NEAR(a, b, tol)                                             \
-  ::t::report(__FILE__, __LINE__,                                          \
-              std::string("CHECK_NEAR(") + #a + ", " + #b + ", " + #tol + \
+#define CHECKNEAR(a, b, tol)                                                  \
+  ::t::report(__FILE__, __LINE__,                                             \
+              std::string("CHECKNEAR(") + #a + ", " + #b + ", " + #tol +      \
                   ")  got " + std::to_string(a) + " vs " + std::to_string(b), \
               std::abs((a) - (b)) <= (tol))
 
-#define CHECK_EQ(a, b)                                            \
-  ::t::report(__FILE__, __LINE__,                                 \
-              std::string("CHECK_EQ(") + #a + ", " + #b + ")",    \
-              (a) == (b))
+#define CHECKEQ(a, b)             \
+  ::t::report(__FILE__, __LINE__, \
+              std::string("CHECKEQ(") + #a + ", " + #b + ")", (a) == (b))
 
-#define TEST(name)                                    \
-  static void name();                                 \
-  static int name##_reg = ::t::add(#name, name);      \
+#define TEST(name)                               \
+  static void name();                            \
+  static int name##_reg = ::t::add(#name, name); \
   static void name()

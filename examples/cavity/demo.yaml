@@ -3,7 +3,7 @@
 # This is the fastest case: 64 x 64, Re = 100, reaches steady state in seconds.
 # Use it to check that your build works.
 #
-#   saturnCFD examples/cavity_demo/case.yaml --threads 8
+#   saturnCFD examples/cavity/demo.yaml --threads 8
 #
 # Regenerate every available option with:
 #   saturnCFD --dump-config cavity
@@ -17,22 +17,22 @@ domain:
 
 flow:
   reynolds: 100
-  lid_velocity: 1.0
+  lidVelocity: 1.0
   scheme: minmod
   cfl: 0.4
-  diffusion_safety: 0.25
+  diffusionSafety: 0.25
 
 time:
-  end_time: 60.0
-  max_steps: 200000
-  steady_tol: 1.0e-6
-  check_every: 50
+  endTime: 60.0
+  maxSteps: 200000
+  steadyTol: 1.0e-6
+  checkEvery: 50
 
 pressure:
-  max_iter: 5000
+  maxIter: 5000
   tolerance: 1.0e-9
 
 output:
-  prefix: results/cavity_demo
-  centre_lines: true
-  vtk_every: 0
+  prefix: results/cavity/demo
+  centreLines: true
+  vtkEvery: 0

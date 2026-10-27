@@ -76,16 +76,26 @@ add_executable(saturnCFD apps/main.cpp)
 target_link_libraries(saturnCFD PRIVATE saturn::core)
 
 
+# ---------------------------------------------------------------------- docs --
+find_package(Doxygen QUIET)
+if(DOXYGEN_FOUND)
+  add_custom_target(doc
+    COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/docs/Doxyfile
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Generating API documentation into build/doxygen/html")
+  message(STATUS "saturnCFD: 'doc' target available (doxygen ${DOXYGEN_VERSION})")
+endif()
+
 # ------------------------------------------------------------------- tests ---
 if(SATURN_BUILD_TESTS)
   enable_testing()
   add_executable(saturn_tests
-    tests/main.cpp
-    tests/test_box.cpp
-    tests/test_multifab.cpp
-    tests/test_halo.cpp
-    tests/test_config.cpp
-    tests/test_poisson.cpp
+    tests/TestMain.cpp
+    tests/TestBox.cpp
+    tests/TestMultiFab.cpp
+    tests/TestHalo.cpp
+    tests/TestConfig.cpp
+    tests/TestPoisson.cpp
   )
   target_link_libraries(saturn_tests PRIVATE saturn::core)
   target_include_directories(saturn_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)

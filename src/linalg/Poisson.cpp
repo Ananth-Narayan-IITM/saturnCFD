@@ -7,9 +7,11 @@
 
 namespace saturn {
 
-void fillBoundaryGhosts(MultiFab& p, const Geometry& geom, BCType bc, int comp) {
+void fillBoundaryGhosts(MultiFab& p, const Geometry& geom, BCType bc,
+                        int comp) {
   const int ng = p.nGrow();
-  if (ng == 0) return;
+  if (ng == 0)
+    return;
 
   const Box dom = geom.domain;
   const Real sgn = (bc == BCType::Neumann) ? Real(1) : Real(-1);
@@ -42,7 +44,8 @@ void fillBoundaryGhosts(MultiFab& p, const Geometry& geom, BCType bc, int comp) 
               outside = true;
             }
           }
-          if (!outside) return;  // interior ghost or valid cell: leave alone
+          if (!outside)
+            return;  // interior ghost or valid cell: leave alone
 
           a(i, j, k, comp) = sgn * a(q[0], q[1], q[2], comp);
         });
@@ -55,7 +58,7 @@ void applyNegativeLaplacian(MultiFab& p, MultiFab& Ap, const Geometry& geom,
     throw std::invalid_argument(
         "applyNegativeLaplacian: p needs at least one ghost layer");
 
-  halo.execute(p);              // periodic / inter-patch ghosts
+  halo.execute(p);                  // periodic / inter-patch ghosts
   fillBoundaryGhosts(p, geom, bc);  // physical ghosts (overrides at the border)
 
   const auto pf = p.boxArrays();
@@ -67,7 +70,8 @@ void applyNegativeLaplacian(MultiFab& p, MultiFab& Ap, const Geometry& geom,
         Real s = 2.0 * Real(NDIM) * q(i, j, k, 0);
         s -= q(i + 1, j, k, 0) + q(i - 1, j, k, 0);
         s -= q(i, j + 1, k, 0) + q(i, j - 1, k, 0);
-        if (NDIM == 3) s -= q(i, j, k + 1, 0) + q(i, j, k - 1, 0);
+        if (NDIM == 3)
+          s -= q(i, j, k + 1, 0) + q(i, j, k - 1, 0);
         out(i, j, k, 0) = s * invdx2;
       });
 }
@@ -94,7 +98,8 @@ PoissonResult solvePoisson(MultiFab& p, const MultiFab& rhs,
     addScalar(r, static_cast<Real>(-mean));
   }
 
-  if (!prm.warmStart) setZero(p);
+  if (!prm.warmStart)
+    setZero(p);
 
   // r = rhs - A p  (with p = 0 this is just rhs, but warm starts need the term)
   applyNegativeLaplacian(p, Ap, geom, halo, prm.bc, geom.dx);
@@ -120,11 +125,12 @@ PoissonResult solvePoisson(MultiFab& p, const MultiFab& rhs,
     applyNegativeLaplacian(s, Ap, geom, halo, prm.bc, geom.dx);
 
     const Accum denom = dot(s, Ap);
-    if (denom == 0) break;
+    if (denom == 0)
+      break;
     const Real alpha = static_cast<Real>(rho / denom);
 
-    axpy(alpha, s, p);        // p += alpha * s
-    axpy(-alpha, Ap, r);      // r -= alpha * Ap
+    axpy(alpha, s, p);    // p += alpha * s
+    axpy(-alpha, Ap, r);  // r -= alpha * Ap
 
     const Accum rnorm = norm2(r);
     res.iters = it + 1;

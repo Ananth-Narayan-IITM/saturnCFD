@@ -13,12 +13,12 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/usr/local
 cmake --build build -j
 ctest --test-dir build --output-on-failure
 
-./build/saturnCFD examples/cavity_demo/case.yaml     # ~10 s smoke test
-./build/saturnCFD examples/cavity_re1000/case.yaml   # Re = 1000 benchmark
+./build/saturnCFD examples/cavity/demo.yaml     # ~10 s smoke test
+./build/saturnCFD examples/cavity/re1000.yaml   # Re = 1000 benchmark
 ```
 
 Full instructions — including MPI, CUDA, ParaView and troubleshooting — are in
-**[docs/USAGE.md](docs/USAGE.md)**.
+**[docs/Usage.md](docs/Usage.md)**.
 
 ## One solver, many cases
 
@@ -36,8 +36,8 @@ flow:
   scheme: minmod
 
 output:
-  prefix: results/cavity_re1000
-  vtk_every: 1000
+  prefix: results/cavity/re1000
+  vtkEvery: 1000
 ```
 
 ```bash
@@ -52,10 +52,10 @@ real case file, so it can never drift from the code.
 
 | directory | what it is |
 |---|---|
-| `examples/cavity_demo` | 64², Re = 100, seconds — check your build |
-| `examples/cavity_re100` | 128², Re = 100, matches Ghia to ~2% |
-| `examples/cavity_re1000` | 128², Re = 1000, classical validation point |
-| `examples/cavity_re10000` | 256², Re = 10000, long unsteady run |
+| `examples/cavity/demo.yaml` | 64², Re = 100, seconds — check your build |
+| `examples/cavity/re100.yaml` | 128², Re = 100, matches Ghia to ~2% |
+| `examples/cavity/re1000.yaml` | 128², Re = 1000, classical validation point |
+| `examples/cavity/re10000.yaml` | 256², Re = 10000, long unsteady run |
 | `examples/substrate` | parallel substrate + bandwidth benchmark |
 
 ## Design in one paragraph
@@ -70,23 +70,49 @@ corners) on the host once, then launches one kernel for local copies and one
 packed MPI exchange per peer.
 
 The flow solver uses a **staggered (MAC) grid** with a projection method, for
-the reasons explained in [docs/SOLVER.md](docs/SOLVER.md).
+the reasons explained in [docs/Solver.md](docs/Solver.md).
 
 ## Repository layout
 
 ```
-src/core      Types, Config (YAML subset), Timer
-src/amr       Box, BoxArray, DistributionMapping, MultiFab, Array4
-src/comm      HaloExchange
-src/mesh      Geometry
-src/linalg    Poisson (CG), VecOps
-src/solver    CavitySolver, Limiters (TVD schemes)
-src/io        VTKWriter
-apps          the single driver
-examples      case YAML files
-tools         comparison scripts
-tests         unit tests (no external framework)
-docs          SCOPE, SOLVER, BENCHMARKS, USAGE
+├── apps/main.cpp        the single driver (solver chosen by the case file)
+├── src/
+│   ├── core/            Types, Config (YAML subset), Timer
+│   ├── amr/             Box, BoxArray, DistributionMapping, MultiFab, Array4
+│   ├── comm/            HaloExchange
+│   ├── mesh/            Geometry
+│   ├── linalg/          Poisson (CG), VecOps
+│   ├── solver/          CavitySolver, Limiters (TVD schemes)
+│   └── io/              VTKWriter
+├── examples/
+│   ├── cavity/          demo.yaml, re100.yaml, re1000.yaml, re10000.yaml
+│   └── substrate/       benchmark.yaml
+├── tools/               compareCavity.py
+├── tests/               unit tests (no external framework)
+└── docs/                Scope, Solver, Benchmarks, Usage, Doxyfile
+```
+
+## Documentation
+
+- **[docs/Usage.md](docs/Usage.md)** — build, test, run, ParaView, troubleshooting.
+- **[docs/Solver.md](docs/Solver.md)** — how the solver works, in control-volume
+  terms. Start here if the code looks opaque.
+- **[docs/Benchmarks.md](docs/Benchmarks.md)** — kernel-dispatch measurements and
+  why they matter.
+- **[docs/Scope.md](docs/Scope.md)** — what v0.1 does and does not do.
+
+API reference, generated from the source comments:
+
+```bash
+doxygen docs/Doxyfile && xdg-open build/doxygen/html/index.html
+# or
+cmake --build build --target doc
+```
+
+Code style is enforced by `.clang-format`:
+
+```bash
+clang-format -i $(git ls-files '*.hpp' '*.cpp')
 ```
 
 ## Validation
@@ -103,7 +129,7 @@ Ghia et al. (1982):
 | superbee | 0.00322 | 0.00605 |
 
 Higher-order convection with a TVD limiter gives a 2.6× error reduction over
-first-order upwind. Details and caveats: [docs/SOLVER.md](docs/SOLVER.md).
+first-order upwind. Details and caveats: [docs/Solver.md](docs/Solver.md).
 
 ## Known limitations
 

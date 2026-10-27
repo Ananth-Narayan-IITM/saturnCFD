@@ -6,8 +6,8 @@
 #
 #   saturnCFD examples/substrate/case.yaml --threads 8
 #
-# Vary grid.block_x / block_y to change the patch count (see
-# docs/BENCHMARKS.md for why that matters).
+# Vary grid.blockX / blockY to change the patch count (see
+# docs/Benchmarks.md for why that matters).
 
 solver: substrate
 
@@ -18,9 +18,9 @@ domain:
   lx: 1.0
 
 grid:
-  block_x: 256
-  block_y: 256
-  block_z: 32
+  blockX: 256
+  blockY: 256
+  blockZ: 32
   nghost: 2
 
 boundary:
@@ -32,4 +32,4 @@ output:
 
 bench:
   iters: 50
-  verify_halo: true
+  verifyHalo: true

@@ -3,7 +3,7 @@
 # Reference: Ghia, Ghia & Shin (1982), J. Comput. Phys. 48, 387-411.
 # At this resolution a TVD-limited scheme matches the benchmark to ~2%.
 #
-#   saturnCFD examples/cavity_re100/case.yaml
+#   saturnCFD examples/cavity/re100.yaml
 
 solver: cavity
 
@@ -14,22 +14,22 @@ domain:
 
 flow:
   reynolds: 100
-  lid_velocity: 1.0
+  lidVelocity: 1.0
   scheme: minmod
   cfl: 0.4
-  diffusion_safety: 0.25
+  diffusionSafety: 0.25
 
 time:
-  end_time: 120.0
-  max_steps: 400000
-  steady_tol: 1.0e-6
-  check_every: 100
+  endTime: 120.0
+  maxSteps: 400000
+  steadyTol: 1.0e-6
+  checkEvery: 100
 
 pressure:
-  max_iter: 5000
+  maxIter: 5000
   tolerance: 1.0e-9
 
 output:
-  prefix: results/cavity_re100
-  centre_lines: true
-  vtk_every: 200
+  prefix: results/cavity/re100
+  centreLines: true
+  vtkEvery: 200

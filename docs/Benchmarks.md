@@ -97,4 +97,4 @@ cmake --build build -j
 ./build/saturnCFD apps/sample.yaml --threads 8
 ```
 
-Vary `grid.block_x` / `grid.block_y` in the YAML to change the patch count.
+Vary `grid.blockX` / `grid.blockY` in the YAML to change the patch count.

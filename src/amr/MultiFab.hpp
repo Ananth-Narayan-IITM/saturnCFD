@@ -1,15 +1,19 @@
-// saturnCFD — MultiFab: the distributed field container.
-//
-// One MultiFab holds `ncomp` cell-centred components on ONE AMR level, with
-// `nghost` ghost layers, distributed over boxes according to a
-// DistributionMapping.
-//
-// Storage is a single flat Kokkos::View<Real*> covering only the boxes this rank
-// owns, plus a per-box offset table. Kernels are launched over boxes, which is
-// the canonical GPU-AMR pattern: regular inner loops, no indirect addressing
-// beyond one box lookup per team.
-//
-// Access inside kernels goes through Array4, which takes global indices.
+/**
+ * @file MultiFab.hpp
+ *
+ * saturnCFD — MultiFab: the distributed field container.
+ *
+ * One MultiFab holds `ncomp` cell-centred components on ONE AMR level, with
+ * `nghost` ghost layers, distributed over boxes according to a
+ * DistributionMapping.
+ *
+ * Storage is a single flat Kokkos::View<Real*> covering only the boxes this
+ * rank owns, plus a per-box offset table. Kernels are launched over boxes,
+ * which is the canonical GPU-AMR pattern: regular inner loops, no indirect
+ * addressing beyond one box lookup per team.
+ *
+ * Access inside kernels goes through Array4, which takes global indices.
+ */
 #pragma once
 
 #include <string>
@@ -22,6 +26,12 @@
 
 namespace saturn {
 
+/**
+ * @brief Distributed field: `ncomp` components on one level, with ghosts.
+ *
+ * Storage is a single flat Kokkos::View per rank covering only the boxes that
+ * rank owns, plus a per-box offset table. Kernels launch over boxes.
+ */
 class MultiFab {
  public:
   MultiFab() = default;
@@ -30,20 +40,22 @@ class MultiFab {
            int nghost, int myrank = 0, const std::string& name = "fab");
 
   // ------------------------------------------------------------------ info --
-  int numComp() const { return m_ncomp; }
-  int nGrow() const { return m_nghost; }
-  int numLocalBoxes() const { return static_cast<int>(m_local.size()); }
-  int numGlobalBoxes() const { return m_ba.size(); }
-  int myRank() const { return m_myrank; }
-  BigIndex numLocalPts() const { return m_local_pts; }
-  BigIndex numGlobalPts() const { return m_global_pts; }
+  int numComp() const { return mNumComp; }
+  int nGrow() const { return mNumGhost; }
+  int numLocalBoxes() const { return static_cast<int>(mLocalBoxes.size()); }
+  int numGlobalBoxes() const { return mBoxArray.size(); }
+  int myRank() const { return mMyRank; }
+  BigIndex numLocalPts() const { return mLocalCells; }
+  BigIndex numGlobalPts() const { return mGlobalCells; }
 
   /// Global index of the i'th local box.
-  int localToGlobal(int i) const { return m_local[i]; }
+  int localToGlobal(int i) const { return mLocalBoxes[i]; }
 
-  const BoxArray& boxArray() const { return m_ba; }
-  const DistributionMapping& distributionMap() const { return m_dm; }
-  const std::string& name() const { return m_name; }
+  const BoxArray& boxArray() const { return mBoxArray; }
+  const DistributionMapping& distributionMap() const {
+    return mDistributionMap;
+  }
+  const std::string& name() const { return mName; }
 
   // ---------------------------------------------------------------- access --
   /// Accessor for a LOCAL box index (0..numLocalBoxes-1).
@@ -58,8 +70,8 @@ class MultiFab {
   /// Global box index -> local index, or -1 if not owned by this rank.
   int globalToLocal(int globalBox) const;
 
-  View<Real>& data() { return m_data; }
-  const View<Real>& data() const { return m_data; }
+  View<Real>& data() { return mData; }
+  const View<Real>& data() const { return mData; }
 
   // ---------------------------------------------------------------- kernels --
   /// Launch `f(int localBox, Array4<Real>, i, j, k)` over every local cell.
@@ -86,7 +98,7 @@ class MultiFab {
   View<Array4<Real>> boxArrays() const;
 
   /// Dispatch to whichever of the two paths is better for this patch count.
-  /// Measured on OpenMP/x86 (see docs/BENCHMARKS.md): the flat kernel wins for
+  /// Measured on OpenMP/x86 (see docs/Benchmarks.md): the flat kernel wins for
   /// 1-4 patches because a single-team TeamPolicy cannot fill the machine; the
   /// team kernel wins from ~16 patches up because it avoids the per-cell binary
   /// search. The threshold is backend dependent and must be re-tuned on GPUs.
@@ -122,21 +134,21 @@ class MultiFab {
  private:
   void allocate();
 
-  BoxArray m_ba;
-  DistributionMapping m_dm;
-  int m_ncomp = 1;
-  int m_nghost = 0;
-  int m_myrank = 0;
-  std::string m_name;
+  BoxArray mBoxArray;
+  DistributionMapping mDistributionMap;
+  int mNumComp = 1;
+  int mNumGhost = 0;
+  int mMyRank = 0;
+  std::string mName;
 
-  std::vector<int> m_local;          ///< local index -> global box index
-  View<Box> m_d_boxes;               ///< device copy of local boxes
-  View<BigIndex> m_d_off;            ///< offset of each local box in m_data
-  View<BigIndex> m_d_counts;         ///< cumulative cell counts, size nb+1
-  View<Real> m_data;
+  std::vector<int> mLocalBoxes;   ///< local index -> global box index
+  View<Box> mDeviceBoxes;         ///< device copy of local boxes
+  View<BigIndex> mDeviceOffsets;  ///< offset of each local box in mData
+  View<BigIndex> mDeviceCounts;   ///< cumulative cell counts, size nb+1
+  View<Real> mData;
 
-  BigIndex m_local_pts = 0;
-  BigIndex m_global_pts = 0;
+  BigIndex mLocalCells = 0;
+  BigIndex mGlobalCells = 0;
 };
 
 // ---------------------------------------------------------------------------
@@ -146,23 +158,24 @@ class MultiFab {
 template <class F>
 void MultiFab::forEachCell(F&& f) const {
   const int nb = numLocalBoxes();
-  if (nb == 0) return;
+  if (nb == 0)
+    return;
 
-  auto d_boxes = m_d_boxes;
-  auto d_off = m_d_off;
-  auto d_data = m_data;
-  const int ng = m_nghost;
-  const int nc = m_ncomp;
+  auto dBoxes = mDeviceBoxes;
+  auto dOffsets = mDeviceOffsets;
+  auto dData = mData;
+  const int ng = mNumGhost;
+  const int nc = mNumComp;
 
   Kokkos::parallel_for(
       "saturn::MultiFab::forEachCell", Kokkos::TeamPolicy<>(nb, Kokkos::AUTO),
       KOKKOS_LAMBDA(const typename Kokkos::TeamPolicy<>::member_type& team) {
         const int b = team.league_rank();
-        const Box bx = d_boxes(b);
-        const BigIndex base = d_off(b);
+        const Box bx = dBoxes(b);
+        const BigIndex base = dOffsets(b);
 
         Array4<Real> a;
-        a.p = d_data.data() + base;
+        a.p = dData.data() + base;
         for (int d = 0; d < NDIM; ++d) {
           a.begin[d] = bx.lo[d] - ng;
           a.n[d] = bx.length(d) + 2 * ng;
@@ -190,20 +203,23 @@ void MultiFab::forEachCell(F&& f) const {
 }
 
 template <class F>
-void MultiFab::forEachCell(F&& f) { static_cast<const MultiFab&>(*this).forEachCell(f); }
+void MultiFab::forEachCell(F&& f) {
+  static_cast<const MultiFab&>(*this).forEachCell(f);
+}
 
 template <class F>
 void MultiFab::forEachCellFlat(F&& f) const {
   const int nb = numLocalBoxes();
-  if (nb == 0) return;
+  if (nb == 0)
+    return;
 
-  auto d_boxes = m_d_boxes;
-  auto d_off = m_d_off;
-  auto d_cnt = m_d_counts;
-  auto d_data = m_data;
-  const int ng = m_nghost;
-  const int nc = m_ncomp;
-  const BigIndex total = d_cnt(nb);
+  auto dBoxes = mDeviceBoxes;
+  auto dOffsets = mDeviceOffsets;
+  auto dCounts = mDeviceCounts;
+  auto dData = mData;
+  const int ng = mNumGhost;
+  const int nc = mNumComp;
+  const BigIndex total = dCounts(nb);
 
   Kokkos::parallel_for(
       "saturn::MultiFab::forEachCellFlat", Kokkos::RangePolicy<>(0, total),
@@ -212,12 +228,14 @@ void MultiFab::forEachCellFlat(F&& f) const {
         int lo = 0, hi = nb - 1;
         while (lo < hi) {
           const int mid = (lo + hi) >> 1;
-          if (d_cnt(mid + 1) <= t) lo = mid + 1;
-          else hi = mid;
+          if (dCounts(mid + 1) <= t)
+            lo = mid + 1;
+          else
+            hi = mid;
         }
         const int b = lo;
-        const Box bx = d_boxes(b);
-        const BigIndex idx = t - d_cnt(b);
+        const Box bx = dBoxes(b);
+        const BigIndex idx = t - dCounts(b);
 
         const int nx = bx.length(0);
         const int ny = bx.length(1);
@@ -227,7 +245,7 @@ void MultiFab::forEachCellFlat(F&& f) const {
         const int k = (NDIM == 3) ? (r / ny) : 0;
 
         Array4<Real> a;
-        a.p = d_data.data() + d_off(b);
+        a.p = dData.data() + dOffsets(b);
         for (int d = 0; d < NDIM; ++d) {
           a.begin[d] = bx.lo[d] - ng;
           a.n[d] = bx.length(d) + 2 * ng;
@@ -245,28 +263,32 @@ void MultiFab::forEachCellFlat(F&& f) const {
 template <class F, class Reducer>
 void MultiFab::forEachCellFlatReduce(F&& f, Reducer& red) const {
   const int nb = numLocalBoxes();
-  if (nb == 0) return;
+  if (nb == 0)
+    return;
 
-  auto d_boxes = m_d_boxes;
-  auto d_off = m_d_off;
-  auto d_cnt = m_d_counts;
-  auto d_data = m_data;
-  const int ng = m_nghost;
-  const int nc = m_ncomp;
-  const BigIndex total = d_cnt(nb);
+  auto dBoxes = mDeviceBoxes;
+  auto dOffsets = mDeviceOffsets;
+  auto dCounts = mDeviceCounts;
+  auto dData = mData;
+  const int ng = mNumGhost;
+  const int nc = mNumComp;
+  const BigIndex total = dCounts(nb);
 
   Kokkos::parallel_reduce(
-      "saturn::MultiFab::forEachCellFlatReduce", Kokkos::RangePolicy<>(0, total),
-      KOKKOS_LAMBDA(BigIndex t, typename Reducer::value_type& acc) {
+      "saturn::MultiFab::forEachCellFlatReduce",
+      Kokkos::RangePolicy<>(0, total),
+      KOKKOS_LAMBDA(BigIndex t, typename Reducer::value_type & acc) {
         int lo = 0, hi = nb - 1;
         while (lo < hi) {
           const int mid = (lo + hi) >> 1;
-          if (d_cnt(mid + 1) <= t) lo = mid + 1;
-          else hi = mid;
+          if (dCounts(mid + 1) <= t)
+            lo = mid + 1;
+          else
+            hi = mid;
         }
         const int b = lo;
-        const Box bx = d_boxes(b);
-        const BigIndex idx = t - d_cnt(b);
+        const Box bx = dBoxes(b);
+        const BigIndex idx = t - dCounts(b);
 
         const int nx = bx.length(0);
         const int ny = bx.length(1);
@@ -276,7 +298,7 @@ void MultiFab::forEachCellFlatReduce(F&& f, Reducer& red) const {
         const int k = (NDIM == 3) ? (r / ny) : 0;
 
         Array4<Real> a;
-        a.p = d_data.data() + d_off(b);
+        a.p = dData.data() + dOffsets(b);
         for (int d = 0; d < NDIM; ++d) {
           a.begin[d] = bx.lo[d] - ng;
           a.n[d] = bx.length(d) + 2 * ng;
@@ -295,7 +317,8 @@ void MultiFab::forEachCellFlatReduce(F&& f, Reducer& red) const {
 template <class F>
 void MultiFab::forEachBoxSerial(F&& f) const {
   const int nb = numLocalBoxes();
-  for (int b = 0; b < nb; ++b) f(b, array(b));
+  for (int b = 0; b < nb; ++b)
+    f(b, array(b));
 }
 
 }  // namespace saturn

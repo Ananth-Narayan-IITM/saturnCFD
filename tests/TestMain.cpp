@@ -1,6 +1,6 @@
 #include <Kokkos_Core.hpp>
 
-#include "test.hpp"
+#include "TestHarness.hpp"
 
 int main(int argc, char** argv) {
   Kokkos::initialize(argc, argv);

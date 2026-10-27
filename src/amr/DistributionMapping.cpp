@@ -8,11 +8,12 @@ namespace saturn {
 
 DistributionMapping DistributionMapping::roundRobin(const BoxArray& ba,
                                                     int nranks) {
-  if (nranks < 1) throw std::invalid_argument("DistributionMapping: nranks < 1");
+  if (nranks < 1)
+    throw std::invalid_argument("DistributionMapping: nranks < 1");
 
   DistributionMapping dm;
-  dm.m_nranks = nranks;
-  dm.m_rank.assign(ba.size(), 0);
+  dm.mNumRanks = nranks;
+  dm.mRank.assign(ba.size(), 0);
 
   // Heaviest-first ordering; ties broken by index for determinism.
   std::vector<int> order(ba.size());
@@ -23,9 +24,9 @@ DistributionMapping DistributionMapping::roundRobin(const BoxArray& ba,
 
   std::vector<BigIndex> load(nranks, 0);
   for (int ibox : order) {
-    const int r = static_cast<int>(
-        std::min_element(load.begin(), load.end()) - load.begin());
-    dm.m_rank[ibox] = r;
+    const int r = static_cast<int>(std::min_element(load.begin(), load.end()) -
+                                   load.begin());
+    dm.mRank[ibox] = r;
     load[r] += ba[ibox].numPts();
   }
   return dm;
@@ -34,14 +35,16 @@ DistributionMapping DistributionMapping::roundRobin(const BoxArray& ba,
 std::vector<int> DistributionMapping::boxesOnRank(int rank) const {
   std::vector<int> out;
   for (int i = 0; i < size(); ++i)
-    if (m_rank[i] == rank) out.push_back(i);
+    if (mRank[i] == rank)
+      out.push_back(i);
   return out;
 }
 
 int DistributionMapping::countOnRank(int rank) const {
   int n = 0;
-  for (int r : m_rank)
-    if (r == rank) ++n;
+  for (int r : mRank)
+    if (r == rank)
+      ++n;
   return n;
 }
 

@@ -1,8 +1,8 @@
+#include "TestHarness.hpp"
 #include "amr/BoxArray.hpp"
 #include "amr/DistributionMapping.hpp"
 #include "amr/MultiFab.hpp"
 #include "mesh/Geometry.hpp"
-#include "test.hpp"
 
 using namespace saturn;
 
@@ -13,40 +13,45 @@ Geometry makeGeom(int n) {
   Idx e{};
   e[0] = n;
   e[1] = n;
-  if (NDIM == 3) e[2] = n;
+  if (NDIM == 3)
+    e[2] = n;
   g.domain = Box::fromExtent(e);
   g.dx = 1.0;
-  for (int d = 0; d < NDIM; ++d) g.periodic[d] = true;
+  for (int d = 0; d < NDIM; ++d)
+    g.periodic[d] = true;
   return g;
 }
 
 }  // namespace
 
-TEST(tile_domain_covers_and_is_disjoint) {
+TEST(tileDomainCoversAndIsDisjoint) {
   const Geometry g = makeGeom(10);
   Idx patch{};
   patch[0] = 4;
   patch[1] = 4;
-  if (NDIM == 3) patch[2] = 4;
+  if (NDIM == 3)
+    patch[2] = 4;
 
   const BoxArray ba = BoxArray::tileDomain(g.domain, patch);
   CHECK(ba.size() > 1);
   CHECK(ba.disjoint());
 
   BigIndex total = 0;
-  for (int i = 0; i < ba.size(); ++i) total += ba[i].numPts();
-  CHECK_EQ(total, g.domainPts());
+  for (int i = 0; i < ba.size(); ++i)
+    total += ba[i].numPts();
+  CHECKEQ(total, g.domainPts());
 
   const Box bb = ba.boundingBox();
   CHECK(bb == g.domain);
 }
 
-TEST(distribution_balances_boxes) {
+TEST(distributionBalancesBoxes) {
   const Geometry g = makeGeom(16);
   Idx patch{};
   patch[0] = 4;
   patch[1] = 4;
-  if (NDIM == 3) patch[2] = 4;
+  if (NDIM == 3)
+    patch[2] = 4;
   const BoxArray ba = BoxArray::tileDomain(g.domain, patch);
 
   const int nranks = 3;
@@ -58,46 +63,48 @@ TEST(distribution_balances_boxes) {
     CHECK(c > 0);
     assigned += c;
   }
-  CHECK_EQ(assigned, ba.size());
+  CHECKEQ(assigned, ba.size());
 }
 
-TEST(multifab_fill_and_reduce) {
+TEST(multifabFillAndReduce) {
   const Geometry g = makeGeom(8);
   Idx patch{};
   patch[0] = 4;
   patch[1] = 4;
-  if (NDIM == 3) patch[2] = 4;
+  if (NDIM == 3)
+    patch[2] = 4;
   const BoxArray ba = BoxArray::tileDomain(g.domain, patch);
   const DistributionMapping dm = DistributionMapping::roundRobin(ba, 1);
 
   MultiFab mf(ba, dm, 1, 0, 0, "mf");
   mf.setVal(0.0);
 
-  CHECK_EQ(mf.numLocalBoxes(), ba.size());
-  CHECK_EQ(mf.numLocalPts(), g.domainPts());
+  CHECKEQ(mf.numLocalBoxes(), ba.size());
+  CHECKEQ(mf.numLocalPts(), g.domainPts());
 
   mf.forEachCell([](int, Array4<Real> a, int i, int j, int k) {
     a(i, j, k, 0) = Real(2);
   });
 
-  CHECK_NEAR(mf.localSum(0), static_cast<double>(g.domainPts()) * 2.0, 1e-12);
-  CHECK_NEAR(mf.localMin(0), 2.0, 1e-12);
-  CHECK_NEAR(mf.localMax(0), 2.0, 1e-12);
+  CHECKNEAR(mf.localSum(0), static_cast<double>(g.domainPts()) * 2.0, 1e-12);
+  CHECKNEAR(mf.localMin(0), 2.0, 1e-12);
+  CHECKNEAR(mf.localMax(0), 2.0, 1e-12);
 }
 
-TEST(multifab_global_box_lookup) {
+TEST(multifabGlobalBoxLookup) {
   const Geometry g = makeGeom(8);
   Idx patch{};
   patch[0] = 4;
   patch[1] = 4;
-  if (NDIM == 3) patch[2] = 4;
+  if (NDIM == 3)
+    patch[2] = 4;
   const BoxArray ba = BoxArray::tileDomain(g.domain, patch);
   const DistributionMapping dm = DistributionMapping::roundRobin(ba, 1);
 
   MultiFab mf(ba, dm, 2, 1, 0, "mf");
 
   for (int gb = 0; gb < ba.size(); ++gb) {
-    CHECK_EQ(mf.globalToLocal(gb), gb);
+    CHECKEQ(mf.globalToLocal(gb), gb);
     const Array4<Real> a = mf.arrayByGlobal(gb);
     CHECK(a.p != nullptr);
   }
@@ -110,6 +117,6 @@ TEST(multifab_global_box_lookup) {
     a(bx.lo[0], bx.lo[1], bx.lo[2], 0) = Real(1);
     a(bx.lo[0], bx.lo[1], bx.lo[2], 1) = Real(5);
   }
-  CHECK_NEAR(mf.localSum(0), static_cast<double>(ba.size()), 1e-12);
-  CHECK_NEAR(mf.localSum(1), static_cast<double>(ba.size()) * 5.0, 1e-12);
+  CHECKNEAR(mf.localSum(0), static_cast<double>(ba.size()), 1e-12);
+  CHECKNEAR(mf.localSum(1), static_cast<double>(ba.size()) * 5.0, 1e-12);
 }

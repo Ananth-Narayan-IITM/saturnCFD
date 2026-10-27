@@ -1,20 +1,24 @@
-// saturnCFD — variable-free Poisson solve on a single AMR level.
-//
-// In the projection method the pressure equation is the only global elliptic
-// problem, and it dominates both cost and scalability. It is therefore isolated
-// here as its own testable component.
-//
-// We solve  -laplacian(p) = rhs  with homogeneous boundary conditions.
-//
-// The sign convention is deliberate: the 5/7-point Laplacian is negative
-// semi-definite, so we negate it to get a symmetric positive semi-definite
-// operator, which is what conjugate gradients requires.
-//
-// NOTE  CG is used here because it is simple, robust and easy to verify. It is
-//       NOT the right production solver: CG iteration count grows as O(1/h) for
-//       Poisson, so wall-clock time grows as O(N^1.5) in 2D. Geometric multigrid
-//       (which makes the count grid-independent) is the next milestone and is
-//       required before any lead-time claim against Basilisk.
+/**
+ * @file Poisson.hpp
+ *
+ * saturnCFD — variable-free Poisson solve on a single AMR level.
+ *
+ * In the projection method the pressure equation is the only global elliptic
+ * problem, and it dominates both cost and scalability. It is therefore isolated
+ * here as its own testable component.
+ *
+ * We solve  -laplacian(p) = rhs  with homogeneous boundary conditions.
+ *
+ * The sign convention is deliberate: the 5/7-point Laplacian is negative
+ * semi-definite, so we negate it to get a symmetric positive semi-definite
+ * operator, which is what conjugate gradients requires.
+ *
+ * NOTE  CG is used here because it is simple, robust and easy to verify. It is
+ * NOT the right production solver: CG iteration count grows as O(1/h) for
+ * Poisson, so wall-clock time grows as O(N^1.5) in 2D. Geometric
+ * multigrid (which makes the count grid-independent) is the next
+ * milestone and is required before any lead-time claim against Basilisk.
+ */
 #pragma once
 
 #include "amr/MultiFab.hpp"
@@ -25,10 +29,11 @@
 namespace saturn {
 
 enum class BCType {
-  Neumann,    ///< dp/dn = 0  (impermeable wall, natural for pressure)
-  Dirichlet   ///< p = 0      (open boundary / immersed solid potential)
+  Neumann,   ///< dp/dn = 0  (impermeable wall, natural for pressure)
+  Dirichlet  ///< p = 0      (open boundary / immersed solid potential)
 };
 
+/** @brief Solver controls for solvePoisson(). */
 struct PoissonParams {
   BCType bc = BCType::Neumann;
   int maxIter = 5000;

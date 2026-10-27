@@ -1,10 +1,10 @@
 #include <cmath>
 
+#include "TestHarness.hpp"
 #include "amr/BoxArray.hpp"
 #include "amr/DistributionMapping.hpp"
 #include "amr/MultiFab.hpp"
 #include "comm/HaloExchange.hpp"
-#include "test.hpp"
 
 using namespace saturn;
 
@@ -15,10 +15,12 @@ Geometry haloGeom(int n) {
   Idx e{};
   e[0] = n;
   e[1] = n;
-  if (NDIM == 3) e[2] = n;
+  if (NDIM == 3)
+    e[2] = n;
   g.domain = Box::fromExtent(e);
   g.dx = 1.0;
-  for (int d = 0; d < NDIM; ++d) g.periodic[d] = true;
+  for (int d = 0; d < NDIM; ++d)
+    g.periodic[d] = true;
   return g;
 }
 
@@ -27,11 +29,13 @@ Real wave(const Geometry& g, int i, int j, int k) {
   const Real pi = 3.14159265358979323846;
   Real v = Kokkos::sin(2 * pi * g.xc(0, i) / g.length(0)) *
            Kokkos::cos(2 * pi * g.xc(1, j) / g.length(1));
-  if (NDIM == 3) v += Kokkos::sin(2 * pi * g.xc(2, k) / g.length(2));
+  if (NDIM == 3)
+    v += Kokkos::sin(2 * pi * g.xc(2, k) / g.length(2));
   return v;
 }
 
-/// Max error over cells that are ghosts (outside the owning box, inside domain).
+/// Max error over cells that are ghosts (outside the owning box, inside
+/// domain).
 Real maxGhostError(const MultiFab& mf, const Geometry& geom) {
   Real mx = Real(0);
   Kokkos::Max<Real> err(mx);
@@ -40,7 +44,8 @@ Real maxGhostError(const MultiFab& mf, const Geometry& geom) {
     const Box bx = mf.boxArray()[mf.localToGlobal(lb)];
     const Array4<Real> a = mf.array(lb);
     const int ng = mf.nGrow();
-    if (ng == 0) continue;
+    if (ng == 0)
+      continue;
 
     const Box gb = bx.grow(ng);
     const int n0 = gb.length(0), n1 = gb.length(1);
@@ -56,13 +61,18 @@ Real maxGhostError(const MultiFab& mf, const Geometry& geom) {
           const int k = (NDIM == 3) ? gb.lo[2] + r / n1 : 0;
 
           Idx p{};
-          p[0] = i; p[1] = j;
-          if (NDIM == 3) p[2] = k;
-          if (bx.contains(p)) return;   // valid cell
-          if (!dom.contains(p)) return; // outside the domain: physical BC
+          p[0] = i;
+          p[1] = j;
+          if (NDIM == 3)
+            p[2] = k;
+          if (bx.contains(p))
+            return;  // valid cell
+          if (!dom.contains(p))
+            return;  // outside the domain: physical BC
 
           const Real d = Kokkos::abs(a(i, j, k, 0) - wave(geom, i, j, k));
-          if (d > m) m = d;
+          if (d > m)
+            m = d;
         },
         err);
   }
@@ -71,14 +81,16 @@ Real maxGhostError(const MultiFab& mf, const Geometry& geom) {
 
 }  // namespace
 
-TEST(halo_single_box_periodic_wraps_onto_itself) {
+TEST(haloSingleBoxPeriodicWrapsOntoItself) {
   const Geometry g = haloGeom(8);
   Idx patch{};
-  patch[0] = 8; patch[1] = 8;
-  if (NDIM == 3) patch[2] = 8;
+  patch[0] = 8;
+  patch[1] = 8;
+  if (NDIM == 3)
+    patch[2] = 8;
 
   const BoxArray ba = BoxArray::tileDomain(g.domain, patch);
-  CHECK_EQ(ba.size(), 1);
+  CHECKEQ(ba.size(), 1);
   const DistributionMapping dm = DistributionMapping::roundRobin(ba, 1);
 
   MultiFab mf(ba, dm, 1, 2, 0, "mf");
@@ -95,11 +107,13 @@ TEST(halo_single_box_periodic_wraps_onto_itself) {
   CHECK(err < Real(1e-5));
 }
 
-TEST(halo_multi_box_periodic) {
+TEST(haloMultiBoxPeriodic) {
   const Geometry g = haloGeom(16);
   Idx patch{};
-  patch[0] = 4; patch[1] = 4;
-  if (NDIM == 3) patch[2] = 4;
+  patch[0] = 4;
+  patch[1] = 4;
+  if (NDIM == 3)
+    patch[2] = 4;
 
   const BoxArray ba = BoxArray::tileDomain(g.domain, patch);
   CHECK(ba.size() > 1);
@@ -122,11 +136,13 @@ TEST(halo_multi_box_periodic) {
   CHECK(minv > Real(-10));
 }
 
-TEST(halo_zero_ghost_is_noop) {
+TEST(haloZeroGhostIsNoop) {
   const Geometry g = haloGeom(8);
   Idx patch{};
-  patch[0] = 4; patch[1] = 4;
-  if (NDIM == 3) patch[2] = 4;
+  patch[0] = 4;
+  patch[1] = 4;
+  if (NDIM == 3)
+    patch[2] = 4;
 
   const BoxArray ba = BoxArray::tileDomain(g.domain, patch);
   const DistributionMapping dm = DistributionMapping::roundRobin(ba, 1);
@@ -136,9 +152,9 @@ TEST(halo_zero_ghost_is_noop) {
 
   HaloExchange hx(ba, dm, g, 0, 0, 1);
   hx.build();
-  CHECK_EQ(hx.numLocalOps(), 0);
+  CHECKEQ(hx.numLocalOps(), 0);
   hx.execute(mf);
 
-  CHECK_NEAR(mf.localMin(0), 3.0, 1e-12);
-  CHECK_NEAR(mf.localMax(0), 3.0, 1e-12);
+  CHECKNEAR(mf.localMin(0), 3.0, 1e-12);
+  CHECKNEAR(mf.localMax(0), 3.0, 1e-12);
 }

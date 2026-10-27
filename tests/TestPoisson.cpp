@@ -1,5 +1,6 @@
 #include <cmath>
 
+#include "TestHarness.hpp"
 #include "amr/BoxArray.hpp"
 #include "amr/DistributionMapping.hpp"
 #include "amr/MultiFab.hpp"
@@ -7,7 +8,6 @@
 #include "linalg/Poisson.hpp"
 #include "linalg/VecOps.hpp"
 #include "mesh/Geometry.hpp"
-#include "test.hpp"
 
 using namespace saturn;
 
@@ -27,15 +27,18 @@ Setup makeSetup(int N) {
   Idx n{};
   n[0] = N;
   n[1] = N;
-  if (NDIM == 3) n[2] = N;
+  if (NDIM == 3)
+    n[2] = N;
   s.geom.domain = Box::fromExtent(n);
   s.geom.dx = Real(1) / Real(N);
-  for (int d = 0; d < NDIM; ++d) s.geom.periodic[d] = false;
+  for (int d = 0; d < NDIM; ++d)
+    s.geom.periodic[d] = false;
 
   Idx patch{};
   patch[0] = N;
   patch[1] = N;
-  if (NDIM == 3) patch[2] = N;
+  if (NDIM == 3)
+    patch[2] = N;
   s.ba = BoxArray::tileDomain(s.geom.domain, patch);
   s.dm = DistributionMapping::roundRobin(s.ba, 1);
   s.halo = HaloExchange(s.ba, s.dm, s.geom, 1, 0, 1);
@@ -64,7 +67,8 @@ Real maxErrorAgainst(const MultiFab& p, const Geometry& g, bool cosine) {
   p.forEachCellFlatReduce(
       KOKKOS_LAMBDA(int, Array4<Real> A, int i, int j, int k, Real& mx) {
         const Real e = Kokkos::abs(A(i, j, k, 0) - trigAt(gg, i, j, k, cosine));
-        if (e > mx) mx = e;
+        if (e > mx)
+          mx = e;
       },
       red);
   return red.reference();
@@ -73,7 +77,7 @@ Real maxErrorAgainst(const MultiFab& p, const Geometry& g, bool cosine) {
 }  // namespace
 
 // Constant field is in the null space of the Neumann Laplacian.
-TEST(poisson_neumann_annihilates_constants) {
+TEST(poissonNeumannAnnihilatesConstants) {
   Setup s = makeSetup(16);
   MultiFab p(s.ba, s.dm, 1, 1, 0, "p");
   MultiFab Ap(s.ba, s.dm, 1, 1, 0, "Ap");
@@ -85,7 +89,7 @@ TEST(poisson_neumann_annihilates_constants) {
 }
 
 // Manufactured solution with p = 0 on the boundary: -lap(p) = NDIM*pi^2*p.
-TEST(poisson_dirichlet_second_order) {
+TEST(poissonDirichletSecondOrder) {
   auto run = [](int N) {
     Setup s = makeSetup(N);
     const Geometry g = s.geom;
@@ -123,7 +127,7 @@ TEST(poisson_dirichlet_second_order) {
 
 // Neumann problem with a zero-mean manufactured solution:
 // p = cos(pi x) cos(pi y) [cos(pi z)], dp/dn = 0 on every wall.
-TEST(poisson_neumann_manufactured) {
+TEST(poissonNeumannManufactured) {
   Setup s = makeSetup(32);
   const Geometry g = s.geom;
 
@@ -131,10 +135,9 @@ TEST(poisson_neumann_manufactured) {
   MultiFab rhs(s.ba, s.dm, 1, 1, 0, "rhs");
 
   const Real k = Real(NDIM) * kPi * kPi;
-  rhs.forEachCellFlat(
-      KOKKOS_LAMBDA(int, Array4<Real> A, int i, int j, int kk) {
-        A(i, j, kk, 0) = k * trigAt(g, i, j, kk, true);
-      });
+  rhs.forEachCellFlat(KOKKOS_LAMBDA(int, Array4<Real> A, int i, int j, int kk) {
+    A(i, j, kk, 0) = k * trigAt(g, i, j, kk, true);
+  });
 
   PoissonParams prm;
   prm.bc = BCType::Neumann;

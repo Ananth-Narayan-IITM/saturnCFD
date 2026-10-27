@@ -1,12 +1,16 @@
-// saturnCFD — YAML-subset configuration with self-documenting defaults.
-//
-// Design goal: at any time a user can run `saturnCFD --dump-config` and get a
-// YAML file listing every option the code actually reads, with its default and
-// a one-line description. That is achieved by *registering* options as they are
-// queried, so the template can never drift from the code.
-//
-// Supported YAML subset: nested maps by indentation, scalar values, inline
-// lists [a, b, c], and comments. No anchors, no multi-line strings.
+/**
+ * @file Config.hpp
+ *
+ * saturnCFD — YAML-subset configuration with self-documenting defaults.
+ *
+ * Design goal: at any time a user can run `saturnCFD --dump-config` and get a
+ * YAML file listing every option the code actually reads, with its default and
+ * a one-line description. That is achieved by *registering* options as they are
+ * queried, so the template can never drift from the code.
+ *
+ * Supported YAML subset: nested maps by indentation, scalar values, inline
+ * lists [a, b, c], and comments. No anchors, no multi-line strings.
+ */
 #pragma once
 
 #include <iosfwd>
@@ -16,6 +20,12 @@
 
 namespace saturn {
 
+/**
+ * @brief YAML-subset configuration with self-documenting defaults.
+ *
+ * Options register themselves as they are queried, so dumpTemplate() can
+ * always emit a complete and current template.
+ */
 class Config {
  public:
   Config() = default;
@@ -27,7 +37,8 @@ class Config {
 
   std::string getString(const std::string& key, const std::string& def,
                         const std::string& desc = "") const;
-  int getInt(const std::string& key, int def, const std::string& desc = "") const;
+  int getInt(const std::string& key, int def,
+             const std::string& desc = "") const;
   double getDouble(const std::string& key, double def,
                    const std::string& desc = "") const;
   bool getBool(const std::string& key, bool def,
@@ -50,7 +61,7 @@ class Config {
 
   /// Every key present in the file.
   const std::map<std::string, std::string>& rawValues() const {
-    return m_values;
+    return mValues;
   }
 
  private:
@@ -63,8 +74,8 @@ class Config {
   void registerOpt(const std::string& key, const std::string& def,
                    const std::string& desc, const std::string& type) const;
 
-  std::map<std::string, std::string> m_values;
-  mutable std::map<std::string, Reg> m_registry;
+  std::map<std::string, std::string> mValues;
+  mutable std::map<std::string, Reg> mRegistry;
 };
 
 }  // namespace saturn

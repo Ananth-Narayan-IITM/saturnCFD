@@ -1,9 +1,13 @@
-// saturnCFD — core type aliases. Everything downstream is written in terms of
-// these, so switching dimension or precision is a configure-time decision.
+/**
+ * @file Types.hpp
+ *
+ * saturnCFD — core type aliases. Everything downstream is written in terms of
+ * these, so switching dimension or precision is a configure-time decision.
+ */
 #pragma once
 
-#include <Kokkos_Core.hpp>
 #include <Kokkos_Array.hpp>
+#include <Kokkos_Core.hpp>
 
 #include <cstddef>
 
@@ -39,7 +43,8 @@ using ExecSpace = Kokkos::DefaultExecutionSpace;
 using MemSpace = ExecSpace::memory_space;
 using Layout = Kokkos::LayoutRight;
 
-/// NOTE the explicit '*' : in Kokkos, View<T, MemSpace> is a RANK-0 scalar view.
+/// NOTE the explicit '*' : in Kokkos, View<T, MemSpace> is a RANK-0 scalar
+/// view.
 template <class T>
 using View = Kokkos::View<T*, MemSpace>;
 
@@ -49,6 +54,7 @@ using HostView = Kokkos::View<T*, Kokkos::HostSpace>;
 /// Device-resident scratch, used for per-thread temporaries.
 using ScratchSpace = typename ExecSpace::scratch_memory_space;
 
-inline constexpr int NDIM3 = 3;  // internal strides always 3D; NDIM==2 uses nz=1
+inline constexpr int NDIM3 =
+    3;  // internal strides always 3D; NDIM==2 uses nz=1
 
 }  // namespace saturn

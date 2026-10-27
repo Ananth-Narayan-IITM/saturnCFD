@@ -1,5 +1,9 @@
-// saturnCFD — problem geometry. Index space is integer; physical space is
-// obtained with a single uniform dx per level.
+/**
+ * @file Geometry.hpp
+ *
+ * saturnCFD — problem geometry. Index space is integer; physical space is
+ * obtained with a single uniform dx per level.
+ */
 #pragma once
 
 #include "amr/Box.hpp"
@@ -8,9 +12,9 @@
 namespace saturn {
 
 struct Geometry {
-  Box domain;          ///< level-0 index space, cell-centred
-  Real dx = 1;         ///< cell size on THIS level
-  Real origin[NDIM3] = {0, 0, 0};          ///< physical coord of cell-centre of lo[0..]
+  Box domain;                      ///< level-0 index space, cell-centred
+  Real dx = 1;                     ///< cell size on THIS level
+  Real origin[NDIM3] = {0, 0, 0};  ///< physical coord of cell-centre of lo[0..]
   bool periodic[NDIM3] = {false, false, false};
 
   int nCells(int d) const { return domain.hi[d] - domain.lo[d] + 1; }

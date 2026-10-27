@@ -1,0 +1,56 @@
+# Doxygen configuration for saturnCFD.
+#
+# Generate the documentation from the repository root:
+#
+#     doxygen docs/Doxyfile
+#     xdg-open build/doxygen/html/index.html
+#
+# or through CMake, if Doxygen was found at configure time:
+#
+#     cmake --build build --target doc
+
+PROJECT_NAME           = saturnCFD
+PROJECT_BRIEF          = "Finite-volume incompressible CFD with block-structured AMR"
+PROJECT_NUMBER         = 0.2.0
+OUTPUT_DIRECTORY       = build/doxygen
+CREATE_SUBDIRS         = NO
+ALLOW_UNICODE_NAMES    = YES
+
+# Paths are resolved relative to the directory doxygen is run from, which is
+# the repository root.
+INPUT                  = src apps docs README.md
+FILE_PATTERNS          = *.hpp *.cpp *.md
+RECURSIVE              = YES
+EXCLUDE                = build tests docs/Doxyfile
+USE_MDFILE_AS_MAINPAGE = README.md
+
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+HIDE_UNDOC_MEMBERS     = NO
+WARN_IF_UNDOCUMENTED   = NO
+WARN_IF_DOC_ERROR      = YES
+QUIET                  = YES
+WARNINGS               = YES
+
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+GENERATE_LATEX         = NO
+GENERATE_XML           = NO
+GENERATE_TREEVIEW      = YES
+DISABLE_INDEX          = NO
+SEARCHENGINE           = YES
+
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION    = YES
+
+HAVE_DOT               = NO
+
+# The Kokkos and STL names that appear everywhere are not ours to document.
+PREDEFINED             = KOKKOS_INLINE_FUNCTION= KOKKOS_FUNCTION= \
+                         KOKKOS_LAMBDA= KOKKOS_CLASS_LAMBDA= \
+                         SATURN_NDIM=2 SATURN_REAL_DOUBLE=
+EXPAND_ONLY_PREDEF     = NO
+MACRO_EXPANSION        = NO

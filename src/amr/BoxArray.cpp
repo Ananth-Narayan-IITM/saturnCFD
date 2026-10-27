@@ -7,7 +7,8 @@ namespace saturn {
 BoxArray BoxArray::tileDomain(const Box& domain, const Idx& maxSize,
                               int /*nghost*/) {
   BoxArray ba;
-  if (!domain.ok()) return ba;
+  if (!domain.ok())
+    return ba;
 
   for (int d = 0; d < NDIM; ++d)
     if (maxSize[d] <= 0)
@@ -34,22 +35,25 @@ BoxArray BoxArray::tileDomain(const Box& domain, const Idx& maxSize,
     // increment
     int d = NDIM - 1;
     while (d >= 0) {
-      if (++pid[d] < npatch[d]) break;
+      if (++pid[d] < npatch[d])
+        break;
       pid[d] = 0;
       --d;
     }
-    if (d < 0) done = true;
+    if (d < 0)
+      done = true;
   }
   return ba;
 }
 
 Box BoxArray::boundingBox() const {
-  if (m_boxes.empty()) return Box{};
-  Box r = m_boxes[0];
-  for (std::size_t i = 1; i < m_boxes.size(); ++i) {
+  if (mBoxes.empty())
+    return Box{};
+  Box r = mBoxes[0];
+  for (std::size_t i = 1; i < mBoxes.size(); ++i) {
     for (int d = 0; d < NDIM; ++d) {
-      r.lo[d] = std::min(r.lo[d], m_boxes[i].lo[d]);
-      r.hi[d] = std::max(r.hi[d], m_boxes[i].hi[d]);
+      r.lo[d] = std::min(r.lo[d], mBoxes[i].lo[d]);
+      r.hi[d] = std::max(r.hi[d], mBoxes[i].hi[d]);
     }
   }
   return r;
@@ -57,14 +61,16 @@ Box BoxArray::boundingBox() const {
 
 BigIndex BoxArray::numPts() const {
   BigIndex n = 0;
-  for (const auto& b : m_boxes) n += b.numPts();
+  for (const auto& b : mBoxes)
+    n += b.numPts();
   return n;
 }
 
 bool BoxArray::disjoint() const {
-  for (std::size_t i = 0; i < m_boxes.size(); ++i)
-    for (std::size_t j = i + 1; j < m_boxes.size(); ++j)
-      if (m_boxes[i].intersects(m_boxes[j])) return false;
+  for (std::size_t i = 0; i < mBoxes.size(); ++i)
+    for (std::size_t j = i + 1; j < mBoxes.size(); ++j)
+      if (mBoxes[i].intersects(mBoxes[j]))
+        return false;
   return true;
 }
 

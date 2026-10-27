@@ -1,8 +1,12 @@
-// saturnCFD — axis-aligned index-space box. The atom of the AMR decomposition.
-//
-// A Box is inclusive on both ends: lo[d] and hi[d] are valid indices.
-// An *empty* box has lo[d] > hi[d] for at least one d. All queries are
-// KOKKOS_INLINE_FUNCTION so they work inside kernels.
+/**
+ * @file Box.hpp
+ *
+ * saturnCFD — axis-aligned index-space box. The atom of the AMR decomposition.
+ *
+ * A Box is inclusive on both ends: lo[d] and hi[d] are valid indices.
+ * An *empty* box has lo[d] > hi[d] for at least one d. All queries are
+ * KOKKOS_INLINE_FUNCTION so they work inside kernels.
+ */
 #pragma once
 
 #include <Kokkos_Macros.hpp>
@@ -13,6 +17,7 @@
 
 namespace saturn {
 
+/** @brief Axis-aligned index-space box: the atom of the decomposition. */
 struct Box {
   Idx lo;
   Idx hi;
@@ -26,7 +31,7 @@ struct Box {
   }
 
   KOKKOS_INLINE_FUNCTION
-  Box(const Idx& a_lo, const Idx& a_hi) : lo(a_lo), hi(a_hi) {}
+  Box(const Idx& aLo, const Idx& aHi) : lo(aLo), hi(aHi) {}
 
   /// A box covering [0, n) in every dimension.
   KOKKOS_INLINE_FUNCTION
@@ -46,7 +51,8 @@ struct Box {
   KOKKOS_INLINE_FUNCTION
   bool ok() const {
     for (int d = 0; d < NDIM; ++d)
-      if (hi[d] < lo[d]) return false;
+      if (hi[d] < lo[d])
+        return false;
     return true;
   }
 
@@ -55,25 +61,30 @@ struct Box {
 
   KOKKOS_INLINE_FUNCTION
   BigIndex numPts() const {
-    if (!ok()) return 0;
+    if (!ok())
+      return 0;
     BigIndex n = 1;
-    for (int d = 0; d < NDIM; ++d) n *= (hi[d] - lo[d] + 1);
+    for (int d = 0; d < NDIM; ++d)
+      n *= (hi[d] - lo[d] + 1);
     return n;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool contains(const Idx& p) const {
     for (int d = 0; d < NDIM; ++d)
-      if (p[d] < lo[d] || p[d] > hi[d]) return false;
+      if (p[d] < lo[d] || p[d] > hi[d])
+        return false;
     return true;
   }
 
   /// True if b is entirely inside *this.
   KOKKOS_INLINE_FUNCTION
   bool contains(const Box& b) const {
-    if (!b.ok()) return true;
+    if (!b.ok())
+      return true;
     for (int d = 0; d < NDIM; ++d)
-      if (b.lo[d] < lo[d] || b.hi[d] > hi[d]) return false;
+      if (b.lo[d] < lo[d] || b.hi[d] > hi[d])
+        return false;
     return true;
   }
 
@@ -94,7 +105,8 @@ struct Box {
   KOKKOS_INLINE_FUNCTION
   Box grow(int n) const {
     Box r = *this;
-    if (!ok()) return r;
+    if (!ok())
+      return r;
     for (int d = 0; d < NDIM; ++d) {
       r.lo[d] -= n;
       r.hi[d] += n;
@@ -106,7 +118,8 @@ struct Box {
   KOKKOS_INLINE_FUNCTION
   Box grow(int d, int n) const {
     Box r = *this;
-    if (!ok()) return r;
+    if (!ok())
+      return r;
     r.lo[d] -= n;
     r.hi[d] += n;
     return r;
@@ -126,7 +139,8 @@ struct Box {
   KOKKOS_INLINE_FUNCTION
   Box coarsen(int n) const {
     Box r = *this;
-    if (!ok()) return r;
+    if (!ok())
+      return r;
     for (int d = 0; d < NDIM; ++d) {
       r.lo[d] += n;
       r.hi[d] -= n;
@@ -137,7 +151,8 @@ struct Box {
   KOKKOS_INLINE_FUNCTION
   bool operator==(const Box& b) const {
     for (int d = 0; d < NDIM; ++d)
-      if (lo[d] != b.lo[d] || hi[d] != b.hi[d]) return false;
+      if (lo[d] != b.lo[d] || hi[d] != b.hi[d])
+        return false;
     return true;
   }
 

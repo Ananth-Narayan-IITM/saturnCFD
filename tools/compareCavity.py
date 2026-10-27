@@ -2,7 +2,7 @@
 """Compare a saturnCFD cavity centreline against Ghia, Ghia & Shin (1982).
 
 Usage:
-    python3 tools/compare_cavity.py results/cavity_re100/centreline_u.csv --re 100
+    python3 tools/compareCavity.py results/cavity/re100/centrelineU.csv --re 100
 
 The simulation writes u at cell centres along x = 0.5, i.e. at
 y = (j + 0.5) * h. Ghia's tabulated points do not coincide with those, so the

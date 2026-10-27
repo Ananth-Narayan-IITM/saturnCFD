@@ -1,10 +1,14 @@
-// saturnCFD — ParaView-friendly output.
-//
-// Writes one XML ImageData (.vti) file per box per timestep, plus a .pvd
-// collection so ParaView can load the whole AMR hierarchy / all times at once.
-//
-// v0.1 writes ASCII (readable, diffable, slow for large runs). Binary appended
-// is a drop-in upgrade; the file layout does not change.
+/**
+ * @file VTKWriter.hpp
+ *
+ * saturnCFD — ParaView-friendly output.
+ *
+ * Writes one XML ImageData (.vti) file per box per timestep, plus a .pvd
+ * collection so ParaView can load the whole AMR hierarchy / all times at once.
+ *
+ * v0.1 writes ASCII (readable, diffable, slow for large runs). Binary appended
+ * is a drop-in upgrade; the file layout does not change.
+ */
 #pragma once
 
 #include <string>
@@ -16,6 +20,7 @@
 
 namespace saturn {
 
+/** @brief ParaView output: one .vti per patch plus a .pvd collection. */
 class VTKWriter {
  public:
   /// `base` is a path prefix, e.g. "output/field" -> output/field.pvd.
@@ -37,8 +42,8 @@ class VTKWriter {
     int part;
   };
 
-  std::string m_base;
-  std::vector<Entry> m_entries;
+  std::string mBase;
+  std::vector<Entry> mEntries;
 };
 
 }  // namespace saturn

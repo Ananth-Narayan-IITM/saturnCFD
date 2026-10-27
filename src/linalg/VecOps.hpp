@@ -1,11 +1,15 @@
-// saturnCFD — elementary vector operations on MultiFab.
-//
-// A MultiFab is a distributed array, so these are the primitive global
-// operations every Krylov solver needs: inner products, axpy, norms. They are
-// header-only because they are templated on the Kokkos lambda they build.
-//
-// Every reduction here accumulates in `Accum` (double), even when the field
-// precision is float. A float accumulation over 10^6 cells is meaningless.
+/**
+ * @file VecOps.hpp
+ *
+ * saturnCFD — elementary vector operations on MultiFab.
+ *
+ * A MultiFab is a distributed array, so these are the primitive global
+ * operations every Krylov solver needs: inner products, axpy, norms. They are
+ * header-only because they are templated on the Kokkos lambda they build.
+ *
+ * Every reduction here accumulates in `Accum` (double), even when the field
+ * precision is float. A float accumulation over 10^6 cells is meaningless.
+ */
 #pragma once
 
 #include <cmath>
@@ -42,7 +46,8 @@ inline Real maxNorm(const MultiFab& a, int c = 0) {
   a.forEachCellFlatReduce(
       KOKKOS_LAMBDA(int, Array4<Real> A, int i, int j, int k, Real& mx) {
         const Real v = Kokkos::abs(A(i, j, k, c));
-        if (v > mx) mx = v;
+        if (v > mx)
+          mx = v;
       },
       red);
   return red.reference();

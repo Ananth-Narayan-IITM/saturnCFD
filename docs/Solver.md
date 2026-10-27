@@ -116,7 +116,7 @@ div(u*) - dt * lap(phi) = 0      =>      -lap(phi) = -div(u*)/dt
 ```
 
 So we solve a Poisson equation for `phi` (pressure divided by density). The
-right-hand side is built in `CavitySolver::step` from `computeDivergence(m_ut,
+right-hand side is built in `CavitySolver::step` from `computeDivergence(mVelocityStar,
 ...)` — **note it is the divergence of the predictor `u*`, not of the old
 velocity**; using the old one silently does nothing (this was a real bug during
 development and it is the first thing to check if the solution misbehaves).

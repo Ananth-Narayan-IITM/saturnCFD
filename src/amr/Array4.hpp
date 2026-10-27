@@ -1,16 +1,26 @@
-// saturnCFD — 4-index field accessor over a cell-centred block.
-//
-// Layout is z-slowest, x-fastest (Kokkos LayoutRight) so that a team sweeping
-// in x reads contiguous memory.
-//
-// Indices passed in are *global* (level) indices. The accessor subtracts the
-// block's ghost-inclusive origin, so callers never think about offsets.
+/**
+ * @file Array4.hpp
+ *
+ * saturnCFD — 4-index field accessor over a cell-centred block.
+ *
+ * Layout is z-slowest, x-fastest (Kokkos LayoutRight) so that a team sweeping
+ * in x reads contiguous memory.
+ *
+ * Indices passed in are *global* (level) indices. The accessor subtracts the
+ * block's ghost-inclusive origin, so callers never think about offsets.
+ */
 #pragma once
 
 #include "core/Types.hpp"
 
 namespace saturn {
 
+/**
+ * @brief 4-index accessor (i, j, k, component) over one cell block.
+ *
+ * Takes GLOBAL indices; the block origin is subtracted internally, so callers
+ * never handle offsets.
+ */
 template <class T>
 struct Array4 {
   T* p = nullptr;

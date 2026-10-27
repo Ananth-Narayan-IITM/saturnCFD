@@ -1,7 +1,7 @@
 #include <sstream>
 
+#include "TestHarness.hpp"
 #include "core/Config.hpp"
-#include "test.hpp"
 
 using namespace saturn;
 
@@ -20,31 +20,32 @@ solver:
 )";
 }
 
-TEST(config_reads_nested_values) {
+TEST(configReadsNestedValues) {
   const Config cfg = Config::fromString(kYaml);
-  CHECK_EQ(cfg.getInt("domain.nx", 0), 128);
-  CHECK_EQ(cfg.getInt("domain.ny", 0), 64);
-  CHECK_NEAR(cfg.getDouble("domain.lx", 0.0), 2.5, 1e-12);
+  CHECKEQ(cfg.getInt("domain.nx", 0), 128);
+  CHECKEQ(cfg.getInt("domain.ny", 0), 64);
+  CHECKNEAR(cfg.getDouble("domain.lx", 0.0), 2.5, 1e-12);
   CHECK(cfg.getBool("boundary.periodic", false));
-  CHECK_EQ(cfg.getString("wall0", cfg.getString("boundary.walls", "none")), "[left, right]");
+  CHECKEQ(cfg.getString("wall0", cfg.getString("boundary.walls", "none")),
+          "[left, right]");
 }
 
-TEST(config_defaults_when_missing) {
+TEST(configDefaultsWhenMissing) {
   const Config cfg = Config::fromString(kYaml);
-  CHECK_EQ(cfg.getInt("domain.nz", 7), 7);
-  CHECK_NEAR(cfg.getDouble("time.dt", 0.25), 0.25, 1e-12);
+  CHECKEQ(cfg.getInt("domain.nz", 7), 7);
+  CHECKNEAR(cfg.getDouble("time.dt", 0.25), 0.25, 1e-12);
   CHECK(!cfg.has("time.dt"));
   CHECK(cfg.has("domain.nx"));
 }
 
-TEST(config_lists_parse) {
+TEST(configListsParse) {
   const Config cfg = Config::fromString(kYaml);
   const auto l = cfg.getDoubleList("physics.limits", {1.0, 2.0, 3.0});
-  CHECK_EQ(static_cast<int>(l.size()), 3);
-  CHECK_NEAR(l[2], 3.0, 1e-12);
+  CHECKEQ(static_cast<int>(l.size()), 3);
+  CHECKNEAR(l[2], 3.0, 1e-12);
 }
 
-TEST(config_dump_lists_queried_options) {
+TEST(configDumpListsQueriedOptions) {
   Config cfg = Config::fromString(kYaml);
   (void)cfg.getInt("domain.nx", 0, "cells in x");
   (void)cfg.getBool("boundary.periodic", false, "periodic everywhere");

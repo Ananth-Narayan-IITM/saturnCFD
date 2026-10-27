@@ -1,16 +1,16 @@
 # saturnCFD case file — lid-driven cavity, Re = 10000, 256 x 256
 #
 # WARNING: this is a long run. At Re = 10000 the cavity is genuinely unsteady,
-# so it will NOT satisfy the steady-state tolerance; it will run to end_time.
-# Reduce end_time first, and use vtk_every to inspect the transient.
+# so it will NOT satisfy the steady-state tolerance; it will run to endTime.
+# Reduce endTime first, and use vtkEvery to inspect the transient.
 #
 # The 256^2 grid is the minimum for a credible Re = 10000 comparison
 # (Ghia et al. used a 257 x 257 grid).
 #
-#   saturnCFD examples/cavity_re10000/case.yaml
+#   saturnCFD examples/cavity/re10000.yaml
 #
 # On the current CG pressure solver this is many hours on a laptop CPU.
-# Multigrid is required before this case is practical — see docs/SOLVER.md §6.
+# Multigrid is required before this case is practical — see docs/Solver.md §6.
 
 solver: cavity
 
@@ -21,22 +21,22 @@ domain:
 
 flow:
   reynolds: 10000
-  lid_velocity: 1.0
+  lidVelocity: 1.0
   scheme: minmod
   cfl: 0.4
-  diffusion_safety: 0.25
+  diffusionSafety: 0.25
 
 time:
-  end_time: 60.0
-  max_steps: 2000000
-  steady_tol: 1.0e-5
-  check_every: 500
+  endTime: 60.0
+  maxSteps: 2000000
+  steadyTol: 1.0e-5
+  checkEvery: 500
 
 pressure:
-  max_iter: 5000
+  maxIter: 5000
   tolerance: 1.0e-9
 
 output:
-  prefix: results/cavity_re10000
-  centre_lines: true
-  vtk_every: 2000
+  prefix: results/cavity/re10000
+  centreLines: true
+  vtkEvery: 2000
