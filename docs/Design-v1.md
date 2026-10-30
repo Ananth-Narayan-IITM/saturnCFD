@@ -20,7 +20,8 @@ A single codebase that:
    Navier–Stokes) on a structured hexahedral mesh imported from Gmsh `.msh`;
 2. is dimensionally consistent and validated against analytic solutions;
 3. is driven entirely by YAML, with generated templates and strict validation;
-4. is performance-portable through Kokkos, with CPU first and GPU later;
+4. is MPI-parallel and performance-portable through Kokkos from the first FVM
+   layer, on CPU and GPU;
 5. remains readable enough that one timestep can be followed from the driver to
    the last kernel.
 
@@ -31,7 +32,9 @@ A single codebase that:
 | mesh | structured hexahedral `.msh` only; 1D/2D are degenerate 3D meshes; `checkMesh` mandatory |
 | state | collocated cell-centred velocity vector and dynamic pressure |
 | coupling | Rhie–Chow face flux; SIMPLE for steady, PISO for transient |
-| linear algebra | PETSc `Mat`/`Vec`/`KSP`/`PC`; no home-grown Krylov |
+| parallel | MPI Cartesian block decomposition; one owner per cell; 2-layer ghost halo |
+| execution | Kokkos CPU/GPU; one rank per GPU; host-staged halo first |
+| linear algebra | MPI PETSc `Mat`/`Vec`/`KSP`/`PC`; no home-grown Krylov |
 | solvers | separate modules for Burgers, heat, Stokes, incompressible |
 | selection | `Solver` interface + registry; `solver:` in YAML |
 | time loop | `Simulation` owns time, step, output, checkpoints and manifest |
@@ -111,8 +114,9 @@ finite-volume mesh with cell/face fields, not a patch-based AMR container.
 
 ## 5a. Dependencies
 
-- **Kokkos** — performance portability.
-- **PETSc** — linear algebra.
+- **Kokkos** — CPU/GPU performance portability.
+- **MPI** — decomposition and halo exchange.
+- **PETSc** — MPI linear algebra.
 - **yaml-cpp 0.8.x** — YAML parsing; no hand-written parser.
 - **doctest** — test framework.
 - CMake >= 3.24, C++20.
@@ -132,7 +136,8 @@ in v1.0. See [`guides/writingASolver.md`](guides/writingASolver.md) and ADR
 - unstructured meshes;
 - AMR, regridding, two-phase flow;
 - compressible flow;
-- GPU kernels (design for them, implement later);
+- multi-GPU tuning and GPU-aware halo exchange (the interfaces support them,
+  but the first benchmark is one GPU);
 - non-SI unit systems (v1.0 accepts SI only; other systems are rejected);
 - a home-grown Krylov solver.
 
@@ -147,12 +152,9 @@ in v1.0. See [`guides/writingASolver.md`](guides/writingASolver.md) and ADR
 
 ## 7. Next actions
 
-1. yaml-cpp (ADR `0006`), doctest (ADR `0012`) and the docs pipeline
-   (ADR `0013`) are accepted.
-2. Write the remaining protocol specs P1 (core) and P8 (I/O).
-3. Implement `checkMesh`, the yaml-cpp schema, the SI-only validator, `-help`
-   and the user-solver scaffold first, because every solver depends on them.
-4. Implement Burgers and validate against the traveling wave before touching
-   Stokes.
-5. Add mesh VTK export early so every validation case can be inspected in
-   ParaView.
+1. Accept or amend ADR `0014` (MPI/Kokkos decomposition and GPU model).
+2. Implement `MeshPartition`, 26-neighbour halo and ghosted `CellField` first.
+3. Implement the finite-volume operators on top of the partitioned fields.
+4. Add the solver skeleton, `saturnCFDSolver` and `addSolver`.
+5. Add the MPI PETSc wrapper.
+6. Then Burgers physics and the `traveling64` regression.

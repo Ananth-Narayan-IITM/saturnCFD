@@ -115,6 +115,13 @@ cmake --build build --target formatCode
 
 The CI check runs `clang-format --dry-run --Werror`.
 
+## MPI and GPU
+
+MPI/Kokkos are not enabled in the current mesh/config/CLI slice. They land with
+the finite-volume layer; the decomposition, ghost-cell and one-GPU benchmark
+plan is in [`../plan/mpiGpuDesign.md`](../plan/mpiGpuDesign.md). Do not assume a
+single-rank CPU path for the FVM implementation.
+
 ## What not to memorise
 
 - Test labels: use `ctest --list-presets`.

@@ -89,6 +89,16 @@ Supported v1.0 types:
 BCs are read from YAML, validated against mesh patch names, and applied by the
 operator before it is used.
 
+## Parallel invariants
+
+See `docs/protocols/parallel.md` for the full contract. In short:
+
+- each cell is owned by exactly one rank;
+- ghost cells are read-only copies with one writer;
+- operators iterate owned cells/faces only;
+- halos are refreshed before an operator reads them;
+- a partition-boundary face is shared, but the cell update is not.
+
 ## Invariants
 
 - Face owner/neighbour orientation is consistent.

@@ -6,8 +6,12 @@ driven by YAML and validated against analytic solutions.
 
 **Status: Phase 1 in progress.** Mesh reading, `checkMesh`, the SI-only
 validator, yaml-cpp schema validation, CLI help, VTK mesh export and
-regression tests are in place. The finite-volume layer, PETSc wrapper and
-solver authoring are next. Solver physics starts in Phase 2.
+regression tests are in place. The MPI/Kokkos finite-volume layer, PETSc
+wrapper and solver authoring are next. Solver physics starts in Phase 2.
+
+MPI and GPU are **first-class from the first FVM layer**, not a later port.
+The decomposition, ghost-cell and one-GPU benchmark plan is in
+[`docs/plan/mpiGpuDesign.md`](docs/plan/mpiGpuDesign.md).
 
 The validated v0 implementation is preserved on `v0-archive` (tag `v0.3.0`)
 and is a reference for validation data and algorithms, not a tree to copy.
@@ -36,8 +40,9 @@ cmake --install build --prefix "$HOME/.local"
 # ~/.local/bin must be on PATH
 ```
 
-yaml-cpp and doctest are fetched automatically when not installed. PETSc and
-Kokkos are disabled until Phase 2.
+yaml-cpp and doctest are fetched automatically when not installed. Kokkos,
+MPI and PETSc are wired into the FVM/PETSc increments; the current Phase 1
+mesh/config/CLI slice does not need them yet.
 
 ```bash
 saturnCFD -version
@@ -66,6 +71,8 @@ After that, `saturnCFD -dump<Tab>` completes `-dumpConfig`, and
 - [ADR log](docs/decisions/README.md) — accepted and proposed decisions.
 - [v1 roadmap](docs/plan/v1-roadmap.md) — phases, validation gates and risks.
 - [Repository layout](docs/plan/repositoryLayout.md) — folders and naming.
+- [MPI and GPU design](docs/plan/mpiGpuDesign.md) — decomposition, ghosts,
+  one-GPU benchmark.
 - [Phase 1 status](docs/plan/phase1Status.md) — what is done and what remains.
 - [Command cheat sheet](docs/guides/commands.md) — build, test, install, help.
 - [Documentation pipeline](docs/plan/documentationPipeline.md) — Doxygen,
@@ -90,8 +97,9 @@ Accepted so far:
 ## Dependencies
 
 - C++20 compiler, CMake >= 3.24
-- Kokkos
-- PETSc
+- Kokkos (CPU/GPU)
+- MPI (Open MPI / MPICH)
+- PETSc (MPI build)
 - yaml-cpp 0.8.x
 - doctest (test framework)
 - Doxygen + LaTeX (documentation)

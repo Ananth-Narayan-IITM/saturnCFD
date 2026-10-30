@@ -52,25 +52,35 @@ PETSc wrapper and solver authoring remain. The detailed checklist is
    - `cmake --install` gives the `saturnCFD` command.
    - Ten validation stages; BC and initial conditions in YAML.
 
-3. **Finite volume**
-   - `CellField`, `FaceField`, `VectorCellField`.
+3. **Parallel decomposition and halo**
+   - `MeshPartition` from `MPI_Dims_create` / `MPI_Cart_create`.
+   - One owner per cell; two ghost layers; 26-neighbour halo.
+   - Local periodic copies before remote exchange; physical BCs after.
+   - Kokkos fields; rank-to-device mapping; one rank per GPU.
+   - Host-staged halo first; GPU-aware MPI behind the same interface.
+   - Tests on 1 and 2 ranks, CPU and GPU.
+
+4. **Finite volume**
+   - `CellField`, `FaceField`, `VectorCellField` with ghosts.
    - Gradient, divergence, interpolation, non-orthogonal Laplacian.
    - Convective flux: upwind, Rusanov, MUSCL + limiter.
    - Boundary-condition application.
+   - All operators iterate owned cells only and read ghost values.
 
-4. **Linear algebra**
+5. **Linear algebra**
    - PETSc wrapper: `Mat`, `Vec`, `KSP`, `PC`.
-   - Matrix assembly interface; block-3 momentum; scalar pressure.
+   - MPI `Mat`/`Vec` assembly; block-3 momentum; scalar pressure.
    - Null-space helper; residual diagnostics.
+   - CPU PETSc first; GPU PETSc as an enabled build.
 
-5. **I/O**
+6. **I/O**
    - VTU/PVD for structured hex meshes; `-writeVTK` from `-checkMesh`.
    - CSV diagnostics in SI.
    - Run manifest (git hash, build, PETSc version, yaml-cpp version, mesh hash,
      case hash).
    - Checkpoint format (binary with metadata).
 
-6. **Solver authoring**
+7. **Solver authoring**
    - `src/solvers/<name>/` layout; a user copy adds one
      `addSolver(<name>)` line to `src/solvers/CMakeLists.txt`.
    - `SATURN_REGISTER_SOLVER` and the solver API version.
@@ -78,7 +88,7 @@ PETSc wrapper and solver authoring remain. The detailed checklist is
    - A build test that copies `burgers` to `src/solvers/myBurgers`, adds the
      line, builds, lists it and generates its template.
 
-7. **Documentation and formatting**
+8. **Documentation and formatting**
    - `docs/Doxyfile` HTML + LaTeX/PDF.
    - `tools/doxygenMathFilter.py` for `$...$` -> `\f$...\f$`.
    - `docs.yml` deploys HTML to GitHub Pages; PDF is a workflow artifact.
@@ -95,8 +105,11 @@ PETSc wrapper and solver authoring remain. The detailed checklist is
   line and appears in `-listSolvers`.
 - `doxygen docs/Doxyfile` builds HTML; the LaTeX `make` produces `refman.pdf`.
 - The Pages workflow deploys; `clang-format --dry-run --Werror` passes.
+- Halo exchange matches an analytic periodic field on 1 and 2 ranks.
+- 1-rank and 2-rank FVM results agree; CPU and GPU agree within precision.
+- `mpirun -np 1` GPU runs the halo/stencil benchmark.
 - A 1D Poisson problem and a manufactured diffusion problem solve through
-  PETSc to the expected order.
+  MPI PETSc to the expected order.
 
 ## Phase 2 — Burgers
 
@@ -164,8 +177,7 @@ PETSc wrapper and solver authoring remain. The detailed checklist is
 
 ## Phase 6 — after v1.0
 
-- MPI decomposition (PETSc already provides the linear-algebra path).
-- GPU backend (Kokkos and a PETSc GPU build, or a specialised solver).
+- Multi-GPU performance tuning and GPU-aware halo exchange.
 - AMR, then two-phase flow.
 - Full units parser.
 - Unstructured mesh support, if needed.
@@ -189,7 +201,10 @@ PETSc wrapper and solver authoring remain. The detailed checklist is
 | Rhie–Chow sign/interpolation error | derive once in `finiteVolume.md`; checkerboard regression test |
 | pressure null space | PETSc `MatNullSpace`; mean-pressure diagnostic |
 | validation drift | theory page + validation page + test for every solver |
-| scope creep (AMR, GPU, compressible) | explicitly out of v1.0; revisit only after Phase 5 |
+| MPI halo bugs | 1-rank vs 2-rank and analytic periodic tests before any solver |
+| one GPU is not an MPI+GPU scaling benchmark | report GPU single-rank separately; multi-GPU scaling deferred |
+| PETSc GPU build friction | `LinearSolver` interface; host PETSc first, GPU backend enabled separately |
+| scope creep (AMR, compressible) | explicitly out of v1.0; revisit only after Phase 5 |
 
 ## Definition of done per solver
 

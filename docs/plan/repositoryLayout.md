@@ -21,9 +21,10 @@ saturnCFD/
     core/                       # types, units, errors, logging, timer
     config/                     # yaml-cpp source, schema, binding, validation
     mesh/                       # Mesh, GmshReader, CheckMesh, StructuredMesh
+    comm/                       # MeshPartition, HaloExchange, MPI runtime
     fv/                         # fields, gradient, divergence, laplacian,
                                 # interpolation, fluxes, Rhie-Chow, BCs
-    linalg/                     # PETSc wrappers, matrix assembly
+    linalg/                     # MPI PETSc wrappers, matrix assembly
     io/                         # VTU/PVD, CSV, checkpoint, run manifest
     simulation/                 # Solver interface, registry, time loop
     solvers/
@@ -35,6 +36,9 @@ saturnCFD/
 
   apps/
     main.cpp                    # saturnCFD driver
+  benchmarks/
+    haloStencil.cpp             # MPI halo + stencil benchmark
+    diffusion.cpp               # FVM benchmark
 
   tools/
     saturnCFDSolver.cpp         # C++ scaffold -> saturnCFDSolver
@@ -46,6 +50,7 @@ saturnCFD/
     core/
     config/
     mesh/
+    comm/
     fv/
     linalg/
     solvers/
@@ -166,8 +171,9 @@ and prints that line. No Bash script.
 
 ## Dependencies
 
-- Kokkos — portability.
-- PETSc — linear algebra.
+- Kokkos — CPU/GPU portability.
+- MPI — decomposition and halo exchange.
+- PETSc — MPI linear algebra.
 - yaml-cpp 0.8.x — YAML parsing.
 - doctest — tests.
 - Doxygen + LaTeX — HTML and PDF docs.

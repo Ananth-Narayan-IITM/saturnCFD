@@ -212,6 +212,23 @@ backward Euler first, Crank–Nicolson later.
 Every boundary face belongs to exactly one patch. A missing BC is a
 configuration error, not a default.
 
+## 12. Parallel finite volume
+
+The domain is partitioned into Cartesian blocks of the logical $(i,j,k)$
+index space. Each cell has exactly one owner rank. A partition-boundary cell is
+duplicated on the neighbouring rank as a **read-only ghost cell**. There are no
+shared cells and no shared writes.
+
+The halo exchange fills two ghost layers (face, edge and corner neighbours,
+including periodic images). A rank computes fluxes only for its owned cells;
+the two ranks adjacent to a partition-boundary face compute the same flux from
+the same valid/ghost pair and update their own cells. The shared face is
+therefore not double-counted.
+
+Ghosts are communication buffers, not state. Operators refresh the fields they
+read, apply physical boundary conditions, loop over owned cells only, and write
+owned cells only. See `docs/protocols/parallel.md`.
+
 ## References
 
 - Patankar (1980).
