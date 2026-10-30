@@ -5,6 +5,8 @@ output/
 *.o
 *.vtk
 *.vti
+*.vtu
+*.vtp
 *.pvd
 compile_commands.json
 .cache/

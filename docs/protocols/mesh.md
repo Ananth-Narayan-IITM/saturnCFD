@@ -64,7 +64,7 @@ If any invariant fails, the mesh is rejected as unstructured or malformed.
 
 ## `checkMesh` report
 
-`saturnCFD -checkMesh file.msh [-report report.json] [-writeVtk prefix]` prints:
+`saturnCFD -checkMesh file.msh [-report path] [-writeVTK prefix]` prints:
 
 - file, format, cell/point/face counts, element types;
 - patch names and face counts;
@@ -75,9 +75,11 @@ If any invariant fails, the mesh is rejected as unstructured or malformed.
 
 Errors exit non-zero and prevent any solver. Warnings do not.
 
-`-writeVtk prefix` writes `<prefix>.vtu` (volume mesh with cell quality), one
-`<prefix>_<patch>.vtp` per boundary patch, `<prefix>.pvd` for ParaView and
-`<prefix>.json` with patch names and metrics. Open the `.pvd`.
+By default `-checkMesh` writes `<prefix>.vtu` (volume mesh with cell quality)
+and `<prefix>.json` (all statistics). The prefix defaults to
+`results/<mesh-stem>`; `-report results/mesh` sets it and appends `.json`.
+`-writeVTK prefix` additionally writes one `<prefix>_<patch>.vtp` per boundary
+patch and `<prefix>.pvd` for ParaView. Open the `.pvd`.
 
 ## Host/device rules
 
@@ -103,7 +105,7 @@ Errors exit non-zero and prevent any solver. Warnings do not.
 - one flipped face: fail with orientation;
 - one-cell-thick box with `empty`: 2D;
 - non-contiguous hex mesh: fail as unstructured;
-- `-writeVtk` output contains the volume and every named patch.
+- `-writeVTK` output contains the volume and every named patch.
 
 ## References
 

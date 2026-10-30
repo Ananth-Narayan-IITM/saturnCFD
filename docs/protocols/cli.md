@@ -19,14 +19,15 @@ subcommands: everything is `saturnCFD -option ...`.
 | `-help` | optional topic | general help, or detailed help for one option/topic |
 | `-version` | — | version, git hash, backend and build type |
 | `-listSolvers` | — | list registered solvers |
-| `-checkMesh` | `mesh.msh` | validate a mesh and print the `checkMesh` report |
-| `-report` | `report.json` | write the report as JSON; requires `-checkMesh` or `-checkConfig` |
-| `-writeVtk` | `prefix` | write the mesh as VTK; requires `-checkMesh` |
+| `-checkMesh` | `mesh.msh` | validate a mesh; writes `.vtu` and `.json` by default |
+| `-report` | `path` | JSON report path; `.json` is appended if absent |
+| `-writeVTK` | `prefix` | also write per-patch `.vtp` and `.pvd`; requires `-checkMesh` |
 | `-checkConfig` | `case.yaml` | validate the case and exit |
-| `-dumpConfig` | `solver` | print the generated YAML template |
+| `-dumpConfig` | `solver\|common` | print the generated YAML template |
 | `-writeTemplate` | `file.yaml` | write the generated template; requires `-dumpConfig` |
 | `-mesh` | `mesh.msh` | give `-dumpConfig` the actual patch names |
 | `-threads` | `N` | override the Kokkos thread count |
+| `-completion` | `bash\|zsh\|fish` | print a shell completion script |
 
 ## Examples
 
@@ -34,22 +35,21 @@ subcommands: everything is `saturnCFD -option ...`.
 # run a case
 saturnCFD examples/burgers/traveling.yaml
 
-# validate a mesh
+# validate a mesh; writes results/channel.vtu and results/channel.json
 saturnCFD -checkMesh meshes/channel.msh
 
-# validate + JSON report
-saturnCFD -checkMesh meshes/channel.msh -report results/channelMesh.json
+# choose the JSON/VTU prefix; .json is appended
+saturnCFD -checkMesh meshes/channel.msh -report results/channel
 
-# validate + ParaView output
-saturnCFD -checkMesh meshes/channel.msh -writeVtk results/channelMesh
+# add boundary patches and a PVD collection
+saturnCFD -checkMesh meshes/channel.msh -writeVTK results/channel
 
 # validate a case without running it
 saturnCFD -checkConfig examples/burgers/traveling.yaml
 
-# print or write a solver template
-saturnCFD -dumpConfig burgers
-saturnCFD -dumpConfig burgers -writeTemplate burgersTemplate.yaml
-saturnCFD -dumpConfig burgers -mesh meshes/channel.msh -writeTemplate burgers.yaml
+# print or write the common template (solver templates arrive in Phase 2)
+saturnCFD -dumpConfig common
+saturnCFD -dumpConfig common -writeTemplate common.yaml
 
 # help
 saturnCFD -help
@@ -58,16 +58,21 @@ saturnCFD -help dumpConfig
 saturnCFD -help units
 saturnCFD -help config
 saturnCFD -help mesh
+saturnCFD -help completion
+
+# shell completion
+source <(saturnCFD -completion bash)
 ```
 
 ## Template generation
 
-`-dumpConfig <solver>` prints a commented YAML template generated from the
-solver's option registration. `-writeTemplate <file>` writes the same content to
-a file. There is no hand-maintained template file.
+`-dumpConfig <solver|common>` prints a commented YAML template generated from
+the registered options. `-writeTemplate <file>` writes the same content to a
+file. There is no hand-maintained template file. Phase 1 registers `common`;
+solver templates arrive with the solvers.
 
 ```bash
-saturnCFD -dumpConfig burgers -writeTemplate burgersTemplate.yaml
+saturnCFD -dumpConfig common -writeTemplate common.yaml
 ```
 
 The template contains:
@@ -82,19 +87,42 @@ The template contains:
 With `-mesh <file>`, the `boundary:` section is populated with the actual patch
 names from the mesh and a valid BC skeleton.
 
-## `-writeVtk` output
+## Mesh output
 
-`-writeVtk output/mesh` writes:
+By default, `-checkMesh` writes:
 
 | file | contents |
 |---|---|
-| `output/mesh.vtu` | volume mesh; cell data: `cellId`, `volume`, `nonOrthogonality`, `skewness`, `aspectRatio` |
-| `output/mesh_<patch>.vtp` | one boundary surface per patch |
-| `output/mesh.pvd` | ParaView collection referencing the volume and all patches |
-| `output/mesh.json` | patch names, counts, units and quality metrics |
+| `<prefix>.vtu` | volume mesh; cell data: `cellId`, `volume`, `nonOrthogonality`, `skewness`, `aspectRatio` |
+| `<prefix>.json` | full statistics: counts, patches, volume/area ranges, quality, structured flag, dimension, errors, warnings, status |
 
-Open `output/mesh.pvd` in ParaView. The `.vtu` is the volume; each `.vtp` is a
-named boundary patch; `patchId`/patch filenames identify the boundary.
+The default prefix is `results/<mesh-stem>`. `-report results/mesh` sets the
+prefix to `results/mesh` and writes `results/mesh.json`; the `.json` extension
+is optional in the argument.
+
+`-writeVTK <prefix>` additionally writes:
+
+| file | contents |
+|---|---|
+| `<prefix>_<patch>.vtp` | one boundary surface per patch |
+| `<prefix>.pvd` | ParaView collection referencing the volume and all patches |
+
+Open the `.pvd` in ParaView. The `.vtu` is the volume; each `.vtp` is a named
+boundary patch.
+
+## Completion
+
+`-completion <shell>` prints a completion script. It is generated from the same
+option list as the parser, so `-dump<Tab>` completes `-dumpConfig`.
+
+```bash
+source <(saturnCFD -completion bash)
+source <(saturnCFD -completion zsh)
+saturnCFD -completion fish | source
+```
+
+Completion requires `saturnCFD` to be on `PATH`; install it with
+`cmake --install build --prefix "$HOME/.local"`.
 
 ## Units
 
@@ -121,28 +149,33 @@ usage:
   saturnCFD <case.yaml>                 run a case
   saturnCFD -checkMesh <mesh.msh>       validate a Gmsh mesh
   saturnCFD -checkConfig <case.yaml>    validate a case
-  saturnCFD -dumpConfig <solver>        print a YAML template
+  saturnCFD -dumpConfig <solver|common> print a YAML template
   saturnCFD -writeTemplate <file>       write the template (with -dumpConfig)
   saturnCFD -listSolvers                list solvers
   saturnCFD -help [topic]               help
+  saturnCFD -completion <shell>         print shell completion
   saturnCFD -version                    version and build
 
 options:
-  -checkMesh <file>    structured-mesh check; PASS/FAIL plus metrics
-  -report <file.json>  JSON report; use with -checkMesh or -checkConfig
-  -writeVtk <prefix>   .vtu/.vtp/.pvd for ParaView; use with -checkMesh
+  -checkMesh <file>    mesh check; writes .vtu + .json by default
+  -report <path>       JSON report path; .json is appended if absent
+  -writeVTK <prefix>   also write .vtp patches and .pvd
   -mesh <file>         patch names for -dumpConfig
   -threads <N>         Kokkos thread count
+  -completion <shell>  bash, zsh or fish
 
 notes:
   - units are SI only in v1.0; non-SI input is rejected
   - case templates are generated from the solver code
-  - open the .pvd, not the individual .vtu/.vtp, in ParaView
+  - by default -checkMesh writes only .vtu and .json
+  - -writeVTK adds .vtp patches and .pvd; open the .pvd in ParaView
 
 examples:
   saturnCFD examples/burgers/traveling.yaml
-  saturnCFD -checkMesh meshes/channel.msh -writeVtk results/channelMesh
-  saturnCFD -dumpConfig burgers -writeTemplate burgers.yaml
+  saturnCFD -checkMesh meshes/channel.msh -report results/channel
+  saturnCFD -checkMesh meshes/channel.msh -writeVTK results/channel
+  saturnCFD -dumpConfig common -writeTemplate common.yaml
+  source <(saturnCFD -completion bash)
 ```
 
 ### Example: `-help checkMesh`
@@ -158,11 +191,12 @@ arguments:
   <mesh.msh>            Gmsh 2.2 or 4.1 ASCII file
 
 optional:
-  -report <file.json>   write the report as JSON
-  -writeVtk <prefix>    write .vtu/.vtp/.pvd for ParaView
+  -report <path>        JSON report path; .json is appended if absent
+  -writeVTK <prefix>    also write .vtp patches and .pvd
 
 output:
-  PASS/FAIL, cell/point/face counts, patches, volume/area ranges,
+  by default <prefix>.vtu and <prefix>.json, prefix defaults to
+  results/<mesh-stem>; PASS/FAIL, counts, patches, volume/area ranges,
   non-orthogonality, skewness, aspect ratio, structured index range, dimension
 
 exit:
@@ -171,22 +205,23 @@ exit:
   2  usage error
 
 example:
-  saturnCFD -checkMesh meshes/channel.msh -report results/mesh.json
+  saturnCFD -checkMesh meshes/channel.msh -report results/channel
 ```
 
 ### Example: `-help dumpConfig`
 
 ```text
-saturnCFD -dumpConfig <solver> [-mesh <mesh.msh>] [-writeTemplate <file.yaml>]
+saturnCFD -dumpConfig <solver|common> [-mesh <mesh.msh>] [-writeTemplate <file.yaml>]
 
-Print the YAML template generated from the solver's registered options.
-With -mesh, the boundary section is populated with the actual patch names.
+Print the YAML template generated from the registered options. In Phase 1
+only 'common' is available; solver templates arrive with the solvers.
+With -mesh, the actual patch names are appended as comments.
 With -writeTemplate, the same content is written to a file.
 
 example:
-  saturnCFD -dumpConfig burgers
-  saturnCFD -dumpConfig burgers -writeTemplate burgersTemplate.yaml
-  saturnCFD -dumpConfig burgers -mesh meshes/channel.msh -writeTemplate burgers.yaml
+  saturnCFD -dumpConfig common
+  saturnCFD -dumpConfig common -writeTemplate common.yaml
+  saturnCFD -dumpConfig common -mesh meshes/channel.msh -writeTemplate channel.yaml
 ```
 
 ### Example: `-help units`
@@ -216,7 +251,7 @@ Non-SI input is a validation error. There is no conversion in v1.0.
 |---|---|
 | `checkMesh` | mesh format, structured detection, report fields, error categories, VTK export |
 | `report` | JSON schema and exit codes |
-| `writeVtk` | `.vtu`/`.vtp`/`.pvd` layout and ParaView instructions |
+| `writeVTK` | default `.vtu`/`.json`, optional `.vtp`/`.pvd`, ParaView instructions |
 | `checkConfig` | validation stages, units rule, BC/initial checks |
 | `dumpConfig` | template generation, solver registration, patch names |
 | `writeTemplate` | file output, overwrite rule, example |
@@ -224,6 +259,7 @@ Non-SI input is a validation error. There is no conversion in v1.0.
 | `units` | SI-only rule, rejected forms, future extension |
 | `config` | YAML groups, units, BCs, initial conditions |
 | `solvers` | available solvers and their state variables |
+| `completion` | bash, zsh and fish install lines |
 
 Each detailed page states the argument, the preconditions, the files read and
 written, the exit codes and a complete example. Unknown topics print the list of
@@ -247,7 +283,7 @@ hint: did you mean '-checkMesh'? see 'saturnCFD -help'
 Invalid combinations:
 
 - `-report` without `-checkMesh` or `-checkConfig`;
-- `-writeVtk` without `-checkMesh`;
+- `-writeVTK` without `-checkMesh`;
 - `-writeTemplate` without `-dumpConfig`;
 - `-mesh` without `-dumpConfig`.
 
@@ -258,5 +294,5 @@ Invalid combinations:
 - unknown option/topic suggests the closest match;
 - invalid combinations return 2;
 - `-checkMesh` on good/bad meshes returns 0/1;
-- `-writeVtk` writes a `.pvd` that references the volume and all patches;
+- `-writeVTK` writes a `.pvd` that references the volume and all patches;
 - `-dumpConfig -writeTemplate` writes a file that passes `-checkConfig`.

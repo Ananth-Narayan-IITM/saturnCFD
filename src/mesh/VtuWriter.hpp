@@ -7,9 +7,10 @@
 
 namespace saturn {
 
-/// Write a volume `.vtu`, one `.vtp` per patch, a `.pvd` collection and a
-/// `.json` sidecar. `prefix` is a path without extension.
-void writeMeshVtk(const Mesh& mesh, const MeshReport& report,
-                  const std::string& prefix);
+/// Write the volume `.vtu`. When `withPatches` is true, also write one `.vtp`
+/// per boundary patch and a `.pvd` collection. `prefix` is a path without
+/// extension. The JSON report is written by the caller.
+void writeMeshVtk(const Mesh& mesh, const std::string& prefix,
+                  bool withPatches);
 
 }  // namespace saturn

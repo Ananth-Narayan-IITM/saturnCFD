@@ -21,10 +21,12 @@ expected files are maintained.
 Mesh validation is reproducible with:
 
 ```bash
-saturnCFD -checkMesh mesh.msh -report report.json -writeVtk output/mesh
+saturnCFD -checkMesh mesh.msh -report results/mesh
+saturnCFD -checkMesh mesh.msh -report results/mesh -writeVTK results/mesh
 ```
 
-Open `output/mesh.pvd` in ParaView to inspect the volume and boundary patches.
+The first command writes `results/mesh.vtu` and `results/mesh.json`. The second
+adds `.vtp` patches and `results/mesh.pvd`; open the `.pvd` in ParaView.
 
 ## Required content
 

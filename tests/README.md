@@ -36,9 +36,15 @@ tests/
 ## Running
 
 ```bash
+ctest --preset default          # all tests, output on failure
+ctest --preset regression       # regression tests only
+ctest --preset mesh             # mesh tests only
+ctest --preset config           # configuration tests only
+ctest --preset cli              # CLI tests only
+
+# equivalent fallback
 ctest --test-dir build --output-on-failure
 ctest --test-dir build -L regression --output-on-failure
-ctest --test-dir build -L mesh --output-on-failure
 ```
 
 ## Rules

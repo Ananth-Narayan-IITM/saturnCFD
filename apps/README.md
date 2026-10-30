@@ -9,7 +9,7 @@ The `saturnCFD` driver.
 - Select a solver from the registry.
 - Run `Simulation`.
 - Dispatch `-checkMesh`, `-checkConfig`, `-dumpConfig`, `-writeTemplate`,
-  `-report`, `-writeVtk`, `-help`, `-version`, `-listSolvers`.
+  `-report`, `-writeVTK`, `-help`, `-version`, `-listSolvers`, `-completion`.
 
 ## Boundaries
 

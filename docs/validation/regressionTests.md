@@ -93,7 +93,7 @@ output. Store the smallest set of scalars that would catch a real regression.
 ## Running
 
 ```bash
-ctest --test-dir build -L regression --output-on-failure
+ctest --preset regression
 ```
 
 or a single case:
@@ -129,7 +129,9 @@ If the change is not understood, it is a bug, not a new baseline.
 | `config/templateRoundTrip` | generated template passes validation | implemented |
 | `cli/checkMesh` | PASS/FAIL and exit code through the binary | implemented |
 | `cli/checkConfig` | SI accepted, CGS rejected through the binary | implemented |
-| `cli/writeVtk` | `.vtu`, `.vtp`, `.pvd` and JSON sidecar exist | implemented |
+| `cli/defaultOutputs` | `.vtu` + `.json`, no `.vtp` without `-writeVTK` | implemented |
+| `cli/writeVTK` | `-writeVTK` adds `.vtp` and `.pvd` | implemented |
+| `cli/completion` | generated completion contains `-dumpConfig` | implemented |
 
 Phase 2 adds `burgers/traveling64` and `burgers/shock128`.
 

@@ -53,18 +53,30 @@ TEST_CASE("mesh: tetrahedra are rejected [mesh]") {
   CHECK(found);
 }
 
-TEST_CASE("mesh: writeVtk creates vtu, vtp and pvd [mesh]") {
+TEST_CASE("mesh: default VTK writes only vtu [mesh]") {
   Mesh mesh = readGmsh(meshPath("box2x2x2.msh"));
-  const MeshReport r = checkMesh(mesh, "box2x2x2.msh");
   const auto dir =
-      std::filesystem::temp_directory_path() / "saturncfd_vtk_test";
+      std::filesystem::temp_directory_path() / "saturncfd_vtk_default";
   std::filesystem::remove_all(dir);
   const std::string prefix = (dir / "mesh").string();
-  writeMeshVtk(mesh, r, prefix);
+  writeMeshVtk(mesh, prefix, false);
+
+  CHECK(std::filesystem::exists(prefix + ".vtu"));
+  CHECK(!std::filesystem::exists(prefix + ".pvd"));
+  CHECK(!std::filesystem::exists(prefix + "_xmin.vtp"));
+  std::filesystem::remove_all(dir);
+}
+
+TEST_CASE("mesh: writeVTK adds patches and pvd [mesh]") {
+  Mesh mesh = readGmsh(meshPath("box2x2x2.msh"));
+  const auto dir =
+      std::filesystem::temp_directory_path() / "saturncfd_vtk_patches";
+  std::filesystem::remove_all(dir);
+  const std::string prefix = (dir / "mesh").string();
+  writeMeshVtk(mesh, prefix, true);
 
   CHECK(std::filesystem::exists(prefix + ".vtu"));
   CHECK(std::filesystem::exists(prefix + ".pvd"));
-  CHECK(std::filesystem::exists(prefix + ".json"));
   CHECK(std::filesystem::exists(prefix + "_xmin.vtp"));
   CHECK(std::filesystem::exists(prefix + "_zmax.vtp"));
   std::filesystem::remove_all(dir);

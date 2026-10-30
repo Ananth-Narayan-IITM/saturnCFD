@@ -21,8 +21,8 @@ Implement a `checkMesh` module, callable as:
 
 ```bash
 saturnCFD -checkMesh mesh.msh
-saturnCFD -checkMesh mesh.msh -report report.json
-saturnCFD -checkMesh mesh.msh -writeVtk output/mesh
+saturnCFD -checkMesh mesh.msh -report results/mesh
+saturnCFD -checkMesh mesh.msh -writeVTK results/mesh
 ```
 
 and always run automatically before a solver starts. The single-dash option
@@ -75,9 +75,11 @@ non-contiguous index space, disconnected components.
 Warnings (zero exit): high non-orthogonality, high skewness, large aspect
 ratio, large volume ratio, very small cells.
 
-`-report report.json` writes the same data as JSON. `-writeVtk output/mesh`
-writes a volume `.vtu`, one boundary `.vtp` per patch, a `.pvd` collection and
-a JSON sidecar so the mesh can be inspected in ParaView. See
+By default `-checkMesh` writes `<prefix>.vtu` and `<prefix>.json`, with the
+prefix defaulting to `results/<mesh-stem>`. `-report results/mesh` sets the
+prefix and writes `results/mesh.json`; `.json` is optional in the argument.
+`-writeVTK results/mesh` adds one `.vtp` per boundary patch and a `.pvd`
+collection so the mesh can be inspected in ParaView. See
 `docs/protocols/cli.md`.
 
 ### 2D detection
@@ -99,7 +101,7 @@ report 3D.
 ## Consequences
 
 - **Code:** `src/mesh/CheckMesh.{hpp,cpp}`, `MeshReport`, `StructuredMesh`.
-- **CLI:** `-checkMesh`, optional `-report` and `-writeVtk`.
+- **CLI:** `-checkMesh`, optional `-report` and `-writeVTK`.
 - **Validation:** every integration test starts by asserting `checkMesh` passes.
 - **Risk:** the BFS classifier must handle curvilinear/stretched hexahedra and
   periodicity; periodic patches are treated as boundary patches for now.

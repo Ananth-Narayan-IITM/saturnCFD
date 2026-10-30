@@ -42,7 +42,7 @@ Each solver implements `registerOptions(ConfigSchema&)`. Common modules
 - `-dumpConfig <solver> -mesh <file>` — include actual patch names.
 - `-checkConfig <case.yaml>` — run all stages and exit.
 - `-checkMesh <file.msh>` — mesh-only check, with optional `-report` and
-  `-writeVtk`.
+  `-writeVTK`.
 
 ## Parser
 

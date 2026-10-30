@@ -49,6 +49,22 @@ tests/
 The stored-expectation format, tolerances and update rules are in
 [`docs/validation/regressionTests.md`](../validation/regressionTests.md).
 
+## Presets
+
+CTest does not read default command-line flags from `CMakeLists.txt`. The
+supported shortcut is `CMakePresets.json`:
+
+```bash
+ctest --preset default       # all tests, output on failure
+ctest --preset regression    # regression label
+ctest --preset unit
+ctest --preset mesh
+ctest --preset config
+ctest --preset cli
+```
+
+`ctest --test-dir build -L regression --output-on-failure` still works.
+
 ## Rules
 
 1. Every public function with numerical behaviour has at least one unit or

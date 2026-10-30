@@ -36,8 +36,8 @@ PETSc wrapper and solver authoring remain.
    - Gmsh 2.2 ASCII reader, then 4.1.
    - General `Mesh`, `StructuredMesh`, patches, geometry arrays.
    - `checkMesh`: structured detection, 2D rule, quality report, JSON output.
-   - `-checkMesh`, `-report`, `-writeVtk`; volume `.vtu`, per-patch `.vtp`,
-     `.pvd` and a JSON sidecar for ParaView.
+   - `-checkMesh` writes `.vtu` + `.json`; `-writeVTK` adds per-patch `.vtp`
+     and `.pvd`.
    - Test meshes: uniform hex, stretched hex, one-cell-thick 2D, rejected
      tet/non-manifold/flipped.
 
@@ -47,7 +47,8 @@ PETSc wrapper and solver authoring remain.
    - `src/core/Units.hpp`: dimension tags and `UnitSystem { SI }`.
    - `units.system: SI` or omitted; any non-SI input is a validation error.
    - `-dumpConfig <solver>`, `-writeTemplate <file>`, `-checkConfig`,
-     `-listSolvers`, `-help`.
+     `-listSolvers`, `-help`, `-completion`.
+   - `cmake --install` gives the `saturnCFD` command.
    - Ten validation stages; BC and initial conditions in YAML.
 
 3. **Finite volume**
@@ -62,7 +63,7 @@ PETSc wrapper and solver authoring remain.
    - Null-space helper; residual diagnostics.
 
 5. **I/O**
-   - VTU/PVD for structured hex meshes; `-writeVtk` from `-checkMesh`.
+   - VTU/PVD for structured hex meshes; `-writeVTK` from `-checkMesh`.
    - CSV diagnostics in SI.
    - Run manifest (git hash, build, PETSc version, yaml-cpp version, mesh hash,
      case hash).

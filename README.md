@@ -15,22 +15,47 @@ and is a reference for validation data and algorithms, not a tree to copy.
 ## Build and test
 
 ```bash
+cmake --preset default
+cmake --build --preset default -j
+ctest --preset regression          # the common case
+ctest --preset default             # all tests, output on failure
+```
+
+Equivalent without presets:
+
+```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
 ctest --test-dir build --output-on-failure
+```
+
+Install the binary so the command is simply `saturnCFD`:
+
+```bash
+cmake --install build --prefix "$HOME/.local"
+# ~/.local/bin must be on PATH
 ```
 
 yaml-cpp and doctest are fetched automatically when not installed. PETSc and
 Kokkos are disabled until Phase 2.
 
 ```bash
-./build/saturnCFD -version
-./build/saturnCFD -listSolvers
-./build/saturnCFD -checkMesh tests/data/meshes/box2x2x2.msh
-./build/saturnCFD -checkMesh tests/data/meshes/box2x2x2.msh -writeVtk results/mesh
-./build/saturnCFD -dumpConfig common -writeTemplate common.yaml
-./build/saturnCFD -checkConfig common.yaml
-./build/saturnCFD -help checkMesh
+saturnCFD -version
+saturnCFD -listSolvers
+saturnCFD -checkMesh tests/data/meshes/box2x2x2.msh
+saturnCFD -checkMesh tests/data/meshes/box2x2x2.msh -report results/mesh
+saturnCFD -checkMesh tests/data/meshes/box2x2x2.msh -writeVTK results/mesh
+saturnCFD -dumpConfig common -writeTemplate common.yaml
+saturnCFD -checkConfig common.yaml
+saturnCFD -help checkMesh
+```
+
+Enable completion once per shell:
+
+```bash
+source <(saturnCFD -completion bash)     # bash
+source <(saturnCFD -completion zsh)      # zsh
+saturnCFD -completion fish | source      # fish
 ```
 
 ## Decisions
@@ -51,8 +76,9 @@ Accepted so far:
 - separate solver modules for Burgers, heat, Stokes and incompressible flow;
 - YAML schema generated from solver code, parsed with **yaml-cpp 0.8**;
 - SI only in v1.0; non-SI YAML input is a validation error;
-- single-dash CLI, `-help`, `-checkMesh`, `-writeVtk` mesh export,
-  generated solver templates with `-dumpConfig -writeTemplate`;
+- single-dash CLI, `-help`, `-checkMesh` (default `.vtu` + `.json`),
+  optional `-writeVTK` patches, generated templates with
+  `-dumpConfig -writeTemplate`, shell completion;
 - user-editable solvers: copy a solver directory, edit equations, rebuild;
 - no AMR in v1.0; AMR/two-phase is a later milestone.
 
@@ -99,18 +125,21 @@ settings.
 ```bash
 saturnCFD case.yaml
 saturnCFD -checkMesh mesh.msh
-saturnCFD -checkMesh mesh.msh -report report.json
-saturnCFD -checkMesh mesh.msh -writeVtk output/mesh
+saturnCFD -checkMesh mesh.msh -report results/mesh
+saturnCFD -checkMesh mesh.msh -writeVTK results/mesh
 saturnCFD -checkConfig case.yaml
-saturnCFD -dumpConfig burgers
-saturnCFD -dumpConfig burgers -writeTemplate burgers.yaml
+saturnCFD -dumpConfig common
+saturnCFD -dumpConfig common -writeTemplate common.yaml
 saturnCFD -help
 saturnCFD -help checkMesh
+saturnCFD -completion bash
 ```
 
-`-writeVtk` writes a volume `.vtu`, one boundary `.vtp` per patch, a `.pvd`
-collection and a JSON sidecar. Open the `.pvd` in ParaView. The full option
-list is in [`docs/protocols/cli.md`](docs/protocols/cli.md).
+`-checkMesh` always writes `<prefix>.vtu` and `<prefix>.json`. The default
+prefix is `results/<mesh-stem>`; `-report results/mesh` writes
+`results/mesh.json` (the extension is optional). `-writeVTK` additionally
+writes one boundary `.vtp` per patch and a `.pvd`; open the `.pvd` in ParaView.
+The full option list is in [`docs/protocols/cli.md`](docs/protocols/cli.md).
 
 ## Planned layout
 

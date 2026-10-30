@@ -9,7 +9,7 @@ finite-volume layer.
 - `Mesh` — points, cells, faces, patches, geometry arrays.
 - `checkMesh` — topology, volume, orientation, patches, quality metrics.
 - `StructuredMesh` — `(i,j,k)` mapping and neighbour tables for the solver.
-- `VtuWriter` / `PvdWriter` — ParaView export for `-writeVtk`.
+- `VtuWriter` — default `.vtu`; `-writeVTK` adds per-patch `.vtp` and `.pvd`.
 - `MeshReport` — text and JSON report.
 
 ## Boundaries

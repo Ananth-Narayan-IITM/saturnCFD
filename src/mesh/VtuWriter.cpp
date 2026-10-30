@@ -51,8 +51,8 @@ void openOrThrow(std::ofstream& os, const std::string& path) {
 
 }  // namespace
 
-void writeMeshVtk(const Mesh& mesh, const MeshReport& report,
-                  const std::string& prefix) {
+void writeMeshVtk(const Mesh& mesh, const std::string& prefix,
+                  bool withPatches) {
   const std::filesystem::path base(prefix);
   if (base.has_parent_path())
     std::filesystem::create_directories(base.parent_path());
@@ -132,6 +132,9 @@ void writeMeshVtk(const Mesh& mesh, const MeshReport& report,
     os << "  </UnstructuredGrid>\n";
     os << "</VTKFile>\n";
   }
+
+  if (!withPatches)
+    return;
 
   std::vector<std::string> patchFiles;
   for (int p = 0; p < static_cast<int>(mesh.patches.size()); ++p) {
@@ -238,12 +241,6 @@ void writeMeshVtk(const Mesh& mesh, const MeshReport& report,
     }
     os << "  </Collection>\n";
     os << "</VTKFile>\n";
-  }
-
-  {
-    std::ofstream os;
-    openOrThrow(os, prefix + ".json");
-    os << report.toJson();
   }
 }
 

@@ -24,11 +24,12 @@ struct Cli {
   std::string casePath;
   std::string checkMeshFile;
   std::string reportFile;
-  std::string writeVtkPrefix;
+  std::string writeVTKPrefix;
   std::string checkConfigFile;
   std::string dumpSolver;
   std::string writeTemplateFile;
   std::string meshFile;
+  std::string completionShell;
   int threads = 0;
   bool help = false;
   bool version = false;
@@ -71,26 +72,92 @@ void printGeneralHelp() {
          "  saturnCFD -help [topic]               help\n"
          "  saturnCFD -version                    version\n\n"
          "options:\n"
-         "  -checkMesh <file>    mesh check; PASS/FAIL plus metrics\n"
-         "  -report <file.json>  JSON report; use with "
-         "-checkMesh/-checkConfig\n"
-         "  -writeVtk <prefix>   .vtu/.vtp/.pvd for ParaView; use with "
-         "-checkMesh\n"
+         "  -checkMesh <file>    mesh check; writes .vtu + .json by default\n"
+         "  -report <path>       JSON report path; .json is appended if "
+         "absent\n"
+         "  -writeVTK <prefix>   also write per-patch .vtp and a .pvd\n"
          "  -writeTemplate <f>   write the template; use with -dumpConfig\n"
          "  -mesh <file>         mesh patch names for -dumpConfig\n"
-         "  -threads <N>         reserved for Kokkos thread count\n\n"
+         "  -threads <N>         reserved for Kokkos thread count\n"
+         "  -completion <shell>  print shell completion (bash|zsh|fish)\n\n"
          "notes:\n"
          "  - units are SI only in v1.0; non-SI input is rejected\n"
          "  - case templates are generated from the solver code\n"
-         "  - open the .pvd, not the individual .vtu/.vtp, in ParaView\n\n"
+         "  - by default -checkMesh writes only .vtu and .json\n"
+         "  - -writeVTK adds .vtp patches and .pvd; open the .pvd in "
+         "ParaView\n\n"
          "examples:\n"
          "  saturnCFD -checkMesh meshes/box2x2x2.msh\n"
-         "  saturnCFD -checkMesh meshes/box2x2x2.msh -report "
-         "results/mesh.json\n"
-         "  saturnCFD -checkMesh meshes/box2x2x2.msh -writeVtk results/mesh\n"
+         "  saturnCFD -checkMesh meshes/box2x2x2.msh -report results/mesh\n"
+         "  saturnCFD -checkMesh meshes/box2x2x2.msh -writeVTK results/mesh\n"
          "  saturnCFD -dumpConfig common -writeTemplate common.yaml\n"
          "  saturnCFD -checkConfig common.yaml\n"
+         "  saturnCFD -completion bash\n"
          "  saturnCFD -help checkMesh\n";
+}
+
+void printCompletion(const std::string& shell) {
+  if (shell == "bash") {
+    std::cout << R"BASH(# saturnCFD bash completion
+# install: source <(saturnCFD -completion bash)
+_saturnCFD_complete() {
+  local cur="${COMP_WORDS[COMP_CWORD]}"
+  local opts="-help -version -listSolvers -checkMesh -report -writeVTK -checkConfig -dumpConfig -writeTemplate -mesh -threads -completion"
+  if [[ "${cur}" == -* ]]; then
+    COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+    return 0
+  fi
+  case "${COMP_WORDS[1]}" in
+    -help) COMPREPLY=( $(compgen -W "checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion" -- "${cur}") ) ;;
+    -completion) COMPREPLY=( $(compgen -W "bash zsh fish" -- "${cur}") ) ;;
+    -checkMesh|-report|-checkConfig|-dumpConfig|-writeTemplate|-mesh) COMPREPLY=( $(compgen -f -- "${cur}") ) ;;
+    *) COMPREPLY=( $(compgen -f -- "${cur}") ) ;;
+  esac
+}
+complete -F _saturnCFD_complete saturnCFD
+)BASH";
+  } else if (shell == "zsh") {
+    std::cout << R"ZSH(#compdef saturnCFD
+# install: source <(saturnCFD -completion zsh)
+_saturnCFD() {
+  local -a opts
+  opts=(-help -version -listSolvers -checkMesh -report -writeVTK -checkConfig -dumpConfig -writeTemplate -mesh -threads -completion)
+  _arguments \
+    '-help[show help]::topic:(checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion)' \
+    '-version[show version]' \
+    '-listSolvers[list solvers]' \
+    '-checkMesh[validate a Gmsh mesh]:mesh:_files' \
+    '-report[write JSON report]:path:_files' \
+    '-writeVTK[write patches and PVD]:prefix:_files' \
+    '-checkConfig[validate a case]:case:_files' \
+    '-dumpConfig[print a YAML template]:solver:(common burgers heat stokes incompressible)' \
+    '-writeTemplate[write a template]:file:_files' \
+    '-mesh[mesh for patch names]:mesh:_files' \
+    '-threads[Kokkos thread count]:threads:' \
+    '-completion[print shell completion]:shell:(bash zsh fish)'
+}
+_saturnCFD "$@"
+)ZSH";
+  } else if (shell == "fish") {
+    std::cout << R"FISH(# saturnCFD fish completion
+# install: saturnCFD -completion fish | source
+complete -c saturnCFD -l help -d 'Show help'
+complete -c saturnCFD -l version -d 'Show version'
+complete -c saturnCFD -l listSolvers -d 'List registered solvers'
+complete -c saturnCFD -l checkMesh -r -F -d 'Validate a Gmsh mesh'
+complete -c saturnCFD -l report -r -F -d 'Write JSON report'
+complete -c saturnCFD -l writeVTK -r -F -d 'Write patches and PVD'
+complete -c saturnCFD -l checkConfig -r -F -d 'Validate a case'
+complete -c saturnCFD -l dumpConfig -r -a 'common burgers heat stokes incompressible' -d 'Print a YAML template'
+complete -c saturnCFD -l writeTemplate -r -F -d 'Write a template'
+complete -c saturnCFD -l mesh -r -F -d 'Mesh for patch names'
+complete -c saturnCFD -l threads -r -d 'Kokkos thread count'
+complete -c saturnCFD -l completion -r -a 'bash zsh fish' -d 'Print shell completion'
+)FISH";
+  } else {
+    throw UsageError("unknown completion shell '" + shell +
+                     "'; expected bash, zsh or fish");
+  }
 }
 
 void printTopic(const std::string& topic) {
@@ -100,26 +167,31 @@ void printTopic(const std::string& topic) {
            "Validate a Gmsh 2.2 ASCII mesh. Only structured hexahedral meshes\n"
            "are accepted in v1.0. Tetrahedra, prisms, pyramids and\n"
            "non-contiguous hex meshes are rejected with a report.\n\n"
+           "output:\n"
+           "  by default <prefix>.vtu and <prefix>.json are written,\n"
+           "  where <prefix> defaults to results/<mesh-stem>.\n\n"
            "optional:\n"
-           "  -report <file.json>   write the report as JSON\n"
-           "  -writeVtk <prefix>    write .vtu/.vtp/.pvd for ParaView\n\n"
+           "  -report <path>        JSON report path; .json is appended\n"
+           "  -writeVTK <prefix>    also write .vtp patches and .pvd\n\n"
            "exit codes: 0 pass, 1 mesh error, 2 usage error\n\n"
            "example:\n"
-           "  saturnCFD -checkMesh meshes/box2x2x2.msh -report "
-           "results/mesh.json\n";
+           "  saturnCFD -checkMesh meshes/box2x2x2.msh -report results/mesh\n";
   } else if (topic == "report") {
     std::cout
-        << "saturnCFD -report <file.json>\n\n"
-           "Write the machine-readable report. Valid with -checkMesh and\n"
-           "-checkConfig. The JSON contains counts, patches, volume and area\n"
-           "ranges, quality metrics, structured flag, dimension and status.\n";
-  } else if (topic == "writeVtk") {
-    std::cout << "saturnCFD -writeVtk <prefix>\n\n"
-                 "Write a volume .vtu, one .vtp per boundary patch, a .pvd\n"
-                 "collection and a .json sidecar. Use with -checkMesh.\n"
-                 "Open <prefix>.pvd in ParaView.\n\n"
+        << "saturnCFD -report <path>\n\n"
+           "Write the machine-readable report. The .json extension is added\n"
+           "if absent: -report results/mesh writes results/mesh.json.\n"
+           "Valid with -checkMesh and -checkConfig. The JSON contains counts,\n"
+           "patches, volume and area ranges, quality metrics, structured "
+           "flag,\n"
+           "dimension and status.\n";
+  } else if (topic == "writeVTK") {
+    std::cout << "saturnCFD -writeVTK <prefix>\n\n"
+                 "-checkMesh always writes <prefix>.vtu and <prefix>.json.\n"
+                 "-writeVTK additionally writes one .vtp per boundary patch\n"
+                 "and a .pvd collection. Open <prefix>.pvd in ParaView.\n\n"
                  "example:\n"
-                 "  saturnCFD -checkMesh meshes/box2x2x2.msh -writeVtk "
+                 "  saturnCFD -checkMesh meshes/box2x2x2.msh -writeVTK "
                  "results/mesh\n";
   } else if (topic == "checkConfig") {
     std::cout
@@ -177,18 +249,26 @@ void printTopic(const std::string& topic) {
            "Phase 1 registers no solver yet. Phase 2 adds burgers, then heat,\n"
            "stokes and incompressible. A user solver is a copy under\n"
            "src/solvers/<name> plus one addSolver(<name>) line.\n";
+  } else if (topic == "completion") {
+    std::cout << "completion\n\n"
+                 "Print a shell completion script.\n\n"
+                 "  source <(saturnCFD -completion bash)   # bash\n"
+                 "  source <(saturnCFD -completion zsh)    # zsh\n"
+                 "  saturnCFD -completion fish | source    # fish\n\n"
+                 "Then type: saturnCFD -dump<Tab>\n";
   } else {
     throw UsageError("unknown help topic '" + topic +
-                     "'; topics: checkMesh, report, writeVtk, checkConfig, "
-                     "dumpConfig, writeTemplate, mesh, units, config, solvers");
+                     "'; topics: checkMesh, report, writeVTK, checkConfig, "
+                     "dumpConfig, writeTemplate, mesh, units, config, solvers, "
+                     "completion");
   }
 }
 
 std::string closestOption(const std::string& bad) {
   const std::vector<std::string> known{
       "-help",          "-version",  "-listSolvers", "-checkMesh",
-      "-report",        "-writeVtk", "-checkConfig", "-dumpConfig",
-      "-writeTemplate", "-mesh",     "-threads"};
+      "-report",        "-writeVTK", "-checkConfig", "-dumpConfig",
+      "-writeTemplate", "-mesh",     "-threads",     "-completion"};
   auto distance = [](const std::string& a, const std::string& b) {
     std::vector<int> prev(b.size() + 1), cur(b.size() + 1);
     for (std::size_t j = 0; j <= b.size(); ++j)
@@ -238,8 +318,8 @@ Cli parseCli(int argc, char** argv) {
       cli.checkMeshFile = requireValue(i, argc, argv, a);
     } else if (a == "-report") {
       cli.reportFile = requireValue(i, argc, argv, a);
-    } else if (a == "-writeVtk") {
-      cli.writeVtkPrefix = requireValue(i, argc, argv, a);
+    } else if (a == "-writeVTK") {
+      cli.writeVTKPrefix = requireValue(i, argc, argv, a);
     } else if (a == "-checkConfig") {
       cli.checkConfigFile = requireValue(i, argc, argv, a);
     } else if (a == "-dumpConfig") {
@@ -253,6 +333,8 @@ Cli parseCli(int argc, char** argv) {
       cli.threads = std::atoi(v.c_str());
       if (cli.threads <= 0)
         throw UsageError("-threads needs a positive integer");
+    } else if (a == "-completion") {
+      cli.completionShell = requireValue(i, argc, argv, a);
     } else if (!a.empty() && a[0] == '-') {
       const std::string hint = closestOption(a);
       std::string msg = "unknown option '" + a + "'";
@@ -269,8 +351,30 @@ Cli parseCli(int argc, char** argv) {
   return cli;
 }
 
+std::string ensureJsonExtension(const std::string& path) {
+  if (path.size() >= 5 && path.compare(path.size() - 5, 5, ".json") == 0)
+    return path;
+  return path + ".json";
+}
+
+std::string stripJsonExtension(const std::string& path) {
+  if (path.size() >= 5 && path.compare(path.size() - 5, 5, ".json") == 0)
+    return path.substr(0, path.size() - 5);
+  return path;
+}
+
+std::string meshOutputBase(const Cli& cli) {
+  if (!cli.writeVTKPrefix.empty())
+    return cli.writeVTKPrefix;
+  if (!cli.reportFile.empty())
+    return stripJsonExtension(cli.reportFile);
+  const std::filesystem::path meshPath(cli.checkMeshFile);
+  return "results/" + meshPath.stem().string();
+}
+
 void validateCombinations(const Cli& cli) {
-  if (cli.help || cli.version || cli.listSolvers)
+  if (cli.help || cli.version || cli.listSolvers ||
+      !cli.completionShell.empty())
     return;
   const int actions = static_cast<int>(!cli.checkMeshFile.empty()) +
                       static_cast<int>(!cli.checkConfigFile.empty()) +
@@ -285,8 +389,8 @@ void validateCombinations(const Cli& cli) {
   if (!cli.reportFile.empty() && cli.checkMeshFile.empty() &&
       cli.checkConfigFile.empty())
     throw UsageError("-report requires -checkMesh or -checkConfig");
-  if (!cli.writeVtkPrefix.empty() && cli.checkMeshFile.empty())
-    throw UsageError("-writeVtk requires -checkMesh");
+  if (!cli.writeVTKPrefix.empty() && cli.checkMeshFile.empty())
+    throw UsageError("-writeVTK requires -checkMesh");
   if (!cli.writeTemplateFile.empty() && cli.dumpSolver.empty())
     throw UsageError("-writeTemplate requires -dumpConfig");
   if (!cli.meshFile.empty() && cli.dumpSolver.empty())
@@ -297,10 +401,13 @@ int runCheckMesh(const Cli& cli) {
   Mesh mesh = readGmsh(cli.checkMeshFile);
   const MeshReport report = checkMesh(mesh, cli.checkMeshFile);
   std::cout << report.toText();
-  if (!cli.reportFile.empty())
-    writeTextFile(cli.reportFile, report.toJson());
-  if (!cli.writeVtkPrefix.empty())
-    writeMeshVtk(mesh, report, cli.writeVtkPrefix);
+
+  const std::string base = meshOutputBase(cli);
+  const std::string jsonPath = !cli.reportFile.empty()
+                                   ? ensureJsonExtension(cli.reportFile)
+                                   : base + ".json";
+  writeTextFile(jsonPath, report.toJson());
+  writeMeshVtk(mesh, base, !cli.writeVTKPrefix.empty());
   return report.pass() ? 0 : 1;
 }
 
@@ -332,7 +439,7 @@ int runCheckConfig(const Cli& cli) {
        << "  \"status\": \"PASS\",\n"
        << "  \"solver\": \"" << cfg.getString("solver", "") << "\",\n"
        << "  \"units\": \"" << unitSystemName(cfg.unitSystem()) << "\"\n}\n";
-    writeTextFile(cli.reportFile, os.str());
+    writeTextFile(ensureJsonExtension(cli.reportFile), os.str());
   }
   return 0;
 }
@@ -385,6 +492,10 @@ int main(int argc, char** argv) {
     }
     if (cli.listSolvers) {
       std::cout << "no solvers registered yet (Phase 1)\n";
+      return 0;
+    }
+    if (!cli.completionShell.empty()) {
+      printCompletion(cli.completionShell);
       return 0;
     }
 

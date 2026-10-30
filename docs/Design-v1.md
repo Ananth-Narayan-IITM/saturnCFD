@@ -37,7 +37,7 @@ A single codebase that:
 | time loop | `Simulation` owns time, step, output, checkpoints and manifest |
 | config | typed schema, generated `-dumpConfig`, strict `-checkConfig` |
 | units | SI only in v1.0; `units.system: SI` or omitted; non-SI is an error |
-| CLI | single-dash camelCase options; `-help`, `-checkMesh`, `-writeVtk` |
+| CLI | single-dash camelCase options; `-help`, `-checkMesh`, `-writeVTK` |
 | AMR | out of v1.0; revisit after incompressible NS is stable, for two-phase flow |
 
 ## 3. Why collocated
@@ -67,18 +67,22 @@ Compressible flow is out of v1.0. Two-phase flow and AMR are later.
 ```bash
 saturnCFD case.yaml
 saturnCFD -checkMesh mesh.msh
-saturnCFD -checkMesh mesh.msh -report report.json
-saturnCFD -checkMesh mesh.msh -writeVtk output/mesh
+saturnCFD -checkMesh mesh.msh -report results/mesh
+saturnCFD -checkMesh mesh.msh -writeVTK results/mesh
 saturnCFD -checkConfig case.yaml
-saturnCFD -dumpConfig burgers
-saturnCFD -dumpConfig burgers -writeTemplate burgers.yaml
+saturnCFD -dumpConfig common
+saturnCFD -dumpConfig common -writeTemplate common.yaml
 saturnCFD -help
 saturnCFD -help checkMesh
+saturnCFD -completion bash
 ```
 
-`-writeVtk` writes a volume `.vtu`, one boundary `.vtp` per patch, a `.pvd`
-collection and a JSON sidecar; open the `.pvd` in ParaView. The full option
-list is in `docs/protocols/cli.md`.
+`-checkMesh` writes `<prefix>.vtu` and `<prefix>.json` by default;
+`-writeVTK` adds `.vtp` patches and a `.pvd`. Open the `.pvd` in ParaView.
+The binary is installed with `cmake --install build --prefix "$HOME/.local"`,
+so the command is `saturnCFD`, not `./build/saturnCFD`. `-completion` prints
+bash/zsh/fish completion; `ctest --preset regression` is the short test command.
+The full option list is in `docs/protocols/cli.md`.
 
 ## 5. Directory layout
 

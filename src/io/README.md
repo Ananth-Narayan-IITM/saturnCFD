@@ -4,8 +4,9 @@ Output and restart. Solvers fill data structures; this module writes them.
 
 ## Responsibilities
 
-- VTU volume output and VTP boundary patches for ParaView.
-- PVD time-series collection.
+- VTU volume output by default; VTP boundary patches and PVD only with
+  `-writeVTK`.
+- JSON statistics sidecar for `-checkMesh`.
 - CSV diagnostics.
 - Binary checkpoint with metadata.
 - Run manifest: git hash, build, PETSc/yaml-cpp versions, mesh hash, case hash.
@@ -24,5 +25,5 @@ Output and restart. Solvers fill data structures; this module writes them.
 
 ## Docs
 
-- `docs/protocols/cli.md` (`-writeVtk`)
+- `docs/protocols/cli.md` (`-writeVTK`)
 - ADR `0010`

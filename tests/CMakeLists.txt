@@ -35,15 +35,24 @@ add_test(NAME cli_checkMesh_box
 add_test(NAME cli_checkMesh_tet
   COMMAND saturnCFD -checkMesh ${CMAKE_CURRENT_SOURCE_DIR}/data/meshes/tet.msh)
 set_tests_properties(cli_checkMesh_tet PROPERTIES WILL_FAIL TRUE)
-add_test(NAME cli_writeVtk
+add_test(NAME cli_defaultOutputs
+  COMMAND ${CMAKE_COMMAND}
+          -DCLI=$<TARGET_FILE:saturnCFD>
+          -DMESH=${CMAKE_CURRENT_SOURCE_DIR}/data/meshes/box2x2x2.msh
+          -DOUT=${CMAKE_CURRENT_BINARY_DIR}/cli_defaults/mesh
+          -P ${CMAKE_CURRENT_SOURCE_DIR}/checkVtk.cmake)
+add_test(NAME cli_writeVTK
   COMMAND ${CMAKE_COMMAND}
           -DCLI=$<TARGET_FILE:saturnCFD>
           -DMESH=${CMAKE_CURRENT_SOURCE_DIR}/data/meshes/box2x2x2.msh
           -DOUT=${CMAKE_CURRENT_BINARY_DIR}/cli_vtk/mesh
+          -DWITH_PATCHES=ON
           -P ${CMAKE_CURRENT_SOURCE_DIR}/checkVtk.cmake)
+add_test(NAME cli_completion
+  COMMAND saturnCFD -completion bash)
 
 set_tests_properties(
   cli_help cli_version cli_listSolvers cli_dumpConfig
   cli_checkConfig_si cli_checkConfig_cgs cli_checkMesh_box cli_checkMesh_tet
-  cli_writeVtk
+  cli_defaultOutputs cli_writeVTK cli_completion
   PROPERTIES LABELS "cli;regression")
