@@ -66,6 +66,8 @@ After that, `saturnCFD -dump<Tab>` completes `-dumpConfig`, and
 - [ADR log](docs/decisions/README.md) — accepted and proposed decisions.
 - [v1 roadmap](docs/plan/v1-roadmap.md) — phases, validation gates and risks.
 - [Repository layout](docs/plan/repositoryLayout.md) — folders and naming.
+- [Phase 1 status](docs/plan/phase1Status.md) — what is done and what remains.
+- [Command cheat sheet](docs/guides/commands.md) — build, test, install, help.
 - [Documentation pipeline](docs/plan/documentationPipeline.md) — Doxygen,
   GitHub Pages, PDF and clang-format.
 - [Design summary](docs/Design-v1.md) — the short version.
