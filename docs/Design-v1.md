@@ -1,6 +1,7 @@
 # saturnCFD v1 — design
 
-**Status: decisions frozen for the substrate; physics planning in progress.**
+**Status:** decisions frozen for the substrate; Phase 1 (mesh, configuration,
+CLI, docs, regression tests) in progress; solver physics starts in Phase 2.
 
 This page is the short version. The binding records are in
 [`docs/decisions/`](decisions/README.md); the equations are in
@@ -138,7 +139,7 @@ in v1.0. See [`guides/writingASolver.md`](guides/writingASolver.md) and ADR
 - Markdown uses `$...$` and `$$...$$`; `tools/doxygenMathFilter.py` adapts them
   for Doxygen.
 - `.github/workflows/docs.yml` deploys the HTML to GitHub Pages.
-- `.clang-format` is mandatory; `format` target and `format.yml` CI check.
+- `.clang-format` is mandatory; `formatCode` target and `format.yml` CI check.
 
 ## 7. Next actions
 

@@ -3,6 +3,10 @@
 Each solver gets a page here once it has run. The page is a lab notebook: it
 records what was measured, not only what matched.
 
+Regression tests are separate from validation reports: see
+[`regressionTests.md`](regressionTests.md) for what they protect and how the
+expected files are maintained.
+
 ## Planned pages
 
 | page | solver | status |

@@ -4,7 +4,9 @@ Structured finite-volume CFD for scalar transport, Stokes flow and
 incompressible Navier–Stokes, driven by YAML and validated against analytic
 solutions.
 
-**Status:** planning. No solver code is written yet.
+**Status:** Phase 1 in progress. Mesh, `checkMesh`, SI-only validation,
+yaml-cpp schema validation, CLI help, VTK mesh export and regression tests are
+in place. Solver physics starts in Phase 2.
 
 ## Where to start
 

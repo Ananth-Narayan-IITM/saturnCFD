@@ -4,11 +4,34 @@ A rewrite of saturnCFD as a structured hexahedral finite-volume solver:
 scalar transport (Burgers, heat), Stokes and incompressible Navier–Stokes,
 driven by YAML and validated against analytic solutions.
 
-**Status: planning.** v1.0 has accepted substrate decisions and theory pages;
-no solver code is written yet.
+**Status: Phase 1 in progress.** Mesh reading, `checkMesh`, the SI-only
+validator, yaml-cpp schema validation, CLI help, VTK mesh export and
+regression tests are in place. The finite-volume layer, PETSc wrapper and
+solver authoring are next. Solver physics starts in Phase 2.
 
 The validated v0 implementation is preserved on `v0-archive` (tag `v0.3.0`)
 and is a reference for validation data and algorithms, not a tree to copy.
+
+## Build and test
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+ctest --test-dir build --output-on-failure
+```
+
+yaml-cpp and doctest are fetched automatically when not installed. PETSc and
+Kokkos are disabled until Phase 2.
+
+```bash
+./build/saturnCFD -version
+./build/saturnCFD -listSolvers
+./build/saturnCFD -checkMesh tests/data/meshes/box2x2x2.msh
+./build/saturnCFD -checkMesh tests/data/meshes/box2x2x2.msh -writeVtk results/mesh
+./build/saturnCFD -dumpConfig common -writeTemplate common.yaml
+./build/saturnCFD -checkConfig common.yaml
+./build/saturnCFD -help checkMesh
+```
 
 ## Decisions
 
@@ -112,6 +135,9 @@ apps/main.cpp
 ```
 
 ## Writing a solver
+
+> `saturnCFDSolver` and the built-in `burgers` directory arrive in Phase 2.
+> The naming and the `addSolver(name)` build path are fixed now.
 
 ```bash
 saturnCFDSolver burgers myBurgers

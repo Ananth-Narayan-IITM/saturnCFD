@@ -44,6 +44,11 @@ tests/
   regression/             case files + expected values
 ```
 
+## Regression policy
+
+The stored-expectation format, tolerances and update rules are in
+[`docs/validation/regressionTests.md`](../validation/regressionTests.md).
+
 ## Rules
 
 1. Every public function with numerical behaviour has at least one unit or

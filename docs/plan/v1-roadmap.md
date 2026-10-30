@@ -26,6 +26,10 @@ passes on CPU.
 
 ## Phase 1 — substrate
 
+**Status:** mesh reader, `checkMesh`, SI-only validator, yaml-cpp schema, CLI,
+Doxygen pipeline and regression tests are in place. Finite-volume operators,
+PETSc wrapper and solver authoring remain.
+
 **Deliverables**
 
 1. **Mesh**
@@ -76,7 +80,7 @@ passes on CPU.
    - `docs/Doxyfile` HTML + LaTeX/PDF.
    - `tools/doxygenMathFilter.py` for `$...$` -> `\f$...\f$`.
    - `docs.yml` deploys HTML to GitHub Pages; PDF is a workflow artifact.
-   - `.clang-format` and the `format` CMake target; `format.yml` CI check.
+   - `.clang-format` and the `formatCode` CMake target; `format.yml` CI check.
 
 **Exit criterion**
 

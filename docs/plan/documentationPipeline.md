@@ -56,14 +56,14 @@ INPUT           = README.md docs src
 OUTPUT_DIRECTORY= build/doxygen
 ```
 
-CMake targets (planned):
+CMake targets:
 
 | target | output |
 |---|---|
 | `docHtml` | `build/doxygen/html/index.html` |
 | `docPdf` | `build/doxygen/latex/refman.pdf` |
 | `doc` | both |
-| `format` | runs clang-format on tracked C++ files |
+| `formatCode` | runs clang-format on tracked C++ files |
 
 ## GitHub Pages
 
@@ -96,7 +96,7 @@ It is not rebuilt on every push because the TeX installation is large.
   ```
 - CMake target:
   ```bash
-  cmake --build build --target format
+  cmake --build build --target formatCode
   ```
 - `.github/workflows/format.yml` runs:
   ```bash

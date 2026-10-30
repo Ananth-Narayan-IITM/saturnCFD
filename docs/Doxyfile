@@ -13,7 +13,7 @@ ALLOW_UNICODE_NAMES    = YES
 OUTPUT_LANGUAGE        = English
 
 # ---------------------------------------------------------------- input ----
-INPUT                  = README.md docs
+INPUT                  = README.md docs src
 FILE_PATTERNS          = *.md *.hpp *.cpp
 RECURSIVE              = YES
 EXCLUDE                = external build .git

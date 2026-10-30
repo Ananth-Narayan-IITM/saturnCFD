@@ -1,0 +1,14 @@
+case=thin2d
+cells=4
+points=18
+faces=20
+internalFaces=4
+boundaryFaces=16
+patches=5
+structured=yes
+dimension=2
+nx=2
+ny=2
+nz=1
+volumeTotal=1.0
+status=PASS

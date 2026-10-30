@@ -1,0 +1,11 @@
+case=tetRejected
+cells=1
+points=4
+faces=4
+internalFaces=0
+boundaryFaces=4
+patches=1
+structured=no
+dimension=3
+status=FAIL
+errorsContain=unsupported element type

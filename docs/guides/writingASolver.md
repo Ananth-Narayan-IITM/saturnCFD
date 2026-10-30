@@ -9,6 +9,10 @@ PETSc and I/O layers stay untouched.
 
 ## 1. Copy a solver
 
+> Phase 1 fixes this workflow and the `addSolver(name)` helper. The
+> `saturnCFDSolver` executable and the built-in `burgers` directory arrive with
+> the first solver in Phase 2.
+
 ```bash
 saturnCFDSolver burgers myBurgers
 ```

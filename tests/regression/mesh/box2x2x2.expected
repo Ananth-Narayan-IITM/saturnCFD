@@ -1,0 +1,14 @@
+case=box2x2x2
+cells=8
+points=27
+faces=36
+internalFaces=12
+boundaryFaces=24
+patches=6
+structured=yes
+dimension=3
+nx=2
+ny=2
+nz=2
+volumeTotal=1.0
+status=PASS

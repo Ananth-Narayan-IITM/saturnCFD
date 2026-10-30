@@ -36,10 +36,10 @@ serve both without duplicating equations.
    - The PDF is built on `workflow_dispatch` and uploaded as an artifact.
 4. **clang-format is mandatory.**
    - `.clang-format` is the source of truth.
-   - `format` CMake target rewrites tracked files.
+   - `formatCode` CMake target rewrites tracked files.
    - `.github/workflows/format.yml` runs `--dry-run --Werror`.
 5. **CMake owns the targets.**
-   - `docHtml`, `docPdf`, `doc`, `format`.
+   - `docHtml`, `docPdf`, `doc`, `formatCode`.
 6. **Doxygen comments in C++ use `\f$...\f$`.** Markdown uses `$...$`.
    The filter only touches Markdown, never source code.
 

@@ -41,6 +41,7 @@ saturnCFD/
 
   tests/
     TestMain.cpp                # doctest main
+    data/meshes/                # fixture meshes
     core/
     config/
     mesh/
@@ -48,6 +49,14 @@ saturnCFD/
     linalg/
     solvers/
     regression/
+      mesh/
+        box2x2x2.expected
+        thin2d.expected
+        tetRejected.expected
+      config/
+        siOnly.yaml
+        cgsRejected.yaml
+        unknownKey.yaml
       burgers/
         traveling64.yaml
         traveling64.expected
@@ -82,6 +91,18 @@ saturnCFD/
   README.md
   LICENSE
 ```
+
+## Module READMEs
+
+Every module directory has a `README.md` stating:
+
+- its responsibilities;
+- its boundaries (what it must not do);
+- its tests;
+- the ADR/protocol/theory pages it implements.
+
+That keeps the first question — "where does this belong?" — answerable without
+reading the build.
 
 ## Naming
 
