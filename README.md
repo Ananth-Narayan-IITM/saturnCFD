@@ -42,9 +42,11 @@ cmake --install build --prefix "$HOME/.local"
 # ~/.local/bin must be on PATH
 ```
 
-yaml-cpp and doctest are fetched automatically when not installed. Kokkos,
-MPI and PETSc are wired into the FVM/PETSc increments; the current Phase 1
-mesh/config/CLI slice does not need them yet.
+yaml-cpp and doctest are fetched automatically when not installed.
+`SATURN_ENABLE_MPI=ON` is the default: it links MPI, defines
+`SATURN_USE_MPI`, and builds the MPI partition/halo tests. It does **not** yet
+partition the solver. Use `-DSATURN_ENABLE_MPI=OFF` for a serial build.
+Kokkos and PETSc are wired into the next FVM/PETSc increments.
 
 ```bash
 saturnCFD -version

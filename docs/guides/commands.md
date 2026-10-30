@@ -20,6 +20,36 @@ cmake --build --preset default -j
 
 Incremental builds are the same command.
 
+### What compilation does
+
+`cmake --preset default` configures `build/` and selects:
+
+```text
+SATURN_ENABLE_MPI=ON      link MPI, define SATURN_USE_MPI, build MPI tests
+SATURN_BUILD_TESTS=ON     build saturn_tests and saturn_mpi_tests
+SATURN_BUILD_DOCS=ON      enable docHtml/docPdf targets
+CMAKE_BUILD_TYPE=Release  optimised build
+```
+
+`cmake --build --preset default -j` compiles:
+
+```text
+src/**            -> build/src/libsaturn_core.a
+apps/main.cpp     -> build/saturnCFD
+tests/*           -> build/saturn_tests
+tests/TestMpi*    -> build/saturn_mpi_tests
+```
+
+MPI is linked into `saturn_core` and the MPI test binary. Kokkos and PETSc are
+the next layers; they are not enabled in this mesh/config/CLI/comm slice.
+
+To build serial-only:
+
+```bash
+cmake -S . -B build-serial -DSATURN_ENABLE_MPI=OFF -DCMAKE_BUILD_TYPE=Release
+cmake --build build-serial -j
+```
+
 ## Test
 
 ```bash
@@ -29,6 +59,7 @@ ctest --preset unit
 ctest --preset mesh
 ctest --preset config
 ctest --preset cli
+ctest --preset mpi
 ```
 
 List the available presets instead of memorising them:
@@ -122,13 +153,21 @@ The MPI partition/halo layer is implemented. Run its tests with:
 ```bash
 ctest --preset mpi
 # equivalent:
-mpirun --oversubscribe -np 1 build/saturn_mpi_tests
-mpirun --oversubscribe -np 2 build/saturn_mpi_tests
-mpirun --oversubscribe -np 4 build/saturn_mpi_tests
+mpirun -np 1 build/saturn_mpi_tests
+mpirun -np 2 build/saturn_mpi_tests
+mpirun -np 4 build/saturn_mpi_tests
 ```
 
-`--oversubscribe` is for a workstation with fewer slots than ranks. On the
-cluster, use `srun`/`mpirun` with the allocated tasks and one rank per GPU.
+This PC has enough cores for the current 1/2/4-rank tests; no
+`--oversubscribe` is needed. Use it only when the requested ranks exceed the
+available slots. To make it the default for a test build:
+
+```bash
+cmake -S . -B build -DSATURN_MPI_PREFLAGS=--oversubscribe
+```
+
+On the cluster, use `srun`/`mpirun` with the allocated tasks and one rank per
+GPU.
 
 Solver runs are Phase 2+. The intended form is:
 

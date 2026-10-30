@@ -57,10 +57,9 @@ endif()
 # --------------------------------------------------------------------- MPI --
 if(SATURN_ENABLE_MPI)
   find_package(MPI COMPONENTS CXX REQUIRED)
-  if(NOT SATURN_MPI_PREFLAGS AND MPI_CXX_LIBRARY_VERSION_STRING MATCHES "Open MPI")
-    set(SATURN_MPI_PREFLAGS "--oversubscribe" CACHE STRING
-        "Extra flags for mpiexec" FORCE)
-  endif()
+  # Do not force --oversubscribe. Most workstations have enough slots; add it
+  # explicitly on a machine with fewer slots than requested ranks:
+  #   -DSATURN_MPI_PREFLAGS=--oversubscribe
   set(SATURN_MPI_ORIGIN "system")
 else()
   set(SATURN_MPI_ORIGIN "disabled")
