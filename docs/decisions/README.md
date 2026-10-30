@@ -16,8 +16,7 @@ decision is visible, argued, dated, and can be superseded without archaeology.
 ## Rules
 
 1. One decision per record. If a record needs "and", split it.
-2. Record the alternatives, not only the winner. The rejected options are the
-   most useful part six months later.
+2. Record the alternatives, not only the winner.
 3. State the consequence for the code: which module, which interface, which
    test changes.
 4. An accepted ADR is not edited. Change it by writing a new ADR that
@@ -28,19 +27,20 @@ decision is visible, argued, dated, and can be superseded without archaeology.
 
 `0001`, `0002`, ... in creation order. The template is `0000-template.md`.
 
-## Proposed first batch
+## Decision log
 
-The keystone decisions are the ones that are hard to reverse after the data
-model exists:
+| ADR | decision | status |
+|---|---|---|
+| `0001` | Physics roadmap: Burgers → heat → Stokes → incompressible | accepted |
+| `0002` | Structured hexahedral `.msh` only; 2D is one cell thick; no AMR in v1.0 | accepted |
+| `0003` | PETSc as the linear-algebra backend; no home-grown Krylov | accepted |
+| `0004` | Collocated cell-centred state; Rhie–Chow; SIMPLE/PISO | accepted |
+| `0005` | `Solver` lifecycle and registry; `Simulation` owns the time loop | accepted |
+| `0006` | Typed config schema, generated templates, strict validation | accepted |
+| `0007` | `checkMesh` module and structured-mesh detection | accepted |
+| `0008` | SI units from the start; full units layer later | proposed |
+| `0009` | Documentation, equations and citation protocol | accepted |
 
-- `0001` — target scope and physics roadmap
-- `0002` — dimension, AMR and MPI strategy
-- `0003` — precision, backends and dependency policy
-- `0004` — state representation and field centering
-- `0005` — solver lifecycle and runtime selection
-- `0006` — configuration schema and validation
-- `0007` — index-space, ghost and memory protocol
-- `0008` — verification, documentation and citation protocol
-
-The remaining decisions (I/O formats, logging, error handling, testing
-framework, CI) follow once these are accepted.
+The remaining open items are the YAML parser choice (yaml-cpp recommended), the
+test framework, and the exact GPU/MPI milestone. They do not block the mesh,
+Burgers or heat work.

@@ -1,10 +1,11 @@
 # saturnCFD v1 — design
 
-**Status: draft. No architecture decision below is frozen.**
+**Status: decisions frozen for the substrate; physics planning in progress.**
 
-This document is the place to settle the v1 idea before code is written. It
-records the constraints inherited from v0, the principles that should survive
-the rewrite, and the decisions that still need an owner.
+This page is the short version. The binding records are in
+[`docs/decisions/`](decisions/README.md); the equations are in
+[`docs/theory/`](theory/README.md); the implementation sequence is in
+[`docs/plan/v1-roadmap.md`](plan/v1-roadmap.md).
 
 ---
 
@@ -12,114 +13,90 @@ the rewrite, and the decisions that still need an owner.
 
 A single codebase that:
 
-1. solves incompressible, variable-density-ready finite-volume flow on a
-   block-structured AMR hierarchy;
-2. runs from one source on CPU (Serial/OpenMP) and GPU (CUDA/HIP/SYCL);
-3. is validated against published benchmarks, not only "it runs";
-4. is readable enough that a new contributor can follow one timestep from the
-   driver to the last kernel.
+1. solves scalar transport (Burgers, heat) and incompressible flow (Stokes,
+   Navier–Stokes) on a structured hexahedral mesh imported from Gmsh `.msh`;
+2. is dimensionally consistent and validated against analytic solutions;
+3. is driven entirely by YAML, with generated templates and strict validation;
+4. is performance-portable through Kokkos, with CPU first and GPU later;
+5. remains readable enough that one timestep can be followed from the driver to
+   the last kernel.
 
-The coursework v0 is the reference implementation, not the starting point.
+## 2. Accepted architecture
 
-## 2. What v1 inherits from v0
+| area | decision |
+|---|---|
+| mesh | structured hexahedral `.msh` only; 1D/2D are degenerate 3D meshes; `checkMesh` mandatory |
+| state | collocated cell-centred velocity vector and dynamic pressure |
+| coupling | Rhie–Chow face flux; SIMPLE for steady, PISO for transient |
+| linear algebra | PETSc `Mat`/`Vec`/`KSP`/`PC`; no home-grown Krylov |
+| solvers | separate modules for Burgers, heat, Stokes, incompressible |
+| selection | `Solver` interface + registry; `solver:` in YAML |
+| time loop | `Simulation` owns time, step, output, checkpoints and manifest |
+| config | typed schema, generated `--dump-config`, strict `--check-config` |
+| units | SI internally from the start; full units parser later |
+| AMR | out of v1.0; revisit after incompressible NS is stable, for two-phase flow |
 
-Not code — **constraints and lessons**:
+## 3. Why collocated
 
-- Kokkos is the portability layer; there is no hand-written CUDA path.
-- Field storage is patch-based and flat; kernels iterate patches, not an
-  object graph.
-- Ghost exchange is resolved once on the host into copy operations, then
-  executed as kernels plus packed MPI.
-- Staggered (MAC) velocities, cell-centred pressure, projection method.
-- Device code cannot touch host objects: no `this`, no host-side `Array4`
-  reads, no device-view indexing from the host.
-- An explicit scheme must not sit exactly on its stability limit (the v0
-  diffusion-factor bug).
-- A "safety factor" at the limit is the boundary between decaying and
-  undamped, not a conservative margin.
+Basilisk's default incompressible solver is collocated/centred (with an
+optional MAC module); Nektar++ and NekRS use collocated nodal points with a
+lower-order pressure space; OpenFOAM is collocated FV with Rhie–Chow. A
+staggered MAC grid gives exact discrete continuity and no checkerboard, but it
+splits the velocity components onto different meshes and fights the vector
+form, the `.msh` import and the 2D/3D rule. The checkerboard risk is handled
+explicitly by Rhie–Chow, and the pressure–velocity coupling is validated before
+Navier–Stokes.
 
-## 3. Design principles
+## 4. Solver sequence
 
-1. **One source, many backends.** Any backend-specific code is a bug or a
-   documented exception.
-2. **Device-first.** The host builds metadata; the device does arithmetic.
-   Host/device crossings are explicit and counted.
-3. **No hidden allocation in the time loop.** Workspaces are owned by the
-   solver and reused. Allocation is a setup-time event.
-4. **Explicit ownership.** Every field says which level, which patches, how
-   many ghosts, and which rank owns it.
-5. **Validation gates.** A module is not "done" until it passes its
-   manufactured-solution or analytic test on every supported backend.
-6. **Small interfaces.** A solver depends on fields, a halo operator and a
-   linear solver — not on the driver, the file format or the AMR machinery.
+| stage | solver | main lesson | first validation |
+|---|---|---|---|
+| 1 | Burgers (scalar, then vector) | convection, shocks, limiters, diffusion, time integration | viscous traveling wave; inviscid shock |
+| 2 | heat / convection–diffusion | scalar transport, Péclet effects, boundary layers | 1D boundary layer; 2D/3D MMS |
+| 3 | Stokes | vector elliptic operator, pressure coupling, PETSc | Poiseuille, Couette, cavity at \(Re\to0\) |
+| 4 | incompressible Navier–Stokes | nonlinear convection + pressure projection | Ghia cavity \(Re=100/1000\); Taylor–Green |
 
-## 4. Candidate layering
+Compressible flow is out of v1.0. Two-phase flow and AMR are later.
 
+## 5. Directory layout
+
+```text
+src/
+  core/         types, errors, logging, timer, physical properties
+  config/       YAML schema, parser, validation
+  mesh/         Mesh, GmshReader, CheckMesh, StructuredMesh
+  fv/           gradient, divergence, laplacian, interpolation,
+                convection fluxes, Rhie–Chow, boundary conditions
+  linalg/       PETSc wrappers, matrix assembly, linear-solver interface
+  io/           VTU/PVD, CSV diagnostics, checkpoint, run manifest
+  solvers/
+    burgers/
+    heat/
+    stokes/
+    incompressible/
+  simulation/   time loop, solver registry, factory
+apps/main.cpp
 ```
-core/      types, configuration, timers, error handling
-amr/       Box, BoxArray, DistributionMapping, MultiFab, Array4, hierarchy
-comm/      halo exchange, reductions, MPI wrappers
-mesh/      geometry, boundary conditions, cut-cell / EB hooks (later)
-linalg/    multigrid, Krylov fallback, vector operations
-solver/    projection solver, advection/diffusion operators
-io/        VTK, diagnostics, checkpoints
-apps/      one driver, case-file driven
-```
 
-This is close to v0's layering on purpose: v0's decomposition was sound. The
-change is in what lives behind the interfaces, not in the layer names.
+v0's `BoxArray`/`MultiFab` are not the v1 core: v1 is a structured
+finite-volume mesh with cell/face fields, not a patch-based AMR container.
 
-## 5. Milestones
+## 6. What is deliberately not in v1.0
 
-| id | milestone | exit criterion |
-|---|---|---|
-| M0 | design freeze | this document has no open decisions |
-| M1 | substrate parity | Box/MultiFab/halo pass the v0 tests on CPU and GPU |
-| M2 | multigrid pressure | V-cycle beats CG in iterations and wall time on 128²–512² |
-| M3 | multi-box/MPI flow | cavity runs on ≥2 boxes and ≥2 ranks, same answer |
-| M4 | 3D flow | 3D cavity or Taylor–Green at second-order convergence |
-| M5 | two-level AMR | tagging, regrid, prolong/restrict, reflux on one benchmark |
+- unstructured meshes;
+- AMR, regridding, two-phase flow;
+- compressible flow;
+- GPU kernels (design for them, implement later);
+- a full units library (SI is enforced by convention and documented);
+- a home-grown Krylov solver.
 
-M2 is the highest-value item: v0's GPU is launch-bound because CG needs ~200
-iterations per timestep. M3 is the highest-credibility item: the MPI substrate
-exists in v0 but no application drives it.
+## 7. Next actions
 
-## 6. Validation gates
-
-Every milestone must keep these green:
-
-- `Box` algebra and tiling invariants;
-- halo exchange against an analytic periodic field, including edges/corners;
-- Poisson manufactured solutions: Dirichlet second-order, Neumann zero-mean;
-- lid-driven cavity Re = 100 against Ghia et al. (1982), RMS and max deviation;
-- substrate stencil bandwidth, so performance regressions are visible;
-- CPU/GPU agreement within the precision floor.
-
-## 7. Open decisions
-
-These need answers before M1 starts:
-
-1. **Target physics.** Incompressible single-phase only, or variable density /
-   multiphase hooks from day one?
-2. **AMR.** Two-level Berger–Colella in v1, or single-level v1 with AMR left
-   to v1.1? This changes the field and halo interfaces.
-3. **MPI.** Required in the first release, or "single rank first, MPI behind
-   the same interface"?
-4. **Dimension.** 2D-first with compile-time 3D, or 3D-first?
-5. **Pressure solver.** Geometric multigrid only, or MG-preconditioned CG with
-   a CG fallback?
-6. **API stability.** Is v0's `MultiFab`/`Array4` API allowed to change, or
-   should v1 remain source-compatible for the examples?
-7. **Deadline and audience.** Coursework submission, research code, or a
-   public library? This decides how much polish versus how much exploration.
-
-## 8. Non-goals for the first v1 release
-
-- compressibility, heat transfer, phase change;
-- LES/DNS turbulence modelling;
-- cut-cells or embedded boundaries;
-- a GUI or a Python front end;
-- performance parity with a mature code on day one.
-
-These can be added later, but the first release should be small enough to
-validate completely.
+1. Accept or amend ADR `0008` (units).
+2. Write the protocol specs for mesh, config, finite volume, linear algebra and
+   solver lifecycle.
+3. Write the theory pages (already drafted) and verify the references.
+4. Implement `checkMesh` and the YAML schema/validation first, because every
+   solver depends on them.
+5. Implement Burgers and validate against the traveling wave before touching
+   Stokes.

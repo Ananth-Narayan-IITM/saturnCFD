@@ -1,46 +1,70 @@
 # saturnCFD v1
 
-A fresh rewrite of saturnCFD: finite-volume incompressible CFD with
-block-structured AMR, performance-portable through Kokkos.
+A rewrite of saturnCFD as a structured hexahedral finite-volume solver:
+scalar transport (Burgers, heat), Stokes and incompressible Navier–Stokes,
+driven by YAML and validated against analytic solutions.
 
-**Status: design.** This branch intentionally contains no solver code yet. The
-validated v0 implementation is preserved unchanged on the `v0-archive` branch
-(tag `v0.3.0`) and is the reference for physics, performance and regression
-tests.
+**Status: planning.** v1.0 has accepted substrate decisions and theory pages;
+no solver code is written yet.
 
-## Why a v1
+The validated v0 implementation is preserved on `v0-archive` (tag `v0.3.0`)
+and is a reference for validation data and algorithms, not a tree to copy.
 
-v0 proved the architecture and collected the hard lessons: the flat
-`MultiFab` layout, the team/flat kernel dispatch, the two-phase halo exchange,
-the staggered projection solver, and the CUDA portability traps. It also
-exposed the limits worth fixing in a clean design:
+## Decisions
 
-- conjugate gradients is the pressure-solve bottleneck — multigrid is required;
-- the flow solver bypasses the multi-box / MPI substrate;
-- the physics is 2D-only despite the 3D-capable data structures;
-- there is no AMR hierarchy yet;
-- several latent ghost/periodicity issues are hidden by the single-box cavity.
+- [ADR log](docs/decisions/README.md) — accepted and proposed decisions.
+- [v1 roadmap](docs/plan/v1-roadmap.md) — phases, validation gates and risks.
+- [Design summary](docs/Design-v1.md) — the short version.
 
-v1 starts from those lessons rather than from the v0 source tree. Code is
-ported deliberately, module by module, with the v0 implementation available as
-an oracle and benchmark.
+Accepted so far:
 
-## Start here
+- structured hexahedral Gmsh `.msh` only; 2D is a one-cell-thick 3D mesh;
+- `checkMesh` validates topology, structuredness, dimension and quality;
+- collocated cell-centred variables, Rhie–Chow, SIMPLE/PISO;
+- PETSc for all linear algebra; no home-grown Krylov solver;
+- separate solver modules for Burgers, heat, Stokes and incompressible flow;
+- YAML schema generated from solver code, with strict validation;
+- SI units internally; a full units parser is deferred;
+- no AMR in v1.0; AMR/two-phase is a later milestone.
 
-- [`docs/Design-v1.md`](docs/Design-v1.md) — goals, principles, milestones and
-  open decisions.
-- [`docs/Reference-v0.md`](docs/Reference-v0.md) — what to reuse, rewrite or
-  leave behind, with exact v0 paths and commit.
+## Equations and validation
+
+- [Theory index](docs/theory/README.md)
+- [Finite-volume operators](docs/theory/finiteVolume.md)
+- [Burgers](docs/theory/burgers.md)
+- [Heat / convection–diffusion](docs/theory/heat.md)
+- [Stokes](docs/theory/stokes.md)
+- [Incompressible Navier–Stokes](docs/theory/incompressible.md)
+- [Units](docs/theory/units.md)
+- [References](docs/references.bib)
+
+## Planned layout
+
+```text
+src/
+  core/         types, errors, logging, timer, physical properties
+  config/       YAML schema, parser, validation
+  mesh/         Mesh, GmshReader, CheckMesh, StructuredMesh
+  fv/           gradient, divergence, laplacian, interpolation,
+                convection fluxes, Rhie–Chow, boundary conditions
+  linalg/       PETSc wrappers, matrix assembly
+  io/           VTU/PVD, CSV diagnostics, checkpoint, manifest
+  solvers/
+    burgers/
+    heat/
+    stokes/
+    incompressible/
+  simulation/   time loop, solver registry
+apps/main.cpp
+```
 
 ## Inspecting v0
 
-The old tree is one command away; nothing was deleted.
-
 ```bash
-git show v0-archive:src/amr/MultiFab.hpp
-git worktree add ../saturnCFD-v0 v0-archive   # full v0 tree side by side
+git switch v0-archive
+git worktree add ../saturnCFD-v0 v0-archive
 ```
 
 ## License
 
-Apache-2.0. See [`LICENSE`](LICENSE).
+Apache-2.0. See [LICENSE](LICENSE).

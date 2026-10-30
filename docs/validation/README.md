@@ -1,0 +1,57 @@
+# Validation record
+
+Each solver gets a page here once it has run. The page is a lab notebook: it
+records what was measured, not only what matched.
+
+## Planned pages
+
+| page | solver | status |
+|---|---|---|
+| `burgers.md` | Burgers | waiting for Phase 2 |
+| `heat.md` | heat / convection–diffusion | waiting for Phase 3 |
+| `stokes.md` | Stokes | waiting for Phase 4 |
+| `incompressible.md` | incompressible Navier–Stokes | waiting for Phase 5 |
+| `mesh.md` | `checkMesh` | waiting for Phase 1 |
+| `config.md` | YAML validation | waiting for Phase 1 |
+
+## Required content
+
+Every page states:
+
+1. **Case** — geometry, mesh, BCs, initial conditions, physical parameters.
+2. **Numerics** — scheme, limiter, time integrator, linear solver,
+   preconditioner, tolerances.
+3. **Reference** — analytic solution or published benchmark with citation.
+4. **Results** — table of computed vs reference, error norms, observed order.
+5. **Observations** — artefacts, failures, sensitivity, cost.
+6. **Reproduction** — the exact YAML file and command.
+
+## Error norms
+
+For a scalar field \(\phi\):
+
+\[
+L^1 = \frac{1}{N}\sum_P |\phi_P-\phi_P^{\text{ref}}|,\qquad
+L^2 = \sqrt{\frac{1}{N}\sum_P (\phi_P-\phi_P^{\text{ref}})^2},\qquad
+L^\infty = \max_P |\phi_P-\phi_P^{\text{ref}}|.
+\]
+
+For a vector field, report each component and the magnitude.
+
+## Observed order
+
+For a refinement ratio \(r\),
+
+\[
+p \approx \frac{\log(e_{\text{coarse}}/e_{\text{fine}})}{\log r}.
+\]
+
+Report the order for each norm and state whether the asymptotic range was
+reached.
+
+## Tolerance policy
+
+- double precision: \(10^{-10}\) for linear solver residuals, \(10^{-8}\) for
+  analytic comparisons;
+- single precision (later GPU): \(10^{-5}\) to \(10^{-4}\), documented.
+- Never hide a failed case by loosening a tolerance without recording why.
