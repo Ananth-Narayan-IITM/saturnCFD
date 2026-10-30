@@ -116,6 +116,6 @@ See [`../guides/commands.md`](../guides/commands.md). The short versions are:
 cmake --preset default
 cmake --build --preset default -j
 ctest --preset regression
-cmake --install build --prefix "$HOME/.local"
+cmake --install build-cpu --prefix "$HOME/.local"
 saturnCFD -help
 ```

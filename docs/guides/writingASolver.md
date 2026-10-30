@@ -38,8 +38,8 @@ cp -r src/solvers/burgers src/solvers/myBurgers
 Then:
 
 ```bash
-cmake -S . -B build
-cmake --build build -j
+cmake -S . -B build-cpu
+cmake --build build-cpu -j
 saturnCFD -listSolvers
 saturnCFD -dumpConfig myBurgers -writeTemplate myBurgers.yaml
 saturnCFD -checkConfig myBurgers.yaml

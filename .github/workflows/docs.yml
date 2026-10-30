@@ -25,14 +25,14 @@ jobs:
 
       - name: Build HTML
         run: |
-          mkdir -p build
+          mkdir -p build-cpu
           doxygen docs/Doxyfile
 
       - name: Upload HTML artifact
         uses: actions/upload-artifact@v4
         with:
           name: saturnCFD-docs-html
-          path: build/doxygen/html
+          path: build-cpu/doxygen/html
 
       # Branch deployment avoids the Pages create-site API, which a
       # workflow token is not allowed to call. Enable Pages once with:
@@ -41,7 +41,7 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./build/doxygen/html
+          publish_dir: ./build-cpu/doxygen/html
           publish_branch: gh-pages
           force_orphan: true
           enable_jekyll: false
@@ -62,12 +62,12 @@ jobs:
 
       - name: Build PDF
         run: |
-          mkdir -p build
+          mkdir -p build-cpu
           doxygen docs/Doxyfile
-          make -C build/doxygen/latex
+          make -C build-cpu/doxygen/latex
 
       - name: Upload PDF
         uses: actions/upload-artifact@v4
         with:
           name: saturnCFD-docs-pdf
-          path: build/doxygen/latex/refman.pdf
+          path: build-cpu/doxygen/latex/refman.pdf

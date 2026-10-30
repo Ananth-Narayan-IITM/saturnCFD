@@ -10,3 +10,16 @@ output/
 *.pvd
 compile_commands.json
 .cache/
+
+# Beamer build artifacts (keep the PDF and the .tex source)
+docs/presentation/*.aux
+docs/presentation/*.bbl
+docs/presentation/*.blg
+docs/presentation/*.fdb_latexmk
+docs/presentation/*.fls
+docs/presentation/*.log
+docs/presentation/*.nav
+docs/presentation/*.out
+docs/presentation/*.snm
+docs/presentation/*.toc
+docs/presentation/*.vrb

@@ -1,13 +1,13 @@
 # Doxygen configuration for saturnCFD v1.
 # Build from the repository root:
-#   mkdir -p build && doxygen docs/Doxyfile
-# HTML: build/doxygen/html/index.html
-# PDF:  build/doxygen/latex/refman.pdf
+#   mkdir -p build-cpu && doxygen docs/Doxyfile
+# HTML: build-cpu/doxygen/html/index.html
+# PDF:  build-cpu/doxygen/latex/refman.pdf
 
 PROJECT_NAME           = "saturnCFD"
 PROJECT_NUMBER         = "v1"
 PROJECT_BRIEF          = "Structured finite-volume CFD with YAML, PETSc and Kokkos"
-OUTPUT_DIRECTORY       = build/doxygen
+OUTPUT_DIRECTORY       = build-cpu/doxygen
 CREATE_SUBDIRS         = NO
 ALLOW_UNICODE_NAMES    = YES
 OUTPUT_LANGUAGE        = English

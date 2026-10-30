@@ -41,8 +41,8 @@ SATURN_ENABLE_KOKKOS=ON
 Small serial or one-rank case first:
 
 ```bash
-cmake -S . -B build-dbg -DCMAKE_BUILD_TYPE=Debug -DSATURN_BUILD_TESTS=ON
-cmake --build build-dbg -j
+cmake -S . -B build-cpu-dbg -DCMAKE_BUILD_TYPE=Debug -DSATURN_BUILD_TESTS=ON
+cmake --build build-cpu-dbg -j
 valgrind --tool=memcheck \
   --leak-check=full --show-leak-kinds=definite \
   --track-origins=yes --error-exitcode=1 \
@@ -79,11 +79,11 @@ Caveats:
 Planned build:
 
 ```bash
-cmake -S . -B build-asan \
+cmake -S . -B build-cpu-asan \
   -DCMAKE_BUILD_TYPE=Debug \
   -DSATURN_ENABLE_SANITIZERS=ON
-cmake --build build-asan -j
-ctest --test-dir build-asan --output-on-failure
+cmake --build build-cpu-asan -j
+ctest --test-dir build-cpu-asan --output-on-failure
 ```
 
 ASan catches stack/heap buffer overflows and use-after-free. UBSan catches
@@ -95,7 +95,7 @@ Valgrind and should run in CI on the unit tests.
 Sampling:
 
 ```bash
-perf record -g ./build/saturnCFD case.yaml
+perf record -g ./build-cpu/saturnCFD case.yaml
 perf report
 ```
 
@@ -103,7 +103,7 @@ Callgrind:
 
 ```bash
 valgrind --tool=callgrind --callgrind-out-file=callgrind.out \
-  ./build/saturnCFD case.yaml
+  ./build-cpu/saturnCFD case.yaml
 kcachegrind callgrind.out
 ```
 
@@ -113,7 +113,7 @@ interleaving distorts the profile. Use one thread for the first callgrind run.
 Memory growth:
 
 ```bash
-valgrind --tool=massif ./build/saturnCFD case.yaml
+valgrind --tool=massif ./build-cpu/saturnCFD case.yaml
 ms_print massif.out.*
 ```
 
@@ -139,21 +139,21 @@ asynchronous completion.
 Correctness:
 
 ```bash
-compute-sanitizer --tool memcheck ./build/saturnCFD case.yaml
-compute-sanitizer --tool racecheck ./build/saturnCFD case.yaml
+compute-sanitizer --tool memcheck ./build-cpu/saturnCFD case.yaml
+compute-sanitizer --tool racecheck ./build-cpu/saturnCFD case.yaml
 ```
 
 Timeline:
 
 ```bash
-nsys profile -o report ./build/saturnCFD case.yaml
+nsys profile -o report ./build-cpu/saturnCFD case.yaml
 nsys stats report.nsys-rep
 ```
 
 Kernel metrics:
 
 ```bash
-ncu --set full ./build/saturnCFD case.yaml
+ncu --set full ./build-cpu/saturnCFD case.yaml
 ```
 
 For MPI + GPU, run `nsys` around `mpirun -np 1` first. Multi-rank GPU

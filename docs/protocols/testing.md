@@ -75,7 +75,7 @@ ctest --preset gpu           # once GPU tests land
 ctest --preset benchmark     # benchmark smoke tests
 ```
 
-`ctest --test-dir build -L regression --output-on-failure` still works.
+`ctest --test-dir build-cpu -L regression --output-on-failure` still works.
 
 ## Rules
 

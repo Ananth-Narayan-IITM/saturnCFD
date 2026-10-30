@@ -8,8 +8,8 @@
   "configurePresets": [
     {
       "name": "default",
-      "displayName": "Release with tests and docs",
-      "binaryDir": "${sourceDir}/build",
+      "displayName": "CPU release build with tests and docs",
+      "binaryDir": "${sourceDir}/build-cpu",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "SATURN_BUILD_TESTS": "ON",

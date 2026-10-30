@@ -56,8 +56,8 @@ and rebuilds:
 ```bash
 saturnCFDSolver burgers myBurgers
 # add: addSolver(myBurgers)   to src/solvers/CMakeLists.txt
-cmake -S . -B build
-cmake --build build -j
+cmake -S . -B build-cpu
+cmake --build build-cpu -j
 ```
 
 The full workflow, directory layout and API-version rule are in

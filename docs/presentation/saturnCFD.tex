@@ -1,0 +1,541 @@
+\documentclass[aspectratio=169,10pt]{beamer}
+
+\usetheme{Madrid}
+\usecolortheme{whale}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{caption}[numbered]
+\setbeamertemplate{itemize items}[circle]
+
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\lstset{
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{blue!60!black},
+  commentstyle=\color{green!35!black},
+  stringstyle=\color{red!50!black},
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  frame=single,
+  framerule=0.3pt,
+  rulecolor=\color{black!35},
+  breaklines=true
+}
+
+\title{saturnCFD v1}
+\subtitle{MPI and GPU finite-volume CFD with validated methodology}
+\author{Ananth Narayan}
+\institute{Indian Institute of Technology Madras}
+\date{31 October 2026}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+\section{Motivation and scope}
+
+\begin{frame}{What saturnCFD is}
+  \begin{block}{Goal}
+    A single finite-volume code for scalar transport and incompressible flow,
+    portable across CPU and GPU, parallel through MPI, driven entirely by YAML,
+    and verified before it is trusted.
+  \end{block}
+
+  \begin{itemize}
+    \item Structured hexahedral mesh imported from Gmsh \texttt{.msh}.
+    \item 3D from the start; a one-cell-thick mesh is treated as 2D.
+    \item Solvers: Burgers, heat/convection--diffusion, Stokes, incompressible
+          Navier--Stokes.
+    \item Kokkos for CPU/GPU; MPI for distributed memory.
+    \item Every numerical choice is documented, cited and tested.
+  \end{itemize}
+
+  \vspace{0.4em}
+  \small
+  v0 is preserved on \texttt{v0-archive}. v1 is a deliberate rewrite, not a
+  patch on the old AMR container.
+\end{frame}
+
+\begin{frame}{Why this order?}
+  \begin{enumerate}
+    \item Burgers: nonlinear convection, shocks, limiters, diffusion.
+    \item Heat: scalar transport, Péclet effects, boundary layers.
+    \item Stokes: vector elliptic operator, pressure coupling, linear solver.
+    \item Incompressible Navier--Stokes: all of the above together.
+  \end{enumerate}
+
+  \begin{block}{Idea}
+    Each PDE tests one more ingredient. A failure is localised before the next
+    solver is added.
+  \end{block}
+
+  \small
+  Compressible flow, AMR and two-phase flow are later milestones.
+\end{frame}
+
+\section{What is implemented}
+
+\begin{frame}{Implemented substrate}
+  \begin{itemize}
+    \item Gmsh 2.2 reader; structured-hex classification and
+          \texttt{checkMesh} report.
+    \item Default \texttt{.vtu} + \texttt{.json}; optional
+          \texttt{-writeVTK} patches and \texttt{.pvd}.
+    \item yaml-cpp configuration with a typed schema and generated templates.
+    \item SI-only validation: non-SI input is rejected, not converted.
+    \item Single-dash CLI with help topics and shell completion.
+    \item MPI Cartesian partition and 26-neighbour halo exchange.
+    \item 1/2/4-rank MPI tests, regression tests, Doxygen HTML/PDF.
+  \end{itemize}
+
+  \begin{block}{Status}
+    The mesh/config/comm slice is working. Kokkos fields and the FVM operators
+    are the next implementation step.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Architecture}
+  \begin{center}
+  \small
+  \begin{tabular}{ll}
+    \toprule
+    Layer & Responsibility \\
+    \midrule
+    \texttt{core} & types, SI units, errors, timer \\
+    \texttt{config} & yaml-cpp, schema, validation, templates \\
+    \texttt{mesh} & Gmsh, \texttt{checkMesh}, structured view, VTK \\
+    \texttt{comm} & partition, ghost ownership, halo exchange \\
+    \texttt{fv} & fields, gradient, divergence, Laplacian, fluxes \\
+    \texttt{linalg} & MPI PETSc systems \\
+    \texttt{simulation} & solver registry, time loop, diagnostics \\
+    \texttt{solvers} & Burgers, heat, Stokes, incompressible \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+
+  \small
+  A solver owns its equations. It does not own the mesh, the halo, the YAML
+  parser or the linear algebra.
+\end{frame}
+
+\section{Mesh and configuration}
+
+\begin{frame}{Structured mesh and \texttt{checkMesh}}
+  \begin{itemize}
+    \item Gmsh 2.2 ASCII: points, hexahedra, boundary physical groups.
+    \item Classifier walks the cell dual graph and assigns a contiguous
+          $(i,j,k)$.
+    \item Rejects tetrahedra, non-manifold faces, negative volumes and
+          non-contiguous hex meshes.
+    \item Reports counts, patches, volume/area ranges, non-orthogonality,
+          skewness, aspect ratio, structured flag and dimension.
+  \end{itemize}
+
+  \begin{block}{2D rule}
+    A one-cell-thick 3D mesh with \texttt{empty} patches is 2D. One internal
+    representation, one solver path.
+  \end{block}
+
+  \small
+  Gmsh \cite{geuzaineRemacle2009}; OpenFOAM's \texttt{checkMesh} convention is a
+  methodology reference.
+\end{frame}
+
+\begin{frame}[fragile]{YAML and SI units}
+  \begin{columns}[T]
+    \begin{column}{0.52\textwidth}
+\begin{lstlisting}
+solver: common
+units:
+  system: SI
+mesh:
+  file: channel.msh
+time:
+  end: 1.0
+  cfl: 0.4
+\end{lstlisting}
+    \end{column}
+    \begin{column}{0.44\textwidth}
+      \begin{itemize}
+        \item yaml-cpp parses; the schema validates.
+        \item Unknown keys are errors.
+        \item \texttt{-dumpConfig} generates the template from the same
+              registration the solver reads.
+        \item \texttt{-checkConfig} runs all validation before allocation.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+
+  \vspace{0.5em}
+  \begin{block}{SI only in v1}
+    \texttt{units.system: SI} or no block is accepted. \texttt{CGS},
+    \texttt{length: mm}, etc.\ are hard errors. A future units layer converts at
+    the configuration boundary, never in a kernel.
+  \end{block}
+\end{frame}
+
+\section{Parallel model}
+
+\begin{frame}{MPI decomposition}
+  \begin{center}
+    \small
+    \begin{tabular}{ll}
+      \toprule
+      global grid & $n_x \times n_y \times n_z$ \\
+      process grid & $p_x \times p_y \times p_z$ \\
+      local block & $[i_0,i_1]\times[j_0,j_1]\times[k_0,k_1]$ \\
+      \bottomrule
+    \end{tabular}
+  \end{center}
+
+  \begin{itemize}
+    \item \texttt{MPI\_Dims\_create} chooses the process grid;
+          \texttt{MPI\_Cart\_create} handles periodicity.
+    \item 2D uses $p_z=1$; 1D uses $p_y=p_z=1$.
+    \item Remainders are distributed one cell at a time from the low index.
+    \item No METIS: a structured mesh does not need a graph partition.
+  \end{itemize}
+
+  \begin{block}{Why Cartesian blocks?}
+    Deterministic neighbours, compact messages and a direct
+    cell $\leftrightarrow$ rank mapping.
+  \end{block}
+\end{frame}
+
+\begin{frame}{No shared cells: owner and ghost}
+  \begin{columns}[T]
+    \begin{column}{0.55\textwidth}
+      \begin{itemize}
+        \item Every global cell has \textbf{one owner rank}.
+        \item Only the owner writes the valid value.
+        \item The neighbour keeps a \textbf{read-only ghost copy}.
+        \item Two ghost layers support MUSCL/TVD.
+        \item 26-neighbour exchange: faces, edges, corners.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.42\textwidth}
+      \begin{block}{Shared face, not shared cell}
+        Both ranks compute the same face flux from the same valid/ghost pair.
+        Each rank updates only its own cell. No double counting.
+      \end{block}
+    \end{column}
+  \end{columns}
+
+  \vspace{0.8em}
+  \small
+  Halo order: local periodic copies $\rightarrow$ packed MPI $\rightarrow$
+  physical boundary conditions.
+\end{frame}
+
+\begin{frame}{CPU and GPU execution}
+  \begin{itemize}
+    \item Kokkos selects the backend at \textbf{build} time:
+          Serial/OpenMP or CUDA/HIP.
+    \item CPU and GPU are separate build directories:
+          \texttt{build-cpu} and \texttt{build-gpu}.
+    \item \texttt{mpirun} launches MPI ranks; the compiled backend decides
+          whether a rank uses a CPU or a GPU.
+    \item Performance model: \textbf{one rank per GPU}.
+    \item One GPU: \texttt{mpirun -np 1}. Four GPUs:
+          \texttt{mpirun -np 4}.
+    \item Halo first implementation: device pack $\rightarrow$ host MPI
+          $\rightarrow$ device unpack.
+  \end{itemize}
+
+  \begin{block}{Case files are hardware-independent}
+    CPU/GPU is not in \texttt{case.yaml}. Physics stays portable.
+  \end{block}
+\end{frame}
+
+\section{Finite-volume method}
+
+\begin{frame}{Collocated cell-centred FVM}
+  \begin{itemize}
+    \item Velocity and pressure at cell centroids.
+    \item Face fluxes reconstructed from the two adjacent cells.
+    \item Rhie--Chow correction suppresses checkerboard pressure.
+    \item SIMPLE for steady Stokes/incompressible flow.
+    \item PISO for transient incompressible flow.
+  \end{itemize}
+
+  \begin{block}{Why not MAC?}
+    Staggered MAC gives exact discrete continuity, but it splits the velocity
+    components onto different meshes and fights the vector form, \texttt{.msh}
+    import and the 2D/3D rule. Collocated FV matches OpenFOAM and the default
+    Basilisk/Nektar++ approach \cite{weller1998,cantwell2015}.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Governing equations}
+  \small
+  \begin{align*}
+    \text{Burgers:}\quad
+    &\frac{\partial u}{\partial t}
+      + \nabla\cdot(u\mathbf{a}) = \nu\nabla^2 u + s \\[0.3em]
+    \text{Heat:}\quad
+    &\frac{\partial T}{\partial t}
+      + \nabla\cdot(\mathbf{u}T)
+      = \nabla\cdot(\alpha\nabla T) + S \\[0.3em]
+    \text{Stokes:}\quad
+    &-\nabla p + \mu\nabla^2\mathbf{u} = \mathbf{f},
+      \qquad \nabla\cdot\mathbf{u}=0 \\[0.3em]
+    \text{Incompressible NS:}\quad
+    &\frac{\partial \mathbf{u}}{\partial t}
+      + \nabla\cdot(\mathbf{u}\otimes\mathbf{u})
+      = -\frac{1}{\rho}\nabla p + \nu\nabla^2\mathbf{u}
+      + \frac{\mathbf{f}}{\rho}, \\
+    &\nabla\cdot\mathbf{u}=0
+  \end{align*}
+
+  \vspace{-0.5em}
+  \scriptsize
+  Projection/pressure correction from Chorin \cite{chorin1968}; SIMPLE/PISO
+  from Patankar \cite{patankar1980} and Issa \cite{issa1986}; Rhie--Chow
+  \cite{rhieChow1983}.
+\end{frame}
+
+\begin{frame}{Vector form and linear algebra}
+  \begin{block}{Discrete momentum}
+    \[
+      \mathbf{M}\frac{d\mathbf{u}}{dt}
+      + \mathbf{C}(\mathbf{u})\mathbf{u}
+      = -\mathbf{G}p + \mathbf{D}\mathbf{u} + \mathbf{f}
+    \]
+  \end{block}
+
+  \begin{itemize}
+    \item One vector unknown per cell: $u,v,w$.
+    \item One sparsity pattern; block size 3 or three right-hand sides.
+    \item PETSc: \texttt{Mat}, \texttt{Vec}, \texttt{KSP}, \texttt{PC}.
+    \item Pressure Poisson: CG + GAMG/HYPRE; Neumann null space handled
+          explicitly.
+    \item No home-grown Krylov solver.
+  \end{itemize}
+\end{frame}
+
+\section{Verification and validation}
+
+\begin{frame}{Manufactured solutions: why}
+  \begin{block}{Question MMS answers}
+    Does the assembled discrete operator converge to the PDE at the expected
+    order?
+  \end{block}
+
+  \begin{itemize}
+    \item Unit tests check one function; regression checks one accepted result.
+    \item MMS checks the full operator, including faces, ghosts, BCs,
+          geometry and partition boundaries.
+    \item It catches sign/coefficient errors, missed faces and halo bugs that
+          are invisible on one rank.
+  \end{itemize}
+
+  \small
+  Salari \& Knupp \cite{salari2000}; Roache \cite{roache2002}; Oberkampf \& Roy
+  \cite{oberkampfRoy2010}.
+\end{frame}
+
+\begin{frame}{Manufactured solutions: method}
+  Choose a smooth $\phi$, substitute into the PDE, and use the residual as the
+  source:
+  \[
+    s = \mathcal{L}(\phi).
+  \]
+
+  For the periodic Laplacian:
+  \[
+    \phi=\sin(2\pi x)\sin(2\pi y)\sin(2\pi z),
+    \qquad
+    s=-3(2\pi)^2\phi.
+  \]
+
+  Refine $h$ and compute
+  \[
+    p \approx \frac{\log(e_{\mathrm{coarse}}/e_{\mathrm{fine}})}{\log 2}.
+  \]
+
+  \begin{block}{Expected orders}
+    Central Laplacian/interpolation: 2. Upwind: 1. TVD on a smooth non-extremum:
+    about 2, with local reduction at extrema.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Validation roadmap}
+  \begin{center}
+    \small
+    \begin{tabular}{lll}
+      \toprule
+      Solver & First validation & Reference \\
+      \midrule
+      Burgers & viscous traveling wave & exact Cole--Hopf solution \\
+      Burgers & inviscid shock & characteristics/conservation \\
+      Heat & 1D boundary layer & exact solution \\
+      Heat & 2D/3D MMS & manufactured order \\
+      Stokes & Poiseuille/Couette & exact parabolic/linear \\
+      Stokes & cavity $Re\to0$ & converged reference \\
+      Incompressible & cavity $Re=100,1000$ & Ghia et al.\ \cite{ghia1982} \\
+      Incompressible & Taylor--Green & energy decay/order \\
+      \bottomrule
+    \end{tabular}
+  \end{center}
+
+  \begin{block}{Rule}
+    MMS and analytic tests before a physical benchmark. Observations are
+    recorded, including failures and order reduction.
+  \end{block}
+\end{frame}
+
+\section{Commands and tests}
+
+\begin{frame}[fragile]{Build and run}
+  \begin{columns}[T]
+    \begin{column}{0.52\textwidth}
+\begin{lstlisting}
+# CPU build
+cmake --preset cpu
+cmake --build --preset cpu -j
+cmake --install build-cpu \
+  --prefix "$HOME/.local"
+
+# GPU build
+cmake --preset gpu
+cmake --build --preset gpu -j
+cmake --install build-gpu \
+  --prefix "$HOME/.local"
+\end{lstlisting}
+    \end{column}
+    \begin{column}{0.44\textwidth}
+\begin{lstlisting}
+# one installed command
+mpirun -np 4 saturnCFD case.yaml
+mpirun -np 1 saturnCFD case.yaml
+
+# tests
+ctest --preset default
+ctest --preset regression
+ctest --preset mpi
+\end{lstlisting}
+    \end{column}
+  \end{columns}
+
+  \vspace{0.4em}
+  \small
+  The installed binary carries the backend it was compiled with. CPU and GPU
+  are separate build directories; install the one you want to run. Today
+  \texttt{cmake --preset default} configures \texttt{build-cpu}; the explicit
+  \texttt{cpu}/\texttt{gpu} presets and the Kokkos backend arrive with the FVM
+  layer.
+\end{frame}
+
+\begin{frame}[fragile]{Help, clean and completion}
+\begin{lstlisting}
+saturnCFD -help
+saturnCFD -help build
+saturnCFD -help gpu
+saturnCFD -help mpi
+saturnCFD -help test
+saturnCFD -help clean
+
+source <(saturnCFD -completion bash)
+
+cmake --build build-cpu --target clean
+rm -rf build-cpu build-gpu
+\end{lstlisting}
+
+  \begin{block}{No memorisation}
+    Test labels: \texttt{ctest --list-presets}. CLI: \texttt{saturnCFD -help}.
+    Build: \texttt{-help build}. Clean: \texttt{-help clean}.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Current test status}
+  \begin{center}
+    \small
+    \begin{tabular}{ll}
+      \toprule
+      Suite & Result \\
+      \midrule
+      CTest total & 16/16 passing \\
+      MPI distribution \& halo & 1, 2, 4 ranks passing \\
+      Mesh \texttt{checkMesh} & pass/reject fixtures passing \\
+      Config SI-only & accept/reject fixtures passing \\
+      CLI regression & help, outputs, completion, templates \\
+      Doxygen & HTML and PDF build \\
+      \bottomrule
+    \end{tabular}
+  \end{center}
+
+  \begin{block}{What is not yet tested}
+    Kokkos fields, FVM gradients/Laplacian, MMS orders, CPU/GPU parity and
+    multi-GPU scaling. These are the next gates.
+  \end{block}
+\end{frame}
+
+\section{Status and roadmap}
+
+\begin{frame}{Status and next steps}
+  \begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+      \begin{block}{Done}
+        \begin{itemize}
+          \item Mesh + \texttt{checkMesh}
+          \item YAML schema + SI validation
+          \item CLI/help/completion/install
+          \item MPI partition + 26-neighbour halo
+          \item 1/2/4-rank tests
+          \item Doxygen HTML/PDF
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \begin{block}{Next}
+        \begin{itemize}
+          \item Kokkos \texttt{CellField} + device geometry
+          \item Halo overload for fields
+          \item gradient/divergence/Laplacian
+          \item MMS periodic/Dirichlet/Neumann
+          \item Burgers physics
+          \item PETSc pressure solve
+        \end{itemize}
+      \end{block}
+    \end{column}
+  \end{columns}
+
+  \vspace{0.6em}
+  \begin{block}{Longer term}
+    Stokes and incompressible NS; multi-GPU cluster scaling; AMR then two-phase
+    flow; compressible flow.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Take-away}
+  \begin{block}{What makes this code trustworthy}
+    \begin{enumerate}
+      \item A structured, validated mesh and a strict YAML/SI boundary.
+      \item An ownership model with no shared cells and a tested halo.
+      \item A single source for CPU/GPU through Kokkos, not two codes.
+      \item Verification by manufactured solutions before benchmarks.
+      \item A CLI and test layout that a user can discover, not memorise.
+    \end{enumerate}
+  \end{block}
+
+  \vspace{0.8em}
+  \centering
+  \Large
+  Questions and discussion
+\end{frame}
+
+\begin{frame}[allowframebreaks]{References}
+  \bibliographystyle{plain}
+  \bibliography{../references}
+\end{frame}
+
+\end{document}

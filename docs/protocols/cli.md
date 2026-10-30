@@ -133,7 +133,7 @@ saturnCFD -completion fish | source
 ```
 
 Completion requires `saturnCFD` to be on `PATH`; install it with
-`cmake --install build --prefix "$HOME/.local"`.
+`cmake --install build-cpu --prefix "$HOME/.local"`.
 
 ## Units
 
@@ -272,8 +272,8 @@ Non-SI input is a validation error. There is no conversion in v1.0.
 | `solvers` | available solvers and their state variables |
 | `completion` | bash, zsh and fish install lines |
 | `mpi` | MPI test/run commands, one-rank-per-GPU policy |
-| `build` | configure/build/install, `CMAKE_BUILD_TYPE`, clean, compile DB |
-| `gpu` | GPU build/runtime, one rank per GPU, no hardware in YAML |
+| `build` | configure/build-cpu/install, `CMAKE_BUILD_TYPE`, clean, compile DB |
+| `gpu` | GPU build-cpu/runtime, one rank per GPU, no hardware in YAML |
 | `clean` | CMake clean target vs removing the build tree |
 | `test` | ctest presets and labels |
 

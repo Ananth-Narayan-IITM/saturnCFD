@@ -5,7 +5,7 @@
 - **Owner:** saturnCFD v1
 - **Supersedes:** none
 - **Protocol:** `docs/protocols/solver.md`, `docs/guides/writingASolver.md`
-- **Tests:** `tests/solvers/...`, `tests/build/...`
+- **Tests:** `tests/solvers/...`, `tests/build-cpu/...`
 
 ## Context
 
@@ -84,8 +84,8 @@ saturnCFDSolver burgers myBurgers
 #    src/solvers/myBurgers/MyBurgersOptions.cpp
 
 # 4. build
-cmake -S . -B build
-cmake --build build -j
+cmake -S . -B build-cpu
+cmake --build build-cpu -j
 
 # 5. inspect and run
 saturnCFD -listSolvers

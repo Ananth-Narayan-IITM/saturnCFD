@@ -10,7 +10,7 @@ authoritative CLI reference.
 cmake --preset default
 ```
 
-This creates `build/` with tests and docs enabled.
+This creates `build-cpu/` with tests and docs enabled.
 
 ## Build
 
@@ -22,7 +22,7 @@ Incremental builds are the same command.
 
 ### What compilation does
 
-`cmake --preset default` configures `build/` and selects:
+`cmake --preset default` configures `build-cpu/` and selects:
 
 ```text
 SATURN_ENABLE_MPI=ON      link MPI, define SATURN_USE_MPI, build MPI tests
@@ -36,31 +36,35 @@ GCC/Clang) with no debug symbols. `Debug` is unoptimised with symbols;
 `RelWithDebInfo` is optimised with symbols.
 
 Configure and build are two separate commands: `cmake --preset default`
-writes `build/`, and `cmake --build --preset default -j` compiles it.
+writes `build-cpu/`, and `cmake --build --preset default -j` compiles it.
 
 `cmake --build --preset default -j` compiles:
 
 ```text
-src/**            -> build/src/libsaturn_core.a
-apps/main.cpp     -> build/saturnCFD
-tests/*           -> build/saturn_tests
-tests/TestMpi*    -> build/saturn_mpi_tests
+src/**            -> build-cpu/src/libsaturn_core.a
+apps/main.cpp     -> build-cpu/saturnCFD
+tests/*           -> build-cpu/saturn_tests
+tests/TestMpi*    -> build-cpu/saturn_mpi_tests
 ```
 
 MPI is linked into `saturn_core` and the MPI test binary. Kokkos and PETSc are
 the next layers; they are not enabled in this mesh/config/CLI/comm slice.
 
-To build serial-only:
+Optional serial-only build (MPI off):
 
 ```bash
-cmake -S . -B build-serial -DSATURN_ENABLE_MPI=OFF -DCMAKE_BUILD_TYPE=Release
-cmake --build build-serial -j
+cmake -S . -B build-cpu-serial -DSATURN_ENABLE_MPI=OFF -DCMAKE_BUILD_TYPE=Release
+cmake --build build-cpu-serial -j
 ```
+
+This is a diagnostic variant, not a daily tree. Remove it when finished so the
+repository keeps only the two standard directories, `build-cpu` and
+`build-gpu`.
 
 Compilation database:
 
 ```text
-build/compile_commands.json    # CMake/clangd standard
+build-cpu/compile_commands.json    # CMake/clangd standard
 ```
 
 CPU/GPU builds are separate build directories because CMake fixes the compiler
@@ -92,9 +96,9 @@ mpirun -np 1 saturnCFD case.yaml
 ## Clean
 
 ```bash
-cmake --build build --target clean   # remove compiled objects and binaries
-rm -rf build                         # remove the whole build tree
-rm -rf build-cpu build-gpu           # both backend trees
+cmake --build build-cpu --target clean   # remove compiled objects and binaries
+rm -rf build-cpu                         # remove the CPU build tree
+rm -rf build-cpu build-gpu               # both backend trees
 ```
 
 There is no `wclean`; `cmake --build <dir> --target clean` is the per-build
@@ -122,11 +126,11 @@ ctest --list-presets
 ## Install the command
 
 ```bash
-cmake --install build --prefix "$HOME/.local"
+cmake --install build-cpu --prefix "$HOME/.local"
 ```
 
 `~/.local/bin` must be on `PATH`. After that, use `saturnCFD`, not
-`./build/saturnCFD`.
+`./build-cpu/saturnCFD`.
 
 ## Run
 
@@ -176,15 +180,15 @@ saturnCFD -checkMesh tests<Tab> -> tests/
 ## Documentation
 
 ```bash
-cmake --build build --target docHtml
-cmake --build build --target docPdf
+cmake --build build-cpu --target docHtml
+cmake --build build-cpu --target docPdf
 ```
 
 Outputs:
 
 ```text
-build/doxygen/html/index.html
-build/doxygen/latex/refman.pdf
+build-cpu/doxygen/html/index.html
+build-cpu/doxygen/latex/refman.pdf
 ```
 
 The hosted site is built by the `docs` workflow.
@@ -192,7 +196,7 @@ The hosted site is built by the `docs` workflow.
 ## Format
 
 ```bash
-cmake --build build --target formatCode
+cmake --build build-cpu --target formatCode
 ```
 
 The CI check runs `clang-format --dry-run --Werror`.
@@ -204,9 +208,9 @@ The MPI partition/halo layer is implemented. Run its tests with:
 ```bash
 ctest --preset mpi
 # equivalent:
-mpirun -np 1 build/saturn_mpi_tests
-mpirun -np 2 build/saturn_mpi_tests
-mpirun -np 4 build/saturn_mpi_tests
+mpirun -np 1 build-cpu/saturn_mpi_tests
+mpirun -np 2 build-cpu/saturn_mpi_tests
+mpirun -np 4 build-cpu/saturn_mpi_tests
 ```
 
 This PC has enough cores for the current 1/2/4-rank tests; no
@@ -214,7 +218,7 @@ This PC has enough cores for the current 1/2/4-rank tests; no
 available slots. To make it the default for a test build:
 
 ```bash
-cmake -S . -B build -DSATURN_MPI_PREFLAGS=--oversubscribe
+cmake -S . -B build-cpu -DSATURN_MPI_PREFLAGS=--oversubscribe
 ```
 
 On the cluster, use `srun`/`mpirun` with the allocated tasks and one rank per

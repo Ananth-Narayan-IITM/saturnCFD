@@ -30,15 +30,15 @@ ctest --preset default             # all tests, output on failure
 Equivalent without presets:
 
 ```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j
-ctest --test-dir build --output-on-failure
+cmake -S . -B build-cpu -DCMAKE_BUILD_TYPE=Release
+cmake --build build-cpu -j
+ctest --test-dir build-cpu --output-on-failure
 ```
 
 Install the binary so the command is simply `saturnCFD`:
 
 ```bash
-cmake --install build --prefix "$HOME/.local"
+cmake --install build-cpu --prefix "$HOME/.local"
 # ~/.local/bin must be on PATH
 ```
 
@@ -65,8 +65,8 @@ saturnCFD -help test
 ```
 
 `CMAKE_BUILD_TYPE=Release` is an optimised, no-debug-symbols build. The
-compilation database is `build/compile_commands.json`. Clean with
-`cmake --build build --target clean` or by removing the build directory.
+compilation database is `build-cpu/compile_commands.json`. Clean with
+`cmake --build build-cpu --target clean` or by removing the build directory.
 
 Enable completion once per shell:
 
@@ -129,13 +129,15 @@ Accepted so far:
 - HTML (GitHub Pages): https://ananth-narayan-iitm.github.io/saturnCFD/
 - Source: [`docs/`](docs/), built with Doxygen.
 - PDF: produced by the `docs` workflow on manual dispatch.
+- Presentation: [`docs/presentation/saturnCFD.pdf`](docs/presentation/saturnCFD.pdf)
+  (Beamer source in the same directory).
 - Math: Markdown uses `$...$` and `$$...$$`; the Doxygen filter converts them.
 
 ```bash
-mkdir -p build
+mkdir -p build-cpu
 doxygen docs/Doxyfile
-# HTML: build/doxygen/html/index.html
-# PDF:  make -C build/doxygen/latex
+# HTML: build-cpu/doxygen/html/index.html
+# PDF:  make -C build-cpu/doxygen/latex
 ```
 
 The docs workflow publishes the HTML to the `gh-pages` branch. Enable Pages
@@ -220,8 +222,8 @@ apps/main.cpp
 saturnCFDSolver burgers myBurgers
 # add: addSolver(myBurgers)   to src/solvers/CMakeLists.txt
 # edit src/solvers/myBurgers/createFields.cpp and equations.cpp
-cmake -S . -B build
-cmake --build build -j
+cmake -S . -B build-cpu
+cmake --build build-cpu -j
 saturnCFD -listSolvers
 saturnCFD -dumpConfig myBurgers -writeTemplate myBurgers.yaml
 ```
