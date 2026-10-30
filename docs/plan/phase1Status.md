@@ -58,12 +58,17 @@ two-phase flow, compressible flow.
      mapping, halo/stencil benchmark, ASan/UBSan and compute-sanitizer.
 
 2. **Finite-volume layer**
-   - ghosted `CellField`, `FaceField`, `VectorCellField`.
+   - Kokkos `CellField` with local ghost storage; `VectorCellField` as three
+     components.
+   - `LocalMesh`/`DeviceGeometry` on device.
+   - halo overload for `CellField`.
    - gradient, divergence, interpolation, non-orthogonal Laplacian.
+   - temporary face fluxes; persistent `FaceField` when pressure needs it.
    - upwind/Rusanov/MUSCL convection.
    - boundary-condition application.
    - tests: constant/linear fields, divergence theorem, manufactured Poisson,
-     limiter behaviour.
+     limiter behaviour, CPU/GPU parity.
+   - plan: [`fvmKokkosPlan.md`](fvmKokkosPlan.md), ADR `0016`.
 
 3. **Solver lifecycle and skeleton**
    - `Solver` interface and registry.

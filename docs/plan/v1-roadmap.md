@@ -61,11 +61,13 @@ checklist is [`phase1Status.md`](phase1Status.md).
    - Tests on 1 and 2 ranks, CPU and GPU.
 
 4. **Finite volume**
-   - `CellField`, `FaceField`, `VectorCellField` with ghosts.
+   - Kokkos `CellField`, `FaceField`, `VectorCellField` with ghosts.
+   - `LocalMesh` device geometry; `CellField` halo overload.
    - Gradient, divergence, interpolation, non-orthogonal Laplacian.
    - Convective flux: upwind, Rusanov, MUSCL + limiter.
    - Boundary-condition application.
    - All operators iterate owned cells only and read ghost values.
+   - Plan: [`fvmKokkosPlan.md`](fvmKokkosPlan.md), ADR `0016`.
 
 5. **Linear algebra**
    - PETSc wrapper: `Mat`, `Vec`, `KSP`, `PC`.

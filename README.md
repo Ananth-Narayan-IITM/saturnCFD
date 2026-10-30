@@ -91,6 +91,8 @@ After that, `saturnCFD -dump<Tab>` completes `-dumpConfig`, and
   scaling tests.
 - [Profiling and sanitizing](docs/guides/profiling.md) — Valgrind, sanitizers,
   perf, Nsight, compute-sanitizer.
+- [FVM/Kokkos plan](docs/plan/fvmKokkosPlan.md) — fields, device geometry,
+  kernels and tests.
 - [Phase 1 status](docs/plan/phase1Status.md) — what is done and what remains.
 - [Command cheat sheet](docs/guides/commands.md) — build, test, install, help.
 - [Documentation pipeline](docs/plan/documentationPipeline.md) — Doxygen,
