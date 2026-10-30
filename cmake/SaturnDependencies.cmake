@@ -65,12 +65,55 @@ else()
   set(SATURN_MPI_ORIGIN "disabled")
 endif()
 
-# -------------------------------------------------------- Kokkos and PETSc --
-# The options exist so the FVM/PETSc layers can be enabled without changing the
-# top-level build.
+# ------------------------------------------------------------------ Kokkos --
 if(SATURN_ENABLE_KOKKOS)
-  find_package(Kokkos REQUIRED)
+  if(SATURN_USE_SYSTEM_KOKKOS)
+    find_package(Kokkos 4.0 REQUIRED)
+    set(SATURN_KOKKOS_ORIGIN "system")
+  elseif(SATURN_FETCH_DEPS)
+    # The backend is fixed at configure time. Disable every other Kokkos
+    # backend explicitly so a cached option cannot change the build silently.
+    set(Kokkos_ENABLE_SERIAL OFF CACHE BOOL "" FORCE)
+    set(Kokkos_ENABLE_OPENMP OFF CACHE BOOL "" FORCE)
+    set(Kokkos_ENABLE_CUDA OFF CACHE BOOL "" FORCE)
+    set(Kokkos_ENABLE_HIP OFF CACHE BOOL "" FORCE)
+    if(SATURN_BACKEND STREQUAL "serial")
+      set(Kokkos_ENABLE_SERIAL ON CACHE BOOL "" FORCE)
+    elseif(SATURN_BACKEND STREQUAL "openmp")
+      set(Kokkos_ENABLE_OPENMP ON CACHE BOOL "" FORCE)
+    elseif(SATURN_BACKEND STREQUAL "cuda")
+      set(Kokkos_ENABLE_CUDA ON CACHE BOOL "" FORCE)
+      set(Kokkos_ENABLE_CUDA_LAMBDA ON CACHE BOOL "" FORCE)
+      if(SATURN_KOKKOS_CUDA_ARCH)
+        set(Kokkos_ARCH_${SATURN_KOKKOS_CUDA_ARCH} ON CACHE BOOL "" FORCE)
+      endif()
+    elseif(SATURN_BACKEND STREQUAL "hip")
+      set(Kokkos_ENABLE_HIP ON CACHE BOOL "" FORCE)
+    endif()
+
+    # Do not build Kokkos tests/examples/benchmarks inside saturnCFD.
+    set(Kokkos_ENABLE_TESTS OFF CACHE BOOL "" FORCE)
+    set(Kokkos_ENABLE_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(Kokkos_ENABLE_BENCHMARKS OFF CACHE BOOL "" FORCE)
+    set(Kokkos_ENABLE_COMPILER_WARNINGS OFF CACHE BOOL "" FORCE)
+
+    FetchContent_Declare(
+      kokkos
+      GIT_REPOSITORY https://github.com/kokkos/kokkos.git
+      GIT_TAG ${SATURN_KOKKOS_TAG}
+      GIT_SHALLOW TRUE
+      GIT_PROGRESS TRUE)
+    FetchContent_MakeAvailable(kokkos)
+    set(SATURN_KOKKOS_ORIGIN "fetched ${SATURN_KOKKOS_TAG}")
+  else()
+    message(FATAL_ERROR
+      "Kokkos not found. Configure with -DSATURN_FETCH_DEPS=ON or "
+      "-DSATURN_USE_SYSTEM_KOKKOS=ON -DKokkos_ROOT=<prefix>.")
+  endif()
+else()
+  set(SATURN_KOKKOS_ORIGIN "disabled")
 endif()
+
 if(SATURN_ENABLE_PETSC)
   find_package(PETSc REQUIRED)
 endif()

@@ -27,9 +27,11 @@ passes on CPU.
 ## Phase 1 — substrate
 
 **Status:** mesh reader, `checkMesh`, SI-only validator, yaml-cpp schema, CLI,
-MPI partition/halo, Doxygen pipeline and regression tests are in place.
-Kokkos FVM operators, PETSc wrapper and solver authoring remain. The detailed
-checklist is [`phase1Status.md`](phase1Status.md).
+MPI partition/halo, Kokkos `CellField`, the device halo adapter, the uniform
+Cartesian Laplacian and periodic MMS, Doxygen pipeline and regression tests are
+in place. General `LocalMesh`, the remaining FVM operators, PETSc wrapper and
+solver authoring remain. The detailed checklist is
+[`phase1Status.md`](phase1Status.md).
 
 **Deliverables**
 
@@ -56,16 +58,19 @@ checklist is [`phase1Status.md`](phase1Status.md).
    - `MeshPartition` from `MPI_Dims_create` / `MPI_Cart_create`.
    - One owner per cell; two ghost layers; 26-neighbour halo.
    - Local periodic copies before remote exchange; physical BCs after.
-   - Kokkos fields; rank-to-device mapping; one rank per GPU.
+   - Kokkos fields — done (`CellField`, `FieldHalo`).
+   - Rank-to-device mapping; one rank per GPU — pending the CUDA build.
    - Host-staged halo first; GPU-aware MPI behind the same interface.
-   - Tests on 1 and 2 ranks, CPU and GPU.
+   - Tests on 1, 2 and 4 ranks — CPU done; GPU written, not yet executed.
 
 4. **Finite volume**
-   - Kokkos `CellField`, `FaceField`, `VectorCellField` with ghosts.
-   - `LocalMesh` device geometry; `CellField` halo overload.
-   - Gradient, divergence, interpolation, non-orthogonal Laplacian.
+   - Kokkos `CellField` with ghosts — done.
+   - `FieldHalo` device halo adapter — done.
+   - `CartesianGeometry` + orthogonal Laplacian + periodic 2D/3D MMS — done.
+   - `LocalMesh` general device geometry; `FaceField`/`VectorCellField` — next.
+   - Gradient, divergence, interpolation, non-orthogonal Laplacian — next.
    - Convective flux: upwind, Rusanov, MUSCL + limiter.
-   - Boundary-condition application.
+   - Boundary-condition application (Dirichlet/Neumann ghosts).
    - All operators iterate owned cells only and read ghost values.
    - Plan: [`fvmKokkosPlan.md`](fvmKokkosPlan.md), ADR `0016`.
 

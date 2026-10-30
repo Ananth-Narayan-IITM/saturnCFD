@@ -137,8 +137,16 @@ If the change is not understood, it is a bug, not a new baseline.
 | `mpi/haloPeriodic` | analytic periodic ghosts on 1/2/4 ranks | implemented |
 | `mpi/halo2d` | one-cell-thick 2D halo | implemented |
 | `mpi/haloComponents` | multi-component exchange | implemented |
+| `fv/cellField` | fill and owned-cell reduction | implemented |
+| `fv/haloPeriodic` | Kokkos halo, two ghosts, 26 directions, 1/2/4 ranks | implemented |
+| `fv/mms3d` | 3D periodic Laplacian order and stored `L2` | implemented |
+| `fv/mms2d` | 2D periodic Laplacian order | implemented |
+| `fv/gpu` | device space, 32^3 MMS against the CPU reference, halo roundoff | implemented in code; needs a CUDA host to run |
 
-Phase 2 adds `burgers/traveling64` and `burgers/shock128`.
+The FVM entry is a library regression until the Burgers solver exists: the
+stored 32$^3$ `L2=0.13435580757778084` is the smallest scalar that catches a
+stencil, halo or geometry regression. It is checked on every rank and in a
+CUDA build. Phase 2 adds `burgers/traveling64` and `burgers/shock128`.
 
 ## Why not only unit tests
 

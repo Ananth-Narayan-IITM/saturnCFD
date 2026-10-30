@@ -6,9 +6,10 @@ driven by YAML and validated against analytic solutions.
 
 **Status: Phase 1 in progress.** Mesh reading, `checkMesh`, the SI-only
 validator, yaml-cpp schema validation, CLI help, VTK mesh export, the MPI
-partition/halo substrate and regression tests are in place. The Kokkos
-finite-volume layer, PETSc wrapper and solver authoring are next. Solver
-physics starts in Phase 2.
+partition/halo substrate, Kokkos `CellField`, the device halo adapter, the
+uniform Cartesian Laplacian and periodic manufactured-solution tests are in
+place. The general `LocalMesh`, remaining FVM operators, PETSc wrapper and
+solver authoring are next. Solver physics starts in Phase 2.
 
 MPI and GPU are **first-class from the first FVM layer**, not a later port.
 The decomposition, ghost-cell and one-GPU benchmark plan is in
@@ -23,7 +24,8 @@ and is a reference for validation data and algorithms, not a tree to copy.
 cmake --preset default
 cmake --build --preset default -j
 ctest --preset regression          # the common case
-ctest --preset mpi                 # 1/2/4-rank halo tests
+ctest --preset mpi                 # 1/2/4-rank halo and FVM tests
+ctest --preset fv                  # CellField, halo, 2D/3D MMS
 ctest --preset default             # all tests, output on failure
 ```
 
@@ -42,11 +44,27 @@ cmake --install build-cpu --prefix "$HOME/.local"
 # ~/.local/bin must be on PATH
 ```
 
-yaml-cpp and doctest are fetched automatically when not installed.
+yaml-cpp, doctest and Kokkos are fetched automatically when not installed.
+Kokkos is pinned to 4.7.04 and uses `SATURN_BACKEND=openmp` by default.
 `SATURN_ENABLE_MPI=ON` is the default: it links MPI, defines
-`SATURN_USE_MPI`, and builds the MPI partition/halo tests. It does **not** yet
-partition the solver. Use `-DSATURN_ENABLE_MPI=OFF` for a serial build.
-Kokkos and PETSc are wired into the next FVM/PETSc increments.
+`SATURN_USE_MPI`, and builds the MPI partition/halo and FVM tests. The app is
+still a serial mesh/config front end; the FVM operators live in
+`saturn_fv_tests`. Use `-DSATURN_ENABLE_MPI=OFF` for a serial build.
+
+CPU and GPU are separate build directories. The GPU build needs an installed,
+CUDA-enabled Kokkos because Kokkos' `nvcc_wrapper` must be the C++ compiler at
+configure time:
+
+```bash
+export KOKKOS_ROOT=/path/to/cuda-kokkos
+cmake --preset gpu
+cmake --build --preset gpu -j
+ctest --preset gpu
+```
+
+Build the installed Kokkos for the target architecture (for example
+`PASCAL61` for the Quadro P620). This machine has the GPU but no CUDA toolkit,
+so the CUDA build is written but not yet run locally.
 
 ```bash
 saturnCFD -version

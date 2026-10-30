@@ -21,8 +21,9 @@ harness is retired.
 | `[unit]` | boxes, fields, units, config, mesh helpers | every build |
 | `[mesh]` | Gmsh reader, `checkMesh`, structured detection | every build |
 | `[config]` | schema, YAML, SI-only units, BC/initial validation | every build |
+| `[fv]` | CellField, halo adapter, FVM operators | every FVM change |
 | `[mms]` | manufactured-solution order of accuracy | every FVM change |
-| `[mpi]` | partition, halo, 1/2/4-rank equality | MPI CI |
+| `[mpi]` | partition, halo, FVM, 1/2/4-rank runs | MPI CI |
 | `[gpu]` | GPU parity and device indexing | GPU CI |
 | `[regression]` | analytic and benchmark cases (Burgers wave, Poiseuille, Ghia) | nightly / release |
 | `[parity]` | CPU vs GPU within precision floor | GPU CI |
@@ -53,6 +54,24 @@ MMS is the primary verification method for the FVM operators. The methodology,
 expected orders, rank/backend matrix and pitfalls are in
 [`../theory/manufacturedSolutions.md`](../theory/manufacturedSolutions.md).
 
+## Implemented FV tests
+
+`tests/TestFv.cpp` currently checks:
+
+- `CellField` fill and owned-cell reduction;
+- Kokkos halo on two periodic ghost layers, all 26 directions, 1/2/4 ranks;
+- 3D periodic Laplacian MMS: observed order 1.978 and 1.994 on the CPU OpenMP
+  build;
+- 2D periodic Laplacian MMS: observed order 1.994 and 1.999;
+- a stored 32^3 CPU reference `L2` (`0.13435580757778084`) checked to `1e-10`;
+- CUDA-only cases (`SATURN_BACKEND_CUDA`): active device, 32^3 MMS against the
+  CPU reference to `1e-9`, and periodic halo roundoff.
+
+The same binary is run under `mpirun -np 1/2/4`; a failure on any rank fails the
+CTest test. A CUDA build adds the `gpu` label and `ctest --preset gpu` runs the
+device tests. The CUDA build is written but not yet executed on this machine
+because the CUDA toolkit is not installed.
+
 ## Regression policy
 
 The stored-expectation format, tolerances and update rules are in
@@ -70,8 +89,9 @@ ctest --preset unit
 ctest --preset mesh
 ctest --preset config
 ctest --preset cli
-ctest --preset mpi           # once MPI tests land
-ctest --preset gpu           # once GPU tests land
+ctest --preset mpi           # partition/halo + FVM on 1/2/4 ranks
+ctest --preset fv            # CellField, halo and MMS
+ctest --preset gpu           # GPU-labelled tests in build-gpu
 ctest --preset benchmark     # benchmark smoke tests
 ```
 

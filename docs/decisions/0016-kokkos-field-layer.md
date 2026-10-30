@@ -1,6 +1,7 @@
 # 0016 — Kokkos-backed field and FVM layer
 
-- **Status:** proposed
+- **Status:** accepted (first slice: CellField, FieldHalo, Cartesian Laplacian,
+  periodic MMS; general LocalMesh and remaining operators follow)
 - **Date:** 2026-10-31
 - **Owner:** saturnCFD v1
 - **Supersedes:** none

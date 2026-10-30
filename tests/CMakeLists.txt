@@ -41,6 +41,34 @@ if(SATURN_ENABLE_MPI)
     LABELS "mpi" RUN_SERIAL TRUE)
 endif()
 
+if(SATURN_ENABLE_KOKKOS)
+  add_executable(saturn_fv_tests
+    TestFvMain.cpp
+    TestFv.cpp
+  )
+  set_target_properties(saturn_fv_tests PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+  target_link_libraries(saturn_fv_tests PRIVATE saturn::core doctest::doctest)
+
+  set(SATURN_FV_LABELS "fv;regression;parity")
+  if(SATURN_BACKEND STREQUAL "cuda")
+    list(APPEND SATURN_FV_LABELS "gpu")
+  endif()
+
+  if(SATURN_ENABLE_MPI)
+    foreach(ranks 1 2 4)
+      add_test(NAME fv_np${ranks}
+        COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${ranks}
+                ${SATURN_MPI_PREFLAGS} $<TARGET_FILE:saturn_fv_tests>)
+      set_tests_properties(fv_np${ranks} PROPERTIES
+        LABELS "${SATURN_FV_LABELS};mpi" RUN_SERIAL TRUE)
+    endforeach()
+  else()
+    add_test(NAME fv_serial COMMAND saturn_fv_tests)
+    set_tests_properties(fv_serial PROPERTIES LABELS "${SATURN_FV_LABELS}")
+  endif()
+endif()
+
 # CLI regression checks: the path a user actually runs.
 add_test(NAME cli_help COMMAND saturnCFD -help)
 add_test(NAME cli_version COMMAND saturnCFD -version)

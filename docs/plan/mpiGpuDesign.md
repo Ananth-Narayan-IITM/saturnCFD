@@ -1,7 +1,8 @@
 # MPI and GPU design
 
-**Status:** accepted (ADR `0014`). The MPI partition/halo slice is implemented;
-the Kokkos field adapter and GPU pack/unpack are next.
+**Status:** accepted (ADR `0014`). The MPI partition/halo slice, the Kokkos
+`CellField` adapter and host-staged GPU pack/unpack are implemented. Rank-to-
+device mapping and a verified CUDA build are next.
 
 ## 1. Goal
 

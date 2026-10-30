@@ -21,11 +21,8 @@ class HaloExchange {
   /// Physical boundaries are not filled here.
   void execute(Real* data);
 
-  int numSendOps() const { return static_cast<int>(mSendOps.size()); }
-  int numRecvOps() const { return static_cast<int>(mRecvOps.size()); }
-  int nGrow() const { return mNGrow; }
-
- private:
+  /// One halo message: the peer, direction, global box and MPI tag.
+  /// The host path owns `buffer`; device-field adapters use `box`/`tag`.
   struct Op {
     int peer = kProcNull;
     int dx = 0;
@@ -36,6 +33,15 @@ class HaloExchange {
     std::vector<Real> buffer;
   };
 
+  const std::vector<Op>& sendOps() const { return mSendOps; }
+  const std::vector<Op>& recvOps() const { return mRecvOps; }
+  const MeshPartition& partition() const { return mPart; }
+
+  int numSendOps() const { return static_cast<int>(mSendOps.size()); }
+  int numRecvOps() const { return static_cast<int>(mRecvOps.size()); }
+  int nGrow() const { return mNGrow; }
+
+ private:
   const MeshPartition& mPart;
   int mNGrow = 0;
   int mNcomp = 1;

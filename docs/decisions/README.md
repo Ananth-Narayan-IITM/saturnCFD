@@ -46,7 +46,7 @@ decision is visible, argued, dated, and can be superseded without archaeology.
 | `0013` | Doxygen HTML+PDF, GitHub Pages, clang-format | accepted |
 | `0014` | MPI Cartesian decomposition, ghost ownership and GPU execution | accepted |
 | `0015` | Parallel testing, benchmarking and profiling | proposed |
-| `0016` | Kokkos-backed `CellField` and FVM layer | proposed |
+| `0016` | Kokkos-backed `CellField` and FVM layer | accepted (first slice) |
 
 yaml-cpp is accepted as the YAML parser (ADR `0006`) and doctest as the test
 framework (ADR `0012`). MPI/Kokkos are first-class and are implemented with the

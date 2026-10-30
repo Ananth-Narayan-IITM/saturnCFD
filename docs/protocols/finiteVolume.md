@@ -10,13 +10,19 @@ foundation.
 
 ## Fields
 
-- `CellField<Real>` — `ncomp` values per cell, stored contiguously, cell-major.
-- `FaceField<Real>` — values per face; used for fluxes and face gradients.
+- `CellField` — a ghosted Kokkos view with `ncomp` components per cell and
+  `nGrow` ghost layers. Index `(i,j,k,c)` is global; the field subtracts its
+  local ghost origin. `LayoutLeft` makes `i` contiguous, matching the host
+  halo buffers.
+- `FaceField` — values per face; used for fluxes and face gradients. Planned.
 - `VectorCellField` — a `CellField` with three components $(u,v,w)$.
 - `BoundaryField` — per-patch values or gradients, filled before an operator.
 
 All fields are indexed by cell or face id; no hidden `Array4` global-index
-arithmetic. Ghost cells/faces are explicit for MPI later.
+arithmetic. Ghost cells are explicit and exchanged by `FieldHalo`; ghost
+faces are a later slice. The first implemented operator is the orthogonal
+seven-point `laplacian` on a uniform `CartesianGeometry`; the general
+non-orthogonal correction and `LocalMesh` are next.
 
 ## Integral form
 

@@ -1,9 +1,26 @@
 # FVM layer with Kokkos-backed fields
 
-**Status:** proposed with ADR `0016`.
+**Status:** first slice implemented with ADR `0016` (Kokkos fields, halo
+adapter, uniform Cartesian Laplacian, periodic MMS). The general `LocalMesh`
+and the remaining operators are next.
 
 This is the plan for the first Kokkos field/FVM increment. It builds directly
 on the MPI partition/halo layer already implemented.
+
+## 0. What is implemented now
+
+- Kokkos 4.7.04 is fetched and pinned by default; `SATURN_BACKEND=openmp` is
+  the CPU default. A CUDA build uses an installed Kokkos and its
+  `nvcc_wrapper`.
+- `CellField` is a ghosted Kokkos view with `ncomp` components.
+- `FieldHalo` performs device pack, host mirror, MPI `Isend`/`Irecv`, device
+  unpack, and local periodic copies. Buffers are allocated once.
+- `CartesianGeometry` and `laplacian` implement the seven-point operator on a
+  uniform block.
+- Periodic 2D and 3D manufactured Laplacian tests pass on 1, 2 and 4 ranks
+  with observed order 2.00 (within 0.03 at the finest level).
+- GPU-labelled tests are compiled and run in a CUDA build; the local machine
+  has the GPU but no CUDA toolkit, so that build is not yet verified here.
 
 ## 1. Goal
 
@@ -40,20 +57,30 @@ mpirun -np 4 saturnCFD case.yaml
 mpirun -np 1 saturnCFD case.yaml
 ```
 
-Planned cache variables:
+Cache variables:
 
 ```text
-SATURN_BACKEND=openmp|cuda
-SATURN_ENABLE_KOKKOS=ON
-SATURN_ENABLE_MPI=ON
-SATURN_PRECISION=auto|float|double
+SATURN_BACKEND=openmp|serial|cuda|hip   CPU default: openmp
+SATURN_ENABLE_KOKKOS=ON                 default
+SATURN_USE_SYSTEM_KOKKOS=OFF            CPU default: fetch 4.7.04
+SATURN_ENABLE_MPI=ON                    default
+SATURN_PRECISION=double                 float is not wired yet
 ```
 
-`auto` means float on CUDA, double elsewhere. `Accum` remains double for
-reductions.
+The CPU build fetches a pinned Kokkos tag. The GPU build uses an installed,
+CUDA-enabled Kokkos because `CMAKE_CXX_COMPILER` must be Kokkos'
+`nvcc_wrapper` before the project is configured:
 
-Kokkos is pinned and built by CMake (vendored or FetchContent). The CUDA build
-must use the Kokkos `nvcc_wrapper`.
+```bash
+export KOKKOS_ROOT=/path/to/cuda-kokkos
+cmake --preset gpu
+```
+
+The installed Kokkos must be built for the target architecture (for example
+`PASCAL61` for the Quadro P620).
+
+Doubles are used everywhere for now, including the GPU. Float CUDA is a later
+optimisation; `Accum` must remain double for reductions when it lands.
 
 `mpirun` is not CPU-only: it launches MPI ranks. The backend compiled into each
 rank decides CPU vs GPU. One rank per GPU is the performance model.
@@ -63,18 +90,24 @@ rank decides CPU vs GPU. One rank per GPU is the performance model.
 `CellField<Real>`:
 
 ```cpp
-template <class T>
 class CellField {
  public:
-  Kokkos::View<T*> data;   // local ghosted storage
-  int ncomp, nGrow;
-  int i0, j0, k0;          // local valid origin (global index)
-  int nx, ny, nz;          // local valid extents
+  using view_type =
+      Kokkos::View<Real****, Kokkos::LayoutLeft, memory_space>;
 
   KOKKOS_INLINE_FUNCTION
-  T& operator()(int i, int j, int k, int c = 0) const;
+  Real& operator()(int i, int j, int k, int c = 0) const;
+
+ private:
+  view_type mData;
+  int mNGrow, mNcomp;
+  int mOrigin[3], mExtent[3];
 };
 ```
+
+A four-dimensional view with extents `(nxg, nyg, nzg, ncomp)` and
+`LayoutLeft` has exactly the flat layout used by the host halo path, so no
+transpose is needed between the Kokkos and MPI buffers.
 
 Storage is local and ghosted:
 
@@ -98,7 +131,12 @@ it gets a first-class `FaceField`.
 
 ## 4. Local geometry on device
 
-A `LocalMesh`/`DeviceGeometry` owns:
+The first implemented geometry is `CartesianGeometry`: a uniform block with
+spacing `h_d`, cell centres `x_d = origin_d + (i_d + 1/2) h_d`, and the
+seven-point coefficient `1/h_d^2`. It is enough to verify the halo, the
+operator and the MMS order without mixing in mesh-quality corrections.
+
+The general `LocalMesh`/`DeviceGeometry` is the next slice. It owns:
 
 - `cellVolume`, `cellCentroid` (3 components);
 - face area, face normal, face centroid for faces of owned cells;
@@ -113,19 +151,24 @@ Geometry lives in Kokkos views and is copied once before the time loop.
 
 ## 5. Halo adapter
 
-Extend `HaloExchange` with a Kokkos path:
+The Kokkos path is `FieldHalo`, not a method on `HaloExchange`, so `comm`
+stays backend-agnostic:
 
 ```cpp
-void execute(CellField<Real>& field);
+FieldHalo(const HaloExchange& halo, int ncomp);
+void execute(CellField& field);
 ```
 
+- `HaloExchange` still builds the 26-direction op list and owns the host path.
+- `FieldHalo` owns per-op device and host buffers, allocated once.
 - pack kernel writes a contiguous device `View<Real*>`;
 - `deep_copy` to host mirror;
 - `MPI_Isend`/`Irecv`;
 - `deep_copy` back;
 - unpack kernel.
+- Local periodic images are copied device-to-device, also on one rank.
 
-`Kokkos::fence()` before host copy/MPI and after unpack.
+`Kokkos::fence()` separates pack/unpack from the host copy.
 
 The existing host `execute(Real*)` remains for tests and CPU fallback. The
 pack/unpack operation and the 26-direction op list are shared.
@@ -145,11 +188,12 @@ Rules:
 
 ## 7. First FVM operators
 
-1. `gradient` — cell-centred gradient from face values.
-2. `divergence` — sum face fluxes / cell volume.
-3. `interpolate` — cell to face.
-4. `laplacian` — orthogonal part first; non-orthogonal correction next.
-5. `convectiveFlux` — upwind/Rusanov, then MUSCL/TVD.
+1. **Done (uniform).** `laplacian` — orthogonal seven-point stencil.
+2. `gradient` — cell-centred gradient from face values.
+3. `divergence` — sum face fluxes / cell volume.
+4. `interpolate` — cell to face.
+5. Non-orthogonal Laplacian correction on general hexahedra.
+6. `convectiveFlux` — upwind/Rusanov, then MUSCL/TVD.
 
 Boundary conditions are applied to ghost cells before an operator reads them.
 
@@ -158,7 +202,7 @@ The first validation set:
 - constant field: gradient zero, divergence of constant flux zero;
 - linear field: gradient exact on a uniform hex block;
 - divergence theorem: sum of face fluxes equals volume integral;
-- manufactured Poisson: second-order convergence;
+- **done:** manufactured Laplacian: second-order convergence in 2D/3D;
 - advection of a smooth pulse: correct speed and no overshoot with a limiter.
 
 ## 7a. Manufactured-solution methodology
@@ -169,17 +213,18 @@ The full derivation and pitfalls are in
 
 The first MMS cases are:
 
-1. **2D/3D periodic Laplacian**
+1. **2D/3D periodic Laplacian** — **implemented and passing**.
    $$
    \phi=\sin(2\pi x)\sin(2\pi y)\,[\sin(2\pi z)],
    \quad
    s=-d(2\pi)^2\phi.
    $$
-   Run on 1, 2 and 4 ranks. Expected order: 2.
+   Run on 1, 2 and 4 ranks. Expected order: 2. Observed on the CPU OpenMP
+   build: 3D `1.978, 1.994`; 2D `1.994, 1.999` for the two refinement pairs.
 2. **Dirichlet Laplacian** with exact boundary values; verifies boundary
-   ghosts.
+   ghosts. Next.
 3. **Neumann Laplacian** with $\phi=\cos(\pi x)\cos(\pi y)[\cos(\pi z)]$;
-   verifies zero-normal-gradient ghosts.
+   verifies zero-normal-gradient ghosts. Next.
 4. **Steady advection–diffusion** with a smooth manufactured field; verifies
    the convection sign, interpolation and limiter branch.
 5. **One-step transient advection–diffusion**; refines $h$ and $\Delta t$
@@ -197,14 +242,25 @@ discrete operator against the continuous PDE.
 
 ## 8. Tests
 
-- `tests/fv/` unit tests on CPU;
-- `tests/TestParallel.cpp` extended with a `CellField` halo test;
-- `saturn_fvm_tests` with MPI main for 1/2/4 ranks;
-- CPU/GPU parity test, one GPU;
-- 1-rank vs 2-rank equality;
-- no double-count on partition faces.
+Implemented:
 
-CTest labels: `fv`, `mpi`, `gpu`, `parity`.
+- `tests/TestFv.cpp` — CellField fill/reduce, Kokkos halo with two periodic
+  ghost layers, 2D/3D MMS order, and a stored CPU reference norm;
+- `tests/TestFvMain.cpp` — MPI then Kokkos initialization, global failure
+  reduction;
+- `saturn_fv_tests` runs under `mpirun -np 1/2/4` and as a serial binary when
+  MPI is off;
+- the same binary carries `gpu`-labelled CUDA cases (`TestFv.cpp`,
+  `SATURN_BACKEND_CUDA`): active CUDA space, 32^3 MMS against the CPU
+  reference, and periodic halo roundoff.
+- The reference test is the parity gate: the GPU double build must match the
+  stored CPU `L2` to `1e-9`; a wrong stencil or halo is orders larger.
+
+CTest labels: `fv`, `mpi`, `gpu`, `parity`, `regression`.
+
+Still to add: 1-rank vs 2-rank *cross-run* equality (the current MMS/order and
+reference checks run identically on 1/2/4 ranks), Dirichlet/Neumann MMS,
+advection-diffusion MMS, and the halo/stencil benchmark.
 
 ## 9. Performance
 
@@ -220,23 +276,32 @@ Do not claim multi-GPU scaling from one GPU.
 
 ## 10. Order of work
 
-1. Kokkos dependency and `cpu`/`gpu` presets.
-2. `CellField` + host/device mirror + fill/reduce tests.
-3. `LocalMesh` device geometry.
-4. `HaloExchange::execute(CellField&)` with pack/unpack kernels.
-5. `CellField` halo tests on 1/2/4 ranks.
-6. gradient/divergence/interpolation/Laplacian.
-7. manufactured Poisson and advection tests.
-8. CPU/GPU parity and halo/stencil benchmark.
+1. **Done.** Kokkos dependency and `cpu`/`gpu` presets.
+2. **Done.** `CellField` + host mirror + fill/reduce tests.
+3. **Done (uniform).** `CartesianGeometry` device geometry.
+4. **Done.** `FieldHalo` pack/unpack adapter.
+5. **Done.** `CellField` halo tests on 1/2/4 ranks.
+6. **Partially done.** `laplacian` (orthogonal); gradient/divergence/
+   interpolation next.
+7. **Partially done.** Periodic 2D/3D MMS; Dirichlet/Neumann and
+   advection-diffusion next.
+8. **Pending.** GPU execution verification and the halo/stencil benchmark.
 
 ## 11. Open decisions
 
-1. Kokkos acquisition: pinned FetchContent vs vendored source.
-2. First kernel policy: MDRange (recommended) vs flat range.
-3. Face field now or after pressure correction (recommended later).
-4. GPU precision: float (recommended for the P620) vs double.
-5. `LocalMesh` construction: local extraction first vs rank-0 scatter
-   (recommended production path).
+Resolved:
 
-My recommendation: pinned Kokkos, MDRange first, temporary face fluxes,
-float on the P620, rank-0 scatter hidden behind `LocalMesh`.
+1. Kokkos acquisition: pinned FetchContent for CPU; installed Kokkos for CUDA
+   because `nvcc_wrapper` must be the compiler at configure time.
+2. First kernel policy: MDRange with an explicit signed `IndexType<int>`.
+3. Face field: later; temporary face arrays first.
+4. GPU precision: double for the first verified slice; float later.
+5. LocalMesh construction: local extraction first, rank-0 scatter hidden
+   behind `LocalMesh` for production.
+
+Open:
+
+1. `LocalMesh` face/BC storage layout for non-uniform hexahedra.
+2. Cross-run rank-parity comparison (1 vs 2 vs 4) versus the current
+   per-run norm check.
+3. GPU-aware MPI versus host staging once the CUDA build is available.

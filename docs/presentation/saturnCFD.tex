@@ -94,12 +94,15 @@
     \item SI-only validation: non-SI input is rejected, not converted.
     \item Single-dash CLI with help topics and shell completion.
     \item MPI Cartesian partition and 26-neighbour halo exchange.
-    \item 1/2/4-rank MPI tests, regression tests, Doxygen HTML/PDF.
+    \item Kokkos \texttt{CellField}, device pack/unpack halo, Cartesian
+          Laplacian.
+    \item Periodic 2D/3D manufactured Laplacian at order 2 on 1/2/4 ranks.
+    \item 19 CTest cases, regression tests, Doxygen HTML/PDF.
   \end{itemize}
 
   \begin{block}{Status}
-    The mesh/config/comm slice is working. Kokkos fields and the FVM operators
-    are the next implementation step.
+    The mesh/config/comm slice and the first Kokkos FVM slice are working.
+    General \texttt{LocalMesh}, the remaining operators and PETSc are next.
   \end{block}
 \end{frame}
 
@@ -366,6 +369,11 @@ time:
     Central Laplacian/interpolation: 2. Upwind: 1. TVD on a smooth non-extremum:
     about 2, with local reduction at extrema.
   \end{block}
+
+  \begin{block}{Measured on 1, 2 and 4 ranks}
+    3D observed order 1.978 and 1.994; 2D 1.994 and 1.999. The 32$^3$ reference
+    $L^2=0.1343558076$ is stored for GPU parity.
+  \end{block}
 \end{frame}
 
 \begin{frame}{Validation roadmap}
@@ -405,7 +413,8 @@ cmake --build --preset cpu -j
 cmake --install build-cpu \
   --prefix "$HOME/.local"
 
-# GPU build
+# GPU build (installed Kokkos)
+export KOKKOS_ROOT=/path/to/kokkos
 cmake --preset gpu
 cmake --build --preset gpu -j
 cmake --install build-gpu \
@@ -419,9 +428,10 @@ mpirun -np 4 saturnCFD case.yaml
 mpirun -np 1 saturnCFD case.yaml
 
 # tests
-ctest --preset default
 ctest --preset regression
 ctest --preset mpi
+ctest --preset fv
+ctest --preset gpu
 \end{lstlisting}
     \end{column}
   \end{columns}
@@ -429,10 +439,10 @@ ctest --preset mpi
   \vspace{0.4em}
   \small
   The installed binary carries the backend it was compiled with. CPU and GPU
-  are separate build directories; install the one you want to run. Today
-  \texttt{cmake --preset default} configures \texttt{build-cpu}; the explicit
-  \texttt{cpu}/\texttt{gpu} presets and the Kokkos backend arrive with the FVM
-  layer.
+  are separate build directories; install the one you want to run. The
+  \texttt{cpu} preset builds \texttt{build-cpu} with Kokkos OpenMP. The
+  \texttt{gpu} preset builds \texttt{build-gpu} and needs an installed
+  CUDA-enabled Kokkos in \texttt{KOKKOS\_ROOT}.
 \end{frame}
 
 \begin{frame}[fragile]{Help, clean and completion}
@@ -463,8 +473,10 @@ rm -rf build-cpu build-gpu
       \toprule
       Suite & Result \\
       \midrule
-      CTest total & 16/16 passing \\
+      CTest total & 19/19 passing \\
       MPI distribution \& halo & 1, 2, 4 ranks passing \\
+      Kokkos field + halo & 2 ghosts, 26 directions, 1/2/4 ranks \\
+      MMS Laplacian & order 2 in 2D/3D, 1/2/4 ranks \\
       Mesh \texttt{checkMesh} & pass/reject fixtures passing \\
       Config SI-only & accept/reject fixtures passing \\
       CLI regression & help, outputs, completion, templates \\
@@ -474,7 +486,8 @@ rm -rf build-cpu build-gpu
   \end{center}
 
   \begin{block}{What is not yet tested}
-    Kokkos fields, FVM gradients/Laplacian, MMS orders, CPU/GPU parity and
+    General \texttt{LocalMesh}, gradient/divergence, Dirichlet/Neumann MMS,
+    advection--diffusion MMS, CUDA execution (no toolkit on this PC) and
     multi-GPU scaling. These are the next gates.
   \end{block}
 \end{frame}
@@ -490,6 +503,8 @@ rm -rf build-cpu build-gpu
           \item YAML schema + SI validation
           \item CLI/help/completion/install
           \item MPI partition + 26-neighbour halo
+          \item Kokkos field + device halo
+          \item Cartesian Laplacian + periodic MMS
           \item 1/2/4-rank tests
           \item Doxygen HTML/PDF
         \end{itemize}
@@ -498,12 +513,12 @@ rm -rf build-cpu build-gpu
     \begin{column}{0.48\textwidth}
       \begin{block}{Next}
         \begin{itemize}
-          \item Kokkos \texttt{CellField} + device geometry
-          \item Halo overload for fields
-          \item gradient/divergence/Laplacian
-          \item MMS periodic/Dirichlet/Neumann
-          \item Burgers physics
-          \item PETSc pressure solve
+          \item General \texttt{LocalMesh} geometry
+          \item gradient/divergence/interpolation
+          \item Dirichlet/Neumann BC ghosts
+          \item advection--diffusion MMS
+          \item CUDA build verification
+          \item Burgers physics and PETSc
         \end{itemize}
       \end{block}
     \end{column}

@@ -26,7 +26,9 @@ Incremental builds are the same command.
 
 ```text
 SATURN_ENABLE_MPI=ON      link MPI, define SATURN_USE_MPI, build MPI tests
-SATURN_BUILD_TESTS=ON     build saturn_tests and saturn_mpi_tests
+SATURN_ENABLE_KOKKOS=ON   fetch pinned Kokkos 4.7.04
+SATURN_BACKEND=openmp     Kokkos execution backend for the CPU build
+SATURN_BUILD_TESTS=ON     build saturn_tests, saturn_mpi_tests, saturn_fv_tests
 SATURN_BUILD_DOCS=ON      enable docHtml/docPdf targets
 CMAKE_BUILD_TYPE=Release  optimised build
 ```
@@ -45,10 +47,12 @@ src/**            -> build-cpu/src/libsaturn_core.a
 apps/main.cpp     -> build-cpu/saturnCFD
 tests/*           -> build-cpu/saturn_tests
 tests/TestMpi*    -> build-cpu/saturn_mpi_tests
+tests/TestFv*     -> build-cpu/saturn_fv_tests
 ```
 
-MPI is linked into `saturn_core` and the MPI test binary. Kokkos and PETSc are
-the next layers; they are not enabled in this mesh/config/CLI/comm slice.
+MPI and Kokkos are linked into `saturn_core`. Kokkos is pinned by default;
+`SATURN_USE_SYSTEM_KOKKOS=ON` plus `Kokkos_ROOT` uses an installed Kokkos.
+PETSc is the next layer and is still off.
 
 Optional serial-only build (MPI off):
 
@@ -68,18 +72,22 @@ build-cpu/compile_commands.json    # CMake/clangd standard
 ```
 
 CPU/GPU builds are separate build directories because CMake fixes the compiler
-and backend at configure time. Once the Kokkos FVM layer lands, the intended
-commands are:
+and backend at configure time:
 
 ```bash
-cmake --preset cpu        # build-cpu, OpenMP
+cmake --preset cpu        # build-cpu, Kokkos OpenMP
 cmake --build --preset cpu -j
 cmake --install build-cpu --prefix "$HOME/.local"
 
-cmake --preset gpu        # build-gpu, CUDA
+export KOKKOS_ROOT=/path/to/cuda-kokkos
+cmake --preset gpu        # build-gpu, CUDA, system Kokkos + nvcc_wrapper
 cmake --build --preset gpu -j
 cmake --install build-gpu --prefix "$HOME/.local"
 ```
+
+The GPU preset needs an installed CUDA-enabled Kokkos because the compiler must
+be Kokkos' `nvcc_wrapper` before the project is configured. Build that Kokkos
+for the target architecture (for example `PASCAL61` for the Quadro P620).
 
 They do not coexist in one build directory. Install puts one `saturnCFD` on
 `PATH`; the installed binary carries the backend it was compiled with. Install
@@ -114,8 +122,21 @@ ctest --preset unit
 ctest --preset mesh
 ctest --preset config
 ctest --preset cli
-ctest --preset mpi
+ctest --preset mpi           # partition/halo + FVM, 1/2/4 ranks
+ctest --preset fv            # CellField, halo, 2D/3D MMS
+ctest --preset gpu           # GPU-labelled tests in build-gpu
 ```
+
+Direct FVM runs:
+
+```bash
+./build-cpu/saturn_fv_tests
+mpirun -np 2 build-cpu/saturn_fv_tests
+mpirun -np 4 build-cpu/saturn_fv_tests
+```
+
+The MMS tests print the observed orders; a failure on any rank fails the run.
+A CUDA build compiles the `gpu` cases and `ctest --preset gpu` runs them.
 
 List the available presets instead of memorising them:
 

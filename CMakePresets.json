@@ -7,13 +7,35 @@
   },
   "configurePresets": [
     {
-      "name": "default",
-      "displayName": "CPU release build with tests and docs",
+      "name": "cpu",
+      "displayName": "CPU (OpenMP) release build with tests and docs",
       "binaryDir": "${sourceDir}/build-cpu",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "SATURN_BUILD_TESTS": "ON",
-        "SATURN_BUILD_DOCS": "ON"
+        "SATURN_BUILD_DOCS": "ON",
+        "SATURN_ENABLE_KOKKOS": "ON",
+        "SATURN_BACKEND": "openmp",
+        "SATURN_USE_SYSTEM_KOKKOS": "OFF"
+      }
+    },
+    {
+      "name": "default",
+      "inherits": "cpu",
+      "displayName": "Default CPU (OpenMP) release build"
+    },
+    {
+      "name": "gpu",
+      "displayName": "GPU (CUDA) release build; requires KOKKOS_ROOT",
+      "binaryDir": "${sourceDir}/build-gpu",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/cuda-kokkos.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "SATURN_BUILD_TESTS": "ON",
+        "SATURN_BUILD_DOCS": "OFF",
+        "SATURN_ENABLE_KOKKOS": "ON",
+        "SATURN_BACKEND": "cuda",
+        "SATURN_USE_SYSTEM_KOKKOS": "ON"
       }
     }
   ],
@@ -21,6 +43,14 @@
     {
       "name": "default",
       "configurePreset": "default"
+    },
+    {
+      "name": "cpu",
+      "configurePreset": "cpu"
+    },
+    {
+      "name": "gpu",
+      "configurePreset": "gpu"
     }
   ],
   "testPresets": [
@@ -106,6 +136,32 @@
       "filter": {
         "include": {
           "label": "mpi"
+        }
+      }
+    },
+    {
+      "name": "fv",
+      "displayName": "Finite-volume and MMS tests",
+      "configurePreset": "default",
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "label": "fv"
+        }
+      }
+    },
+    {
+      "name": "gpu",
+      "displayName": "GPU tests in build-gpu",
+      "configurePreset": "gpu",
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "label": "gpu"
         }
       }
     }

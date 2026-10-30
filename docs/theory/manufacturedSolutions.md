@@ -139,7 +139,27 @@ A TVD limiter can reduce the observed order at smooth extrema. That is a
 property of the scheme, not necessarily a bug; document it and use a smooth
 test that avoids the extremum if the goal is the spatial order.
 
+### First measured results
+
+CPU OpenMP build, two ghost layers, 1/2/4 ranks. The observed orders below are
+the two refinement pairs; the values agree across rank counts because each rank
+assembles the same operator.
+
+| case | levels | observed order | reference |
+|---|---|---|---|
+| 3D periodic Laplacian | $8^3,16^3,32^3$ | 1.978, 1.994 | $L^2(32^3)=0.13435580757778084$ |
+| 2D periodic Laplacian | $16^2,32^2,64^2$ | 1.994, 1.999 | — |
+
+The 32$^3$ value is stored in `tests/TestFv.cpp` and checked to `1e-10` on
+every run. The CUDA build carries the same reference with a `1e-9` window for
+device reduction ordering; that build is written but not yet executed here
+because the CUDA toolkit is absent.
+
 ## 6. Test matrix
+
+Implemented now: the 2D/3D periodic Laplacian on 1/2/4 CPU ranks, plus a
+CUDA-labelled reference case. Pending: Dirichlet, Neumann, advection–diffusion
+and execution on a CUDA host.
 
 | case | ranks | backend | BC |
 |---|---|---|---|
