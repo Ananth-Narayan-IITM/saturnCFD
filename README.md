@@ -73,6 +73,10 @@ After that, `saturnCFD -dump<Tab>` completes `-dumpConfig`, and
 - [Repository layout](docs/plan/repositoryLayout.md) — folders and naming.
 - [MPI and GPU design](docs/plan/mpiGpuDesign.md) — decomposition, ghosts,
   one-GPU benchmark.
+- [Parallel testing](docs/plan/parallelTesting.md) — MPI/GPU correctness and
+  scaling tests.
+- [Profiling and sanitizing](docs/guides/profiling.md) — Valgrind, sanitizers,
+  perf, Nsight, compute-sanitizer.
 - [Phase 1 status](docs/plan/phase1Status.md) — what is done and what remains.
 - [Command cheat sheet](docs/guides/commands.md) — build, test, install, help.
 - [Documentation pipeline](docs/plan/documentationPipeline.md) — Doxygen,

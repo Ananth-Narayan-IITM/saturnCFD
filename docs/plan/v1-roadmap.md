@@ -94,6 +94,13 @@ PETSc wrapper and solver authoring remain. The detailed checklist is
    - `docs.yml` deploys HTML to GitHub Pages; PDF is a workflow artifact.
    - `.clang-format` and the `formatCode` CMake target; `format.yml` CI check.
 
+9. **Parallel testing and profiling**
+   - MPI test main with global failure reduction.
+   - 1/2/4-rank halo, ownership and equality tests.
+   - `benchmarks/haloStencil` strong/weak scaling.
+   - ASan/UBSan CMake option; Valgrind and compute-sanitizer targets.
+   - `docs/plan/parallelTesting.md` and `docs/guides/profiling.md`.
+
 **Exit criterion**
 
 - `checkMesh` passes on all accepted test meshes and rejects all bad ones.

@@ -1,6 +1,6 @@
 # 0014 — MPI decomposition and GPU execution model
 
-- **Status:** proposed
+- **Status:** accepted
 - **Date:** 2026-10-31
 - **Owner:** saturnCFD v1
 - **Supersedes:** none

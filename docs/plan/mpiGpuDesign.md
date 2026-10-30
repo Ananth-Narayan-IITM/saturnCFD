@@ -241,13 +241,17 @@ oversubscription, not interconnect scaling.
 ## 13. Tests
 
 - partition: local extents sum to global; no overlap; remainder distribution;
-- halo: analytic periodic field, 1 and 2 ranks, 1 and 2 ghost layers;
+- halo: analytic periodic field, 1/2/4 ranks, 1 and 2 ghost layers;
 - 26-neighbour coverage: face, edge, corner;
 - periodic vs non-periodic;
 - 1-rank vs 2-rank result equality on a small case;
 - GPU vs CPU parity within precision;
 - no cell written by two ranks;
 - FVM divergence theorem and manufactured Poisson in parallel.
+
+The full test matrix and the profiling/sanitizer workflow are in
+[`parallelTesting.md`](parallelTesting.md) and
+[`../guides/profiling.md`](../guides/profiling.md).
 
 ## 14. Open decisions
 

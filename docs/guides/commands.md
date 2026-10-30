@@ -122,6 +122,18 @@ the finite-volume layer; the decomposition, ghost-cell and one-GPU benchmark
 plan is in [`../plan/mpiGpuDesign.md`](../plan/mpiGpuDesign.md). Do not assume a
 single-rank CPU path for the FVM implementation.
 
+When the MPI test binary lands, the intended commands are:
+
+```bash
+mpirun --oversubscribe -np 2 build/saturn_mpi_tests
+mpirun --oversubscribe -np 4 build/saturn_mpi_tests
+ctest --preset mpi
+```
+
+The benchmark and Valgrind/Compute Sanitizer commands are in
+[`profiling.md`](profiling.md) and
+[`../plan/parallelTesting.md`](../plan/parallelTesting.md).
+
 ## What not to memorise
 
 - Test labels: use `ctest --list-presets`.

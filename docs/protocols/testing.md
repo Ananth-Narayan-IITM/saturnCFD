@@ -22,9 +22,12 @@ harness is retired.
 | `[mesh]` | Gmsh reader, `checkMesh`, structured detection | every build |
 | `[config]` | schema, YAML, SI-only units, BC/initial validation | every build |
 | `[mms]` | manufactured-solution order of accuracy | nightly / release |
+| `[mpi]` | partition, halo, 1/2/4-rank equality | MPI CI |
+| `[gpu]` | GPU parity and device indexing | GPU CI |
 | `[regression]` | analytic and benchmark cases (Burgers wave, Poiseuille, Ghia) | nightly / release |
 | `[parity]` | CPU vs GPU within precision floor | GPU CI |
-| `[performance]` | stencil/cavity timing smoke test | manual / release |
+| `[benchmark]` | halo/stencil timing, strong/weak scaling | manual / release |
+| `[memcheck]` | Valgrind/ASan/UBSan runs | manual / nightly |
 
 ## Layout
 
@@ -61,6 +64,9 @@ ctest --preset unit
 ctest --preset mesh
 ctest --preset config
 ctest --preset cli
+ctest --preset mpi           # once MPI tests land
+ctest --preset gpu           # once GPU tests land
+ctest --preset benchmark     # benchmark smoke tests
 ```
 
 `ctest --test-dir build -L regression --output-on-failure` still works.

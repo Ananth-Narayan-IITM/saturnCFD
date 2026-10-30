@@ -33,6 +33,9 @@ The parallel design is in [`mpiGpuDesign.md`](mpiGpuDesign.md).
 | `src/config` | `boundary` and `fields` schemas; solver-specific option schemas |
 | `src/linalg` | MPI PETSc wrapper, matrix assembly, null-space handling |
 | `src/io` | CSV diagnostics, run manifest, checkpoint |
+| `tests/parallel` | 1/2/4-rank halo, ownership and equality tests |
+| `benchmarks` | halo/stencil strong/weak scaling harness |
+| tooling | ASan/UBSan options, Valgrind/Compute Sanitizer targets |
 | mesh | Gmsh 4.1 ASCII support (2.2 works now) |
 | CLI | `-listSolvers`/`-dumpConfig burgers` are not meaningful until the solver skeleton lands |
 
@@ -46,7 +49,10 @@ two-phase flow, compressible flow.
    - one owner per cell, two ghost layers, 26-neighbour exchange.
    - periodic local copies before remote exchange.
    - Kokkos pack/unpack; rank-to-device mapping.
-   - tests on 1 and 2 ranks; analytic periodic field.
+   - tests on 1, 2 and 4 ranks; analytic periodic field.
+   - MPI test main with global failure reduction.
+   - halo/stencil benchmark; strong/weak scaling.
+   - ASan/UBSan and `compute-sanitizer` checks.
 
 2. **Finite-volume layer**
    - ghosted `CellField`, `FaceField`, `VectorCellField`.
