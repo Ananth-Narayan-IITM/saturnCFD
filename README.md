@@ -14,6 +14,9 @@ and is a reference for validation data and algorithms, not a tree to copy.
 
 - [ADR log](docs/decisions/README.md) — accepted and proposed decisions.
 - [v1 roadmap](docs/plan/v1-roadmap.md) — phases, validation gates and risks.
+- [Repository layout](docs/plan/repositoryLayout.md) — folders and naming.
+- [Documentation pipeline](docs/plan/documentationPipeline.md) — Doxygen,
+  GitHub Pages, PDF and clang-format.
 - [Design summary](docs/Design-v1.md) — the short version.
 
 Accepted so far:
@@ -37,6 +40,25 @@ Accepted so far:
 - PETSc
 - yaml-cpp 0.8.x
 - doctest (test framework)
+- Doxygen + LaTeX (documentation)
+- clang-format (style)
+
+## Documentation
+
+- HTML (GitHub Pages): https://ananth-narayan-iitm.github.io/saturnCFD/
+- Source: [`docs/`](docs/), built with Doxygen.
+- PDF: produced by the `docs` workflow on manual dispatch.
+- Math: Markdown uses `$...$` and `$$...$$`; the Doxygen filter converts them.
+
+```bash
+mkdir -p build
+doxygen docs/Doxyfile
+# HTML: build/doxygen/html/index.html
+# PDF:  make -C build/doxygen/latex
+```
+
+The GitHub Pages source must be set once to **GitHub Actions** in repository
+settings.
 
 ## Equations and validation
 
@@ -85,15 +107,15 @@ src/
     incompressible/
   simulation/   time loop, solver registry
 tools/
-  newSolver.cpp C++ scaffold, built as saturnNewSolver
+  saturnCFDSolver.cpp C++ scaffold, built as saturnCFDSolver
 apps/main.cpp
 ```
 
 ## Writing a solver
 
 ```bash
-saturnNewSolver burgers myBurgers
-# add: add_subdirectory(myBurgers)   to src/solvers/CMakeLists.txt
+saturnCFDSolver burgers myBurgers
+# add: addSolver(myBurgers)   to src/solvers/CMakeLists.txt
 # edit src/solvers/myBurgers/createFields.cpp and equations.cpp
 cmake -S . -B build
 cmake --build build -j

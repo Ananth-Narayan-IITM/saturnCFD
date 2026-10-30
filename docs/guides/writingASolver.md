@@ -10,17 +10,17 @@ PETSc and I/O layers stay untouched.
 ## 1. Copy a solver
 
 ```bash
-saturnNewSolver burgers myBurgers
+saturnCFDSolver burgers myBurgers
 ```
 
-`saturnNewSolver` is a C++ tool (`tools/newSolver.cpp`). It copies
+`saturnCFDSolver` is a C++ tool (`tools/saturnCFDSolver.cpp`). It copies
 `src/solvers/burgers` to `src/solvers/myBurgers`, renames the class and the
 registration string, and prints the exact CMake line to add:
 
 ```text
 Add this line to src/solvers/CMakeLists.txt:
 
-  add_subdirectory(myBurgers)
+  addSolver(myBurgers)
 ```
 
 You can also do it by hand:
@@ -28,7 +28,7 @@ You can also do it by hand:
 ```bash
 cp -r src/solvers/burgers src/solvers/myBurgers
 # edit the class/registration names
-# add add_subdirectory(myBurgers) to src/solvers/CMakeLists.txt
+# add addSolver(myBurgers) to src/solvers/CMakeLists.txt
 ```
 
 Then:
@@ -142,11 +142,13 @@ ABI predictable.
 Add exactly one line to `src/solvers/CMakeLists.txt`:
 
 ```cmake
-add_subdirectory(myBurgers)
+addSolver(myBurgers)
 ```
 
-The solver's own `CMakeLists.txt` defines its static library and calls the
-registration macro. No other core file changes.
+`addSolver(name)` is the project's CMake helper. It adds
+`src/solvers/<name>`, creates the static library and links it into
+`saturnCFD`. The solver's own `CMakeLists.txt` contains the source list and the
+registration. No other core file changes.
 
 ## 7. Solver API version
 
@@ -207,8 +209,8 @@ v1.0 model.
 
 To change Burgers to a forced Burgers equation:
 
-1. run `saturnNewSolver burgers forcedBurgers`;
-2. add `add_subdirectory(forcedBurgers)` to `src/solvers/CMakeLists.txt`;
+1. run `saturnCFDSolver burgers forcedBurgers`;
+2. add `addSolver(forcedBurgers)` to `src/solvers/CMakeLists.txt`;
 3. add an option in `ForcedBurgersOptions.cpp`:
    ```cpp
    schema.addDouble("flow.forcing", 0.0,

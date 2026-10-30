@@ -26,7 +26,7 @@ so it behaves the same on every machine.
    `src/solvers/CMakeLists.txt`, rebuild.
    ```bash
    cp -r src/solvers/burgers src/solvers/myBurgers
-   # add: add_subdirectory(myBurgers)
+   # add: addSolver(myBurgers)
    ```
    or let the C++ scaffold do the copy and print the line.
 3. **No `user/solvers/` discovery path in v1.0.** One solver tree, one CMake
@@ -43,7 +43,7 @@ so it behaves the same on every machine.
    generates the template from the user's code.
 7. **The solver API has a version constant.** A user solver compiled against an
    incompatible core fails at compile time with a clear message.
-8. **The scaffold is C++:** `tools/newSolver.cpp`, built as the `saturnNewSolver`
+8. **The scaffold is C++:** `tools/saturnCFDSolver.cpp`, built as the `saturnCFDSolver`
    executable. It copies the directory, renames the class/registration strings,
    and prints the exact CMake line to add. No Bash script.
 9. **OpenFOAM analogy:** copy `src/solvers/burgers` to
@@ -73,10 +73,10 @@ The split is deliberate: a user changing the physics edits `equations.cpp` and
 
 ```bash
 # 1. copy and rename (C++ tool; no shell script)
-saturnNewSolver burgers myBurgers
+saturnCFDSolver burgers myBurgers
 
 # 2. add the printed line to src/solvers/CMakeLists.txt:
-#    add_subdirectory(myBurgers)
+#    addSolver(myBurgers)
 
 # 3. edit the equations/options/state
 #    src/solvers/myBurgers/equations.cpp
@@ -122,7 +122,7 @@ The user does not edit `src/simulation`, `src/mesh`, `src/fv`, `src/linalg` or
 
 ## Validation / exit criteria
 
-- `saturnNewSolver burgers myBurgers` creates a buildable copy under
+- `saturnCFDSolver burgers myBurgers` creates a buildable copy under
   `src/solvers/myBurgers` and prints the CMake line.
 - After adding the line, `saturnCFD -listSolvers` lists `myBurgers`.
 - `-dumpConfig myBurgers` produces a template with the user's options.

@@ -62,7 +62,7 @@ are caught now.
 | length | L | m |
 | time | T | s |
 | mass | M | kg |
-| temperature | Θ | K |
+| temperature | $\Theta$ | K |
 | acceleration | L/T² | m/s² |
 | velocity | L/T | m/s |
 | pressure | M/(L T²) | Pa |
@@ -70,8 +70,8 @@ are caught now.
 | dynamic viscosity | M/(L T) | Pa·s |
 | kinematic viscosity | L²/T | m²/s |
 | thermal diffusivity | L²/T | m²/s |
-| thermal conductivity | M L/(T³ Θ) | W/(m·K) |
-| specific heat | L²/(T² Θ) | J/(kg·K) |
+| thermal conductivity | M L/(T³ $\Theta$) | W/(m·K) |
+| specific heat | L²/(T² $\Theta$) | J/(kg·K) |
 | body force | M/(L² T²) | N/m³ |
 
 `ConfigSchema` entries carry a `Dimension`:

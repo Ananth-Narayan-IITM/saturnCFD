@@ -56,7 +56,7 @@ orthogonal part and a correction:
 $$
 \nabla\phi_f\cdot\mathbf{n}_f
 = \frac{\phi_N-\phi_P}{d_{PN}}
-+ \underbrace{\left(\overline{\nabla\phi}_f - \frac{\phi_N-\phi_P}{d_{PN}}\mathbf{n}_f\right)\cdot\mathbf{n}_f}_{\text{correction}}.
++ \underbrace{\left(\overline{\nabla\phi}_f - \frac{\phi_N-\phi_P}{d_{PN}}\mathbf{n}_f\right)\cdot\mathbf{n}_f}_{\mathrm{correction}}.
 $$
 
 The correction is deferred or iterated; document which.

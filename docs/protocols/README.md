@@ -21,7 +21,7 @@ flow without being rewritten for each one.
 | P6b | user-editable solver authoring | `../guides/writingASolver.md` | accepted |
 | P7 | linear algebra (PETSc) | `linearAlgebra.md` | accepted |
 | P8 | I/O: VTU, CSV, checkpoint, manifest | (to write) | proposed |
-| P9 | testing: unit, MMS, regression, parity | `testing.md` | proposed |
+| P9 | testing: unit, MMS, regression, parity | `testing.md` | accepted |
 | P10 | physics: Burgers, heat, Stokes, NS | `docs/theory/` | in progress |
 
 ## Rules for every protocol

@@ -54,8 +54,8 @@ A user copies a built-in solver, adds one line to
 and rebuilds:
 
 ```bash
-saturnNewSolver burgers myBurgers
-# add: add_subdirectory(myBurgers)   to src/solvers/CMakeLists.txt
+saturnCFDSolver burgers myBurgers
+# add: addSolver(myBurgers)   to src/solvers/CMakeLists.txt
 cmake -S . -B build
 cmake --build build -j
 ```

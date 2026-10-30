@@ -11,10 +11,12 @@ passes on CPU.
 
 **Deliverables**
 
-- ADRs `0001`–`0012` (see `docs/decisions/`).
+- ADRs `0001`–`0013` (see `docs/decisions/`).
 - Protocol pages for CLI, units, mesh, finite volume, configuration, linear
   algebra, solver lifecycle, testing and documentation.
-- Dependency decisions: Kokkos, PETSc, yaml-cpp 0.8, doctest.
+- Dependency decisions: Kokkos, PETSc, yaml-cpp 0.8, doctest, Doxygen/LaTeX.
+- Folder layout (`docs/plan/repositoryLayout.md`) and documentation pipeline
+  (`docs/plan/documentationPipeline.md`).
 - Theory pages with equations, exact solutions and validation plans.
 
 **Exit criterion**
@@ -64,11 +66,17 @@ passes on CPU.
 
 6. **Solver authoring**
    - `src/solvers/<name>/` layout; a user copy adds one
-     `add_subdirectory(<name>)` line to `src/solvers/CMakeLists.txt`.
+     `addSolver(<name>)` line to `src/solvers/CMakeLists.txt`.
    - `SATURN_REGISTER_SOLVER` and the solver API version.
-   - `tools/newSolver.cpp`, built as `saturnNewSolver` (C++, no Bash).
+   - `tools/saturnCFDSolver.cpp`, built as `saturnCFDSolver` (C++, no Bash).
    - A build test that copies `burgers` to `src/solvers/myBurgers`, adds the
      line, builds, lists it and generates its template.
+
+7. **Documentation and formatting**
+   - `docs/Doxyfile` HTML + LaTeX/PDF.
+   - `tools/doxygenMathFilter.py` for `$...$` -> `\f$...\f$`.
+   - `docs.yml` deploys HTML to GitHub Pages; PDF is a workflow artifact.
+   - `.clang-format` and the `format` CMake target; `format.yml` CI check.
 
 **Exit criterion**
 
@@ -79,6 +87,8 @@ passes on CPU.
 - `-dumpConfig -writeTemplate` produces a template that passes `-checkConfig`.
 - A copied `burgers` solver builds as `src/solvers/myBurgers` after one CMake
   line and appears in `-listSolvers`.
+- `doxygen docs/Doxyfile` builds HTML; the LaTeX `make` produces `refman.pdf`.
+- The Pages workflow deploys; `clang-format --dry-run --Werror` passes.
 - A 1D Poisson problem and a manufactured diffusion problem solve through
   PETSc to the expected order.
 

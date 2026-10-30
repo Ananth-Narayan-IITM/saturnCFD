@@ -32,7 +32,7 @@ nonlinear convection or time accuracy.
 ## 2. Boundary conditions
 
 - no-slip walls: $\mathbf{u}=0$;
-- moving wall: $\mathbf{u}=\mathbf{U}_{\text{wall}}$;
+- moving wall: $\mathbf{u}=\mathbf{U}_{\mathrm{wall}}$;
 - inlet: fixed velocity profile;
 - outlet: fixed pressure or zero-gradient velocity;
 - periodic patches: mapped neighbours.
@@ -86,7 +86,7 @@ $$
 Lower plate at rest, upper plate moving at $U$:
 
 $$
-u(y) = U\frac{y}{H},\qquad v=0,\qquad p=\text{constant}.
+u(y) = U\frac{y}{H},\qquad v=0,\qquad p=\mathrm{constant}.
 $$
 
 ### Lid-driven cavity at $Re\to0$

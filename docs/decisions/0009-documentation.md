@@ -62,7 +62,7 @@ not considered complete.
 - Doxygen builds without warnings for public API.
 - Every theory page has at least one citation.
 - Every solver has a validation page with a table of results.
-- `clang-format` and `clang-tidy` pass.
+- `clang-format` passes; `clang-tidy` is optional in v1.0.
 
 ## References
 

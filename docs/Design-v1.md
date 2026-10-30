@@ -5,7 +5,9 @@
 This page is the short version. The binding records are in
 [`docs/decisions/`](decisions/README.md); the equations are in
 [`docs/theory/`](theory/README.md); the implementation sequence is in
-[`docs/plan/v1-roadmap.md`](plan/v1-roadmap.md).
+[`docs/plan/v1-roadmap.md`](plan/v1-roadmap.md). The folder layout is in
+[`docs/plan/repositoryLayout.md`](plan/repositoryLayout.md) and the docs build
+in [`docs/plan/documentationPipeline.md`](plan/documentationPipeline.md).
 
 ---
 
@@ -95,7 +97,7 @@ src/
     incompressible/
   simulation/   time loop, solver registry, factory
 tools/
-  newSolver.cpp C++ scaffold, built as saturnNewSolver
+  saturnCFDSolver.cpp C++ scaffold, built as saturnCFDSolver
 apps/main.cpp
 ```
 
@@ -114,8 +116,8 @@ finite-volume mesh with cell/face fields, not a patch-based AMR container.
 
 A solver is a self-contained directory with its lifecycle, options, state,
 equations and diagnostics. Users copy a built-in under `src/solvers/<name>`,
-add one `add_subdirectory(<name>)` line to `src/solvers/CMakeLists.txt`, edit
-the equations and rebuild. `saturnNewSolver` (C++) performs the copy and prints
+add one `addSolver(<name>)` line to `src/solvers/CMakeLists.txt`, edit
+the equations and rebuild. `saturnCFDSolver` (C++) performs the copy and prints
 the line. User solvers are compiled into `saturnCFD`; there is no runtime plugin
 in v1.0. See [`guides/writingASolver.md`](guides/writingASolver.md) and ADR
 `0011`.
@@ -129,9 +131,19 @@ in v1.0. See [`guides/writingASolver.md`](guides/writingASolver.md) and ADR
 - non-SI unit systems (v1.0 accepts SI only; other systems are rejected);
 - a home-grown Krylov solver.
 
+## 6a. Documentation and formatting
+
+- Doxygen builds HTML (`build/doxygen/html`) and PDF
+  (`build/doxygen/latex/refman.pdf`).
+- Markdown uses `$...$` and `$$...$$`; `tools/doxygenMathFilter.py` adapts them
+  for Doxygen.
+- `.github/workflows/docs.yml` deploys the HTML to GitHub Pages.
+- `.clang-format` is mandatory; `format` target and `format.yml` CI check.
+
 ## 7. Next actions
 
-1. yaml-cpp (ADR `0006`) and doctest (ADR `0012`) are accepted.
+1. yaml-cpp (ADR `0006`), doctest (ADR `0012`) and the docs pipeline
+   (ADR `0013`) are accepted.
 2. Write the remaining protocol specs P1 (core) and P8 (I/O).
 3. Implement `checkMesh`, the yaml-cpp schema, the SI-only validator, `-help`
    and the user-solver scaffold first, because every solver depends on them.

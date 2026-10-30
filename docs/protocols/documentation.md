@@ -14,7 +14,8 @@
 - Constants: `k` + `PascalCase`.
 - Enumerations: `enum class` with `PascalCase` enumerators.
 - Headers: `#pragma once`; file name matches the primary type.
-- Formatting: `.clang-format`; static checks with `clang-tidy`.
+- Formatting: `.clang-format`; `clang-tidy` is configured but optional in
+  v1.0.
 
 ## API documentation
 
@@ -42,6 +43,19 @@ Every public class and function has a Doxygen comment:
   them.
 - Doxygen comments: `\f$...\f$` inline and `\f[...\f]` display.
 - Every page with equations must be checked in a Markdown preview.
+
+## Build and hosting
+
+- `docs/Doxyfile` builds HTML and LaTeX.
+- HTML uses MathJax; PDF uses Doxygen's LaTeX output.
+- `tools/doxygenMathFilter.py` converts Markdown `$...$` / `$$...$$` to
+  Doxygen `\f$...\f$` / `\f[...\f]` and `[@key]` to `\cite{key}`.
+- `.github/workflows/docs.yml` deploys `build/doxygen/html` to GitHub Pages.
+- PDF is a `workflow_dispatch` artifact.
+- `.clang-format` is the single style file; `format.yml` is a blocking check.
+
+See [`../plan/documentationPipeline.md`](../plan/documentationPipeline.md) and
+ADR `0013`.
 
 ## Theory pages
 

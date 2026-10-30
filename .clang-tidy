@@ -1,0 +1,8 @@
+Checks: >
+  -*,
+  bugprone-*,
+  performance-*,
+  readability-*
+WarningsAsErrors: ''
+HeaderFilterRegex: '^(src|apps|tests|tools)/.*'
+FormatStyle: file

@@ -1,0 +1,61 @@
+# Doxygen configuration for saturnCFD v1.
+# Build from the repository root:
+#   mkdir -p build && doxygen docs/Doxyfile
+# HTML: build/doxygen/html/index.html
+# PDF:  build/doxygen/latex/refman.pdf
+
+PROJECT_NAME           = "saturnCFD"
+PROJECT_NUMBER         = "v1"
+PROJECT_BRIEF          = "Structured finite-volume CFD with YAML, PETSc and Kokkos"
+OUTPUT_DIRECTORY       = build/doxygen
+CREATE_SUBDIRS         = NO
+ALLOW_UNICODE_NAMES    = YES
+OUTPUT_LANGUAGE        = English
+
+# ---------------------------------------------------------------- input ----
+INPUT                  = README.md docs
+FILE_PATTERNS          = *.md *.hpp *.cpp
+RECURSIVE              = YES
+EXCLUDE                = external build .git
+EXCLUDE_PATTERNS       = */external/* */build/* */.git/*
+USE_MDFILE_AS_MAINPAGE = docs/index.md
+MARKDOWN_SUPPORT       = YES
+FILTER_PATTERNS        = *.md=./tools/doxygenMathFilter.py
+
+# ------------------------------------------------------------- extraction --
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION    = YES
+
+# ------------------------------------------------------------------ HTML ---
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+HTML_COLORSTYLE        = LIGHT
+GENERATE_TREEVIEW      = YES
+SEARCHENGINE           = YES
+USE_MATHJAX            = YES
+
+# ------------------------------------------------------------------ LaTeX --
+GENERATE_LATEX         = YES
+LATEX_OUTPUT           = latex
+USE_PDFLATEX           = YES
+PDF_HYPERLINKS         = YES
+LATEX_BATCHMODE        = YES
+COMPACT_LATEX          = NO
+
+# -------------------------------------------------------------- citations --
+CITE_BIB_FILES         = docs/references.bib
+
+# ----------------------------------------------------------------- graphs --
+HAVE_DOT               = NO
+
+# --------------------------------------------------------------- warnings --
+QUIET                  = NO
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = NO
+WARN_IF_DOC_ERROR      = YES
+WARN_AS_ERROR          = NO

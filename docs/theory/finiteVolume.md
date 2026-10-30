@@ -84,9 +84,9 @@ The face-normal gradient is split into an orthogonal and a correction part:
 
 $$
 \nabla\phi_f\cdot\mathbf{S}_f
-= \underbrace{\Gamma_f\frac{\phi_N-\phi_P}{d_{PN}}A_f}_{\text{orthogonal}}
+= \underbrace{\Gamma_f\frac{\phi_N-\phi_P}{d_{PN}}A_f}_{\mathrm{orthogonal}}
 + \underbrace{\Gamma_f\left(\overline{\nabla\phi}_f
-- \frac{\phi_N-\phi_P}{d_{PN}}\mathbf{n}_f\right)\cdot\mathbf{S}_f}_{\text{correction}}.
+- \frac{\phi_N-\phi_P}{d_{PN}}\mathbf{n}_f\right)\cdot\mathbf{S}_f}_{\mathrm{correction}}.
 $$
 
 The correction is either deferred to the next iteration or included in the
@@ -101,10 +101,12 @@ from the upwind side. First-order upwind:
 
 $$
 \phi_f =
-\begin{cases}
+\left\{
+\begin{array}{ll}
 \phi_P, & \dot m_f \ge 0,\\
 \phi_N, & \dot m_f < 0.
-\end{cases}
+\end{array}
+\right.
 $$
 
 Higher order uses a TVD reconstruction:

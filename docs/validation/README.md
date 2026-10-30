@@ -39,9 +39,9 @@ Every page states:
 For a scalar field $\phi$:
 
 $$
-L^1 = \frac{1}{N}\sum_P |\phi_P-\phi_P^{\text{ref}}|,\qquad
-L^2 = \sqrt{\frac{1}{N}\sum_P (\phi_P-\phi_P^{\text{ref}})^2},\qquad
-L^\infty = \max_P |\phi_P-\phi_P^{\text{ref}}|.
+L^1 = \frac{1}{N}\sum_P |\phi_P-\phi_P^{\mathrm{ref}}|,\qquad
+L^2 = \sqrt{\frac{1}{N}\sum_P (\phi_P-\phi_P^{\mathrm{ref}})^2},\qquad
+L^\infty = \max_P |\phi_P-\phi_P^{\mathrm{ref}}|.
 $$
 
 For a vector field, report each component and the magnitude.
@@ -51,7 +51,7 @@ For a vector field, report each component and the magnitude.
 For a refinement ratio $r$,
 
 $$
-p \approx \frac{\log(e_{\text{coarse}}/e_{\text{fine}})}{\log r}.
+p \approx \frac{\log(e_{\mathrm{coarse}}/e_{\mathrm{fine}})}{\log r}.
 $$
 
 Report the order for each norm and state whether the asymptotic range was

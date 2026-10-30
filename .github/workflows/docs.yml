@@ -1,0 +1,76 @@
+name: docs
+
+on:
+  push:
+    branches: [v1, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  html:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Doxygen
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen graphviz
+
+      - name: Build HTML
+        run: |
+          mkdir -p build
+          doxygen docs/Doxyfile
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/doxygen/html
+
+  deploy:
+    needs: html
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  pdf:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Doxygen and LaTeX
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            doxygen graphviz \
+            texlive-latex-base texlive-latex-recommended \
+            texlive-latex-extra texlive-fonts-recommended latexmk
+
+      - name: Build PDF
+        run: |
+          mkdir -p build
+          doxygen docs/Doxyfile
+          make -C build/doxygen/latex
+
+      - name: Upload PDF
+        uses: actions/upload-artifact@v4
+        with:
+          name: saturnCFD-docs-pdf
+          path: build/doxygen/latex/refman.pdf

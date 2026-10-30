@@ -43,6 +43,7 @@ decision is visible, argued, dated, and can be superseded without archaeology.
 | `0010` | CLI: single-dash camelCase options, `-help`, mesh VTK export | accepted |
 | `0011` | User-editable solvers, OpenFOAM-style, compiled into the binary | accepted |
 | `0012` | Test framework: doctest | accepted |
+| `0013` | Doxygen HTML+PDF, GitHub Pages, clang-format | accepted |
 
 yaml-cpp is accepted as the YAML parser (ADR `0006`) and doctest as the test
 framework (ADR `0012`). The remaining open item is the exact GPU/MPI milestone;
