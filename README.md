@@ -57,9 +57,17 @@ saturnCFD -checkMesh tests/data/meshes/box2x2x2.msh -writeVTK results/mesh
 saturnCFD -dumpConfig common -writeTemplate common
 saturnCFD -checkConfig common.yaml
 saturnCFD -help checkMesh
+saturnCFD -help build
 saturnCFD -help mpi
+saturnCFD -help gpu
+saturnCFD -help clean
 saturnCFD -help test
 ```
+
+`CMAKE_BUILD_TYPE=Release` is an optimised, no-debug-symbols build. The
+compilation database is `build/compile_commands.json` (with a
+`build/compileCommands.json` copy). Clean with
+`cmake --build build --target clean` or by removing the build directory.
 
 Enable completion once per shell:
 

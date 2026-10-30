@@ -8,6 +8,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# CMake and clangd use compile_commands.json. Keep a camelCase copy as well.
+if(CMAKE_EXPORT_COMPILE_COMMANDS)
+  add_custom_target(compileCommands ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "${CMAKE_BINARY_DIR}/compile_commands.json"
+      "${CMAKE_BINARY_DIR}/compileCommands.json"
+    COMMENT "Copying compile_commands.json to compileCommands.json"
+    VERBATIM)
+endif()
+
 set(SATURN_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE INTERNAL "")
 set(SATURN_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE INTERNAL "")
 

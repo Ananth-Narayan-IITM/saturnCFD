@@ -96,6 +96,9 @@ void printGeneralHelp() {
          "  saturnCFD -completion bash\n"
          "  saturnCFD -help checkMesh\n"
          "  saturnCFD -help mpi\n"
+         "  saturnCFD -help build\n"
+         "  saturnCFD -help gpu\n"
+         "  saturnCFD -help clean\n"
          "  saturnCFD -help test\n";
 }
 
@@ -132,7 +135,7 @@ _saturnCFD_complete() {
   # Complete the value of the option immediately before the cursor.
   case "${prev}" in
     -help)
-      COMPREPLY=( $(compgen -W "checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion mpi build test" -- "${cur}") )
+      COMPREPLY=( $(compgen -W "checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion mpi build gpu clean test" -- "${cur}") )
       ;;
     -completion)
       COMPREPLY=( $(compgen -W "bash zsh fish" -- "${cur}") )
@@ -157,7 +160,7 @@ _saturnCFD() {
   local -a opts
   opts=(-help -version -listSolvers -checkMesh -report -writeVTK -checkConfig -dumpConfig -writeTemplate -mesh -threads -completion)
   _arguments \
-    '-help[show help]::topic:(checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion mpi build test)' \
+    '-help[show help]::topic:(checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion mpi build gpu clean test)' \
     '-version[show version]' \
     '-listSolvers[list solvers]' \
     '-checkMesh[validate a Gmsh mesh]:mesh:_files' \
@@ -175,7 +178,7 @@ _saturnCFD "$@"
   } else if (shell == "fish") {
     std::cout << R"FISH(# saturnCFD fish completion
 # install: saturnCFD -completion fish | source
-complete -c saturnCFD -l help -r -a 'checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion mpi build test' -d 'Show help'
+complete -c saturnCFD -l help -r -a 'checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion mpi build gpu clean test' -d 'Show help'
 complete -c saturnCFD -l version -d 'Show version'
 complete -c saturnCFD -l listSolvers -d 'List registered solvers'
 complete -c saturnCFD -l checkMesh -r -F -d 'Validate a Gmsh mesh'
@@ -312,14 +315,59 @@ void printTopic(const std::string& topic) {
   } else if (topic == "build") {
     std::cout
         << "build\n\n"
+           "Current serial/MPI build:\n\n"
            "  cmake --preset default\n"
            "  cmake --build --preset default -j\n"
            "  cmake --install build --prefix \"$HOME/.local\"\n\n"
+           "CMake configure and build are separate steps. The first command\n"
+           "writes build/; the second compiles it.\n\n"
+           "  CMAKE_BUILD_TYPE=Release  optimised, no debug symbols\n"
+           "  CMAKE_BUILD_TYPE=Debug    unoptimised, debug symbols\n"
+           "  CMAKE_BUILD_TYPE=RelWithDebInfo  optimised with symbols\n\n"
            "SATURN_ENABLE_MPI=ON (default) links MPI, defines SATURN_USE_MPI\n"
            "and builds the MPI tests. It does not yet partition the solver.\n"
            "  cmake -S . -B build -DSATURN_ENABLE_MPI=OFF   # serial only\n\n"
-           "Other options: SATURN_BUILD_TESTS, SATURN_BUILD_DOCS,\n"
-           "SATURN_MPI_PREFLAGS. Kokkos/PETSc are the next layers.\n";
+           "Planned separate CPU/GPU builds (with the Kokkos FVM layer):\n\n"
+           "  cmake --preset cpu        # build-cpu, OpenMP\n"
+           "  cmake --build --preset cpu -j\n"
+           "  cmake --preset gpu        # build-gpu, CUDA\n"
+           "  cmake --build --preset gpu -j\n\n"
+           "They are separate build directories because the compiler and\n"
+           "backend are fixed at configure time.\n\n"
+           "Clean:\n"
+           "  cmake --build build --target clean   # remove compiled files\n"
+           "  rm -rf build                         # remove the build tree\n\n"
+           "Compilation database:\n"
+           "  build/compile_commands.json          # CMake/clangd standard\n"
+           "  build/compileCommands.json           # camelCase copy\n";
+  } else if (topic == "gpu") {
+    std::cout
+        << "gpu\n\n"
+           "GPU execution is selected at build/runtime, not in case.yaml.\n"
+           "The case file describes physics; it stays CPU/GPU independent.\n\n"
+           "Planned build:\n\n"
+           "  cmake --preset gpu        # SATURN_BACKEND=cuda\n"
+           "  cmake --build --preset gpu -j\n\n"
+           "Runtime, one rank per GPU:\n\n"
+           "  mpirun -np 1 saturnCFD case.yaml    # one GPU\n"
+           "  mpirun -np 4 saturnCFD case.yaml    # four GPUs, one rank "
+           "each\n\n"
+           "mpirun is not CPU-only: it launches MPI ranks. Each rank's\n"
+           "Kokkos backend decides whether that rank uses a CPU or a GPU.\n"
+           "Rank-to-device mapping is by local rank; a rank beyond the\n"
+           "visible device count clamps to device 0 and warns.\n\n"
+           "Do not benchmark MPI+GPU scaling on one GPU. One GPU is enough\n"
+           "for correctness and single-GPU performance; multi-GPU scaling is\n"
+           "a cluster measurement. Kokkos is not wired into this slice yet.\n";
+  } else if (topic == "clean") {
+    std::cout
+        << "clean\n\n"
+           "  cmake --build build --target clean   # objects and binaries\n"
+           "  rm -rf build                         # whole build tree\n"
+           "  rm -rf build-cpu build-gpu           # both backend trees\n\n"
+           "There is no wclean; the CMake clean target is the equivalent for\n"
+           "one build directory. Deleting the build directory is the full\n"
+           "clean and forces a fresh configure.\n";
   } else if (topic == "test") {
     std::cout << "test\n\n"
                  "  ctest --preset default       all tests\n"
@@ -334,7 +382,7 @@ void printTopic(const std::string& topic) {
     throw UsageError("unknown help topic '" + topic +
                      "'; topics: checkMesh, report, writeVTK, checkConfig, "
                      "dumpConfig, writeTemplate, mesh, units, config, solvers, "
-                     "completion, mpi, build, test");
+                     "completion, mpi, build, gpu, clean, test");
   }
 }
 

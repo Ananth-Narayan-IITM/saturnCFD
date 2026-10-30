@@ -61,6 +61,8 @@ saturnCFD -help mesh
 saturnCFD -help completion
 saturnCFD -help mpi
 saturnCFD -help build
+saturnCFD -help gpu
+saturnCFD -help clean
 saturnCFD -help test
 
 # shell completion
@@ -270,7 +272,9 @@ Non-SI input is a validation error. There is no conversion in v1.0.
 | `solvers` | available solvers and their state variables |
 | `completion` | bash, zsh and fish install lines |
 | `mpi` | MPI test/run commands, one-rank-per-GPU policy |
-| `build` | configure/build/install and `SATURN_ENABLE_MPI` |
+| `build` | configure/build/install, `CMAKE_BUILD_TYPE`, clean, compile DB |
+| `gpu` | GPU build/runtime, one rank per GPU, no hardware in YAML |
+| `clean` | CMake clean target vs removing the build tree |
 | `test` | ctest presets and labels |
 
 Each detailed page states the argument, the preconditions, the files read and

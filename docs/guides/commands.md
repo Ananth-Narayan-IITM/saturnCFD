@@ -31,6 +31,13 @@ SATURN_BUILD_DOCS=ON      enable docHtml/docPdf targets
 CMAKE_BUILD_TYPE=Release  optimised build
 ```
 
+`CMAKE_BUILD_TYPE=Release` means an optimised build (`-O3 -DNDEBUG` for
+GCC/Clang) with no debug symbols. `Debug` is unoptimised with symbols;
+`RelWithDebInfo` is optimised with symbols.
+
+Configure and build are two separate commands: `cmake --preset default`
+writes `build/`, and `cmake --build --preset default -j` compiles it.
+
 `cmake --build --preset default -j` compiles:
 
 ```text
@@ -49,6 +56,38 @@ To build serial-only:
 cmake -S . -B build-serial -DSATURN_ENABLE_MPI=OFF -DCMAKE_BUILD_TYPE=Release
 cmake --build build-serial -j
 ```
+
+Compilation database:
+
+```text
+build/compile_commands.json    # CMake/clangd standard
+build/compileCommands.json     # camelCase copy
+```
+
+CPU/GPU builds are separate build directories because CMake fixes the compiler
+and backend at configure time. Once the Kokkos FVM layer lands, the intended
+commands are:
+
+```bash
+cmake --preset cpu        # build-cpu, OpenMP
+cmake --build --preset cpu -j
+cmake --preset gpu        # build-gpu, CUDA
+cmake --build --preset gpu -j
+```
+
+They do not coexist in one build directory.
+
+## Clean
+
+```bash
+cmake --build build --target clean   # remove compiled objects and binaries
+rm -rf build                         # remove the whole build tree
+rm -rf build-cpu build-gpu           # both backend trees
+```
+
+There is no `wclean`; `cmake --build <dir> --target clean` is the per-build
+equivalent. Deleting the directory is the full clean and forces a fresh
+configure.
 
 ## Test
 
