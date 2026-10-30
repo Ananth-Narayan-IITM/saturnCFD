@@ -72,7 +72,7 @@ Then Phase 2: Burgers physics and the `traveling64` analytic regression.
 - `tests/fv` passes on a structured hex mesh.
 - A manufactured Poisson solve shows the expected order.
 - `saturnCFD -listSolvers` lists `burgers`.
-- `saturnCFD -dumpConfig burgers -writeTemplate burgers.yaml` produces a
+- `saturnCFD -dumpConfig burgers -writeTemplate burgers` produces a
   template that passes `-checkConfig`.
 - `saturnCFDSolver burgers myBurgers` creates a buildable copy and prints
   `addSolver(myBurgers)`.

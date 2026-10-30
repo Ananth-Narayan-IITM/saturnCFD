@@ -76,7 +76,8 @@ void printGeneralHelp() {
          "  -report <path>       JSON report path; .json is appended if "
          "absent\n"
          "  -writeVTK <prefix>   also write per-patch .vtp and a .pvd\n"
-         "  -writeTemplate <f>   write the template; use with -dumpConfig\n"
+         "  -writeTemplate <f>   write the template; .yaml is appended if "
+         "absent\n"
          "  -mesh <file>         mesh patch names for -dumpConfig\n"
          "  -threads <N>         reserved for Kokkos thread count\n"
          "  -completion <shell>  print shell completion (bash|zsh|fish)\n\n"
@@ -242,9 +243,10 @@ void printTopic(const std::string& topic) {
            "  -writeTemplate <f>    write to a file\n";
   } else if (topic == "writeTemplate") {
     std::cout
-        << "saturnCFD -writeTemplate <file.yaml>\n\n"
+        << "saturnCFD -writeTemplate <file>\n\n"
            "Write the template produced by -dumpConfig to a file. Valid only\n"
-           "with -dumpConfig. Parent directories are created.\n";
+           "with -dumpConfig. If the argument has no extension, .yaml is\n"
+           "appended. Parent directories are created.\n";
   } else if (topic == "mesh") {
     std::cout
         << "mesh\n\n"
@@ -382,10 +384,11 @@ Cli parseCli(int argc, char** argv) {
   return cli;
 }
 
-std::string ensureJsonExtension(const std::string& path) {
-  if (path.size() >= 5 && path.compare(path.size() - 5, 5, ".json") == 0)
+std::string ensureExtension(const std::string& path,
+                            const std::string& extension) {
+  if (std::filesystem::path(path).has_extension())
     return path;
-  return path + ".json";
+  return path + extension;
 }
 
 std::string stripJsonExtension(const std::string& path) {
@@ -435,7 +438,7 @@ int runCheckMesh(const Cli& cli) {
 
   const std::string base = meshOutputBase(cli);
   const std::string jsonPath = !cli.reportFile.empty()
-                                   ? ensureJsonExtension(cli.reportFile)
+                                   ? ensureExtension(cli.reportFile, ".json")
                                    : base + ".json";
   writeTextFile(jsonPath, report.toJson());
   writeMeshVtk(mesh, base, !cli.writeVTKPrefix.empty());
@@ -470,7 +473,7 @@ int runCheckConfig(const Cli& cli) {
        << "  \"status\": \"PASS\",\n"
        << "  \"solver\": \"" << cfg.getString("solver", "") << "\",\n"
        << "  \"units\": \"" << unitSystemName(cfg.unitSystem()) << "\"\n}\n";
-    writeTextFile(ensureJsonExtension(cli.reportFile), os.str());
+    writeTextFile(ensureExtension(cli.reportFile, ".json"), os.str());
   }
   return 0;
 }
@@ -490,7 +493,7 @@ int runDumpConfig(const Cli& cli) {
   }
   const std::string text = os.str();
   if (!cli.writeTemplateFile.empty())
-    writeTextFile(cli.writeTemplateFile, text);
+    writeTextFile(ensureExtension(cli.writeTemplateFile, ".yaml"), text);
   else
     std::cout << text;
   return 0;

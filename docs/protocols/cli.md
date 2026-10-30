@@ -24,7 +24,7 @@ subcommands: everything is `saturnCFD -option ...`.
 | `-writeVTK` | `prefix` | also write per-patch `.vtp` and `.pvd`; requires `-checkMesh` |
 | `-checkConfig` | `case.yaml` | validate the case and exit |
 | `-dumpConfig` | `solver\|common` | print the generated YAML template |
-| `-writeTemplate` | `file.yaml` | write the generated template; requires `-dumpConfig` |
+| `-writeTemplate` | `file` | write the template; `.yaml` is appended if absent |
 | `-mesh` | `mesh.msh` | give `-dumpConfig` the actual patch names |
 | `-threads` | `N` | override the Kokkos thread count |
 | `-completion` | `bash\|zsh\|fish` | print a shell completion script |
@@ -49,7 +49,7 @@ saturnCFD -checkConfig examples/burgers/traveling.yaml
 
 # print or write the common template (solver templates arrive in Phase 2)
 saturnCFD -dumpConfig common
-saturnCFD -dumpConfig common -writeTemplate common.yaml
+saturnCFD -dumpConfig common -writeTemplate common
 
 # help
 saturnCFD -help
@@ -68,11 +68,13 @@ source <(saturnCFD -completion bash)
 
 `-dumpConfig <solver|common>` prints a commented YAML template generated from
 the registered options. `-writeTemplate <file>` writes the same content to a
-file. There is no hand-maintained template file. Phase 1 registers `common`;
-solver templates arrive with the solvers.
+file; if the argument has no extension, `.yaml` is appended. There is no
+hand-maintained template file. Phase 1 registers `common`; solver templates
+arrive with the solvers.
 
 ```bash
-saturnCFD -dumpConfig common -writeTemplate common.yaml
+saturnCFD -dumpConfig common -writeTemplate common
+# writes common.yaml
 ```
 
 The template contains:
@@ -178,7 +180,7 @@ examples:
   saturnCFD examples/burgers/traveling.yaml
   saturnCFD -checkMesh meshes/channel.msh -report results/channel
   saturnCFD -checkMesh meshes/channel.msh -writeVTK results/channel
-  saturnCFD -dumpConfig common -writeTemplate common.yaml
+  saturnCFD -dumpConfig common -writeTemplate common
   source <(saturnCFD -completion bash)
 ```
 
@@ -215,7 +217,7 @@ example:
 ### Example: `-help dumpConfig`
 
 ```text
-saturnCFD -dumpConfig <solver|common> [-mesh <mesh.msh>] [-writeTemplate <file.yaml>]
+saturnCFD -dumpConfig <solver|common> [-mesh <mesh.msh>] [-writeTemplate <file>]
 
 Print the YAML template generated from the registered options. In Phase 1
 only 'common' is available; solver templates arrive with the solvers.
@@ -224,8 +226,8 @@ With -writeTemplate, the same content is written to a file.
 
 example:
   saturnCFD -dumpConfig common
-  saturnCFD -dumpConfig common -writeTemplate common.yaml
-  saturnCFD -dumpConfig common -mesh meshes/channel.msh -writeTemplate channel.yaml
+  saturnCFD -dumpConfig common -writeTemplate common
+  saturnCFD -dumpConfig common -mesh meshes/channel.msh -writeTemplate channel
 ```
 
 ### Example: `-help units`
@@ -299,4 +301,5 @@ Invalid combinations:
 - invalid combinations return 2;
 - `-checkMesh` on good/bad meshes returns 0/1;
 - `-writeVTK` writes a `.pvd` that references the volume and all patches;
-- `-dumpConfig -writeTemplate` writes a file that passes `-checkConfig`.
+- `-dumpConfig -writeTemplate results/file` writes `results/file.yaml`, which
+  passes `-checkConfig`.

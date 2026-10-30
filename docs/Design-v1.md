@@ -71,7 +71,7 @@ saturnCFD -checkMesh mesh.msh -report results/mesh
 saturnCFD -checkMesh mesh.msh -writeVTK results/mesh
 saturnCFD -checkConfig case.yaml
 saturnCFD -dumpConfig common
-saturnCFD -dumpConfig common -writeTemplate common.yaml
+saturnCFD -dumpConfig common -writeTemplate common
 saturnCFD -help
 saturnCFD -help checkMesh
 saturnCFD -completion bash

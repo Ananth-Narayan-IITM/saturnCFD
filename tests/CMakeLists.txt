@@ -52,9 +52,14 @@ add_test(NAME cli_completion
   COMMAND ${CMAKE_COMMAND}
           -DCLI=$<TARGET_FILE:saturnCFD>
           -P ${CMAKE_CURRENT_SOURCE_DIR}/checkCompletion.cmake)
+add_test(NAME cli_templateExtension
+  COMMAND ${CMAKE_COMMAND}
+          -DCLI=$<TARGET_FILE:saturnCFD>
+          -DOUT=${CMAKE_CURRENT_BINARY_DIR}/cli_template/template
+          -P ${CMAKE_CURRENT_SOURCE_DIR}/checkTemplate.cmake)
 
 set_tests_properties(
   cli_help cli_version cli_listSolvers cli_dumpConfig
   cli_checkConfig_si cli_checkConfig_cgs cli_checkMesh_box cli_checkMesh_tet
-  cli_defaultOutputs cli_writeVTK cli_completion
+  cli_defaultOutputs cli_writeVTK cli_completion cli_templateExtension
   PROPERTIES LABELS "cli;regression")

@@ -54,9 +54,12 @@ saturnCFD -listSolvers
 saturnCFD -checkMesh tests/data/meshes/box2x2x2.msh
 saturnCFD -checkMesh tests/data/meshes/box2x2x2.msh -report results/mesh
 saturnCFD -checkMesh tests/data/meshes/box2x2x2.msh -writeVTK results/mesh
-saturnCFD -dumpConfig common -writeTemplate common.yaml
+saturnCFD -dumpConfig common -writeTemplate common
 saturnCFD -checkConfig common.yaml
 ```
+
+`-writeTemplate common` writes `common.yaml`; `.yaml` is appended when the
+argument has no extension.
 
 Default `-checkMesh` output:
 

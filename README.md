@@ -45,7 +45,7 @@ saturnCFD -listSolvers
 saturnCFD -checkMesh tests/data/meshes/box2x2x2.msh
 saturnCFD -checkMesh tests/data/meshes/box2x2x2.msh -report results/mesh
 saturnCFD -checkMesh tests/data/meshes/box2x2x2.msh -writeVTK results/mesh
-saturnCFD -dumpConfig common -writeTemplate common.yaml
+saturnCFD -dumpConfig common -writeTemplate common
 saturnCFD -checkConfig common.yaml
 saturnCFD -help checkMesh
 ```
@@ -149,7 +149,7 @@ saturnCFD -checkMesh mesh.msh -report results/mesh
 saturnCFD -checkMesh mesh.msh -writeVTK results/mesh
 saturnCFD -checkConfig case.yaml
 saturnCFD -dumpConfig common
-saturnCFD -dumpConfig common -writeTemplate common.yaml
+saturnCFD -dumpConfig common -writeTemplate common
 saturnCFD -help
 saturnCFD -help checkMesh
 saturnCFD -completion bash
