@@ -30,8 +30,16 @@ jobs:
           mkdir -p build
           doxygen docs/Doxyfile
 
+      - name: Upload HTML artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: saturnCFD-docs-html
+          path: build/doxygen/html
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

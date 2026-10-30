@@ -82,7 +82,9 @@ https://ananth-narayan-iitm.github.io/saturnCFD/
 ```
 
 Manual repository setting (once): **Settings -> Pages -> Build and deployment ->
-Source: GitHub Actions**.
+Source: GitHub Actions**. If the workflow reports `Get Pages site failed`, this
+setting has not been enabled yet. The HTML is also uploaded as the
+`saturnCFD-docs-html` artifact, so the build is not lost.
 
 The PDF is built on `workflow_dispatch` and uploaded as a workflow artifact.
 It is not rebuilt on every push because the TeX installation is large.

@@ -49,7 +49,9 @@ add_test(NAME cli_writeVTK
           -DWITH_PATCHES=ON
           -P ${CMAKE_CURRENT_SOURCE_DIR}/checkVtk.cmake)
 add_test(NAME cli_completion
-  COMMAND saturnCFD -completion bash)
+  COMMAND ${CMAKE_COMMAND}
+          -DCLI=$<TARGET_FILE:saturnCFD>
+          -P ${CMAKE_CURRENT_SOURCE_DIR}/checkCompletion.cmake)
 
 set_tests_properties(
   cli_help cli_version cli_listSolvers cli_dumpConfig

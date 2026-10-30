@@ -32,6 +32,10 @@ serve both without duplicating equations.
    - `.github/workflows/docs.yml` builds on push to `v1`/`main` and on
      `workflow_dispatch`.
    - It uploads `build/doxygen/html` and deploys with `actions/deploy-pages`.
+   - It also uploads the HTML as the `saturnCFD-docs-html` artifact.
+   - `configure-pages` runs with `enablement: true`; if the repository has not
+     enabled Pages, the one-time setting is **Settings -> Pages -> Source:
+     GitHub Actions**.
    - The URL is `https://ananth-narayan-iitm.github.io/saturnCFD/`.
    - The PDF is built on `workflow_dispatch` and uploaded as an artifact.
 4. **clang-format is mandatory.**

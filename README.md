@@ -58,6 +58,9 @@ source <(saturnCFD -completion zsh)      # zsh
 saturnCFD -completion fish | source      # fish
 ```
 
+After that, `saturnCFD -dump<Tab>` completes `-dumpConfig`, and
+`saturnCFD -checkMesh tests/<Tab>` completes files and directories.
+
 ## Decisions
 
 - [ADR log](docs/decisions/README.md) — accepted and proposed decisions.
@@ -107,7 +110,10 @@ doxygen docs/Doxyfile
 ```
 
 The GitHub Pages source must be set once to **GitHub Actions** in repository
-settings.
+settings (**Settings → Pages → Build and deployment → Source: GitHub Actions**).
+If the workflow reports `Get Pages site failed`, that setting has not been
+enabled yet; the built HTML is still uploaded as the `saturnCFD-docs-html`
+workflow artifact.
 
 ## Equations and validation
 

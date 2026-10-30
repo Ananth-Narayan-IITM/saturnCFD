@@ -101,20 +101,40 @@ void printCompletion(const std::string& shell) {
     std::cout << R"BASH(# saturnCFD bash completion
 # install: source <(saturnCFD -completion bash)
 _saturnCFD_complete() {
-  local cur="${COMP_WORDS[COMP_CWORD]}"
+  local cur prev
+  COMPREPLY=()
+  cur="${COMP_WORDS[COMP_CWORD]}"
+  prev="${COMP_WORDS[COMP_CWORD-1]}"
   local opts="-help -version -listSolvers -checkMesh -report -writeVTK -checkConfig -dumpConfig -writeTemplate -mesh -threads -completion"
+
+  # A new option: complete the option names themselves.
   if [[ "${cur}" == -* ]]; then
     COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
     return 0
   fi
-  case "${COMP_WORDS[1]}" in
-    -help) COMPREPLY=( $(compgen -W "checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion" -- "${cur}") ) ;;
-    -completion) COMPREPLY=( $(compgen -W "bash zsh fish" -- "${cur}") ) ;;
-    -checkMesh|-report|-checkConfig|-dumpConfig|-writeTemplate|-mesh) COMPREPLY=( $(compgen -f -- "${cur}") ) ;;
-    *) COMPREPLY=( $(compgen -f -- "${cur}") ) ;;
+
+  # Complete the value of the option immediately before the cursor.
+  case "${prev}" in
+    -help)
+      COMPREPLY=( $(compgen -W "checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion" -- "${cur}") )
+      ;;
+    -completion)
+      COMPREPLY=( $(compgen -W "bash zsh fish" -- "${cur}") )
+      ;;
+    -dumpConfig)
+      COMPREPLY=( $(compgen -W "common" -- "${cur}") )
+      ;;
+    -checkMesh|-report|-writeVTK|-checkConfig|-writeTemplate|-mesh)
+      COMPREPLY=( $(compgen -f -- "${cur}") )
+      compopt -o filenames 2>/dev/null
+      ;;
+    *)
+      COMPREPLY=( $(compgen -f -- "${cur}") )
+      compopt -o filenames 2>/dev/null
+      ;;
   esac
 }
-complete -F _saturnCFD_complete saturnCFD
+complete -o filenames -F _saturnCFD_complete saturnCFD
 )BASH";
   } else if (shell == "zsh") {
     std::cout << R"ZSH(#compdef saturnCFD
@@ -141,7 +161,7 @@ _saturnCFD "$@"
   } else if (shell == "fish") {
     std::cout << R"FISH(# saturnCFD fish completion
 # install: saturnCFD -completion fish | source
-complete -c saturnCFD -l help -d 'Show help'
+complete -c saturnCFD -l help -r -a 'checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion' -d 'Show help'
 complete -c saturnCFD -l version -d 'Show version'
 complete -c saturnCFD -l listSolvers -d 'List registered solvers'
 complete -c saturnCFD -l checkMesh -r -F -d 'Validate a Gmsh mesh'
