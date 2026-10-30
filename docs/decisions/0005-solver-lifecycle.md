@@ -64,6 +64,7 @@ public:
 
 - `-listSolvers` prints the registered names.
 - `-dumpConfig burgers` prints only Burgers options plus common options.
+- `-dumpConfig burgers -writeTemplate file.yaml` writes the same template.
 - An unknown solver name is a clear error.
 - A trivial solver can be registered in a test and advanced without changing
   `Simulation`.

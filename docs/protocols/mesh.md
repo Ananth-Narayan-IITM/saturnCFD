@@ -21,8 +21,8 @@ finite-volume layer can use without re-checking topology.
 - Gmsh `.msh` ASCII 2.2 first, 4.1 second.
 - Only volume elements of type hexahedron (Gmsh type 5) are accepted.
 - Physical groups become patches. A patch name must be unique.
-- Coordinates are read in `units.length` and converted to metres at read time.
-  There is no separate `mesh.scale`.
+- Coordinates are in metres. There is no `mesh.scale` and no unit conversion in
+  v1.0.
 
 ## Pipeline
 

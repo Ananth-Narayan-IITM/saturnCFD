@@ -12,7 +12,7 @@ flow without being rewritten for each one.
 | P0 | documentation and citations | `documentation.md` | accepted |
 | P0b | command-line interface and help | `cli.md` | accepted |
 | P1 | core types, errors, logging, runtime | (to write) | proposed |
-| P1b | units and dimensional binding | `units.md` | accepted |
+| P1b | SI-only units and dimensional checks | `units.md` | accepted |
 | P2 | mesh: structured `.msh`, `checkMesh` | `mesh.md` | accepted |
 | P3 | finite volume: fields, operators, Rhie–Chow | `finiteVolume.md` | accepted |
 | P4 | parallel distribution and halo | (later) | deferred |

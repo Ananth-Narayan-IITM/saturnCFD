@@ -1,28 +1,68 @@
-# P1 — Units protocol
+# P1b — Units protocol (SI only in v1.0)
 
 **Status:** accepted (ADR `0008`)
 
 ## Purpose
 
-Keep the whole solver dimensionally correct without putting unit types inside
-Kokkos kernels. YAML values are converted to SI once, at configuration binding.
-The solver receives SI `double` values only.
+Keep the solver dimensionally correct without putting unit types inside Kokkos
+kernels. v1.0 accepts SI only. Non-SI input is rejected at configuration
+validation, not converted.
+
+## Policy
+
+- **Internal values:** SI.
+- **YAML values:** SI.
+- **Accepted declaration:** `units.system: SI`, or no `units:` block (SI is the
+  default).
+- **Rejected:** any other system or per-quantity unit (`CGS`, `imperial`,
+  `length: mm`, `pressure: kPa`, ...).
+- **No conversion in v1.0.** The config layer validates dimensions; it does not
+  scale values.
+- **Future:** a unit table and conversion at the config boundary, never in a
+  kernel.
+
+## YAML
+
+```yaml
+units:
+  system: SI
+```
+
+Equivalent:
+
+```yaml
+# no units block; SI is the default
+```
+
+Rejected with a clear error:
+
+```yaml
+units:
+  system: CGS
+```
+
+```yaml
+units:
+  length: mm
+```
+
+```text
+error: units.system: 'CGS' is not supported in v1.0
+hint: only SI is implemented; non-SI conversion is a future extension
+```
 
 ## Dimensions
 
-The unit layer tracks four base dimensions:
-
-| symbol | dimension |
-|---|---|
-| L | length |
-| M | mass |
-| T | time |
-| Θ | temperature |
-
-Derived dimensions:
+Even with SI only, the schema records the dimension of every option so that a
+future conversion layer has the right metadata and so that obvious mistakes
+are caught now.
 
 | quantity | dimension | SI unit |
 |---|---|---|
+| length | L | m |
+| time | T | s |
+| mass | M | kg |
+| temperature | Θ | K |
 | velocity | L/T | m/s |
 | pressure | M/(L T²) | Pa |
 | density | M/L³ | kg/m³ |
@@ -33,174 +73,71 @@ Derived dimensions:
 | specific heat | L²/(T² Θ) | J/(kg·K) |
 | body force | M/(L² T²) | N/m³ |
 
-## Supported unit strings
-
-The v1.0 parser accepts an exact string from this table; it does not evaluate
-arbitrary unit expressions.
-
-| family | accepted strings |
-|---|---|
-| length | `m`, `mm`, `cm`, `km` |
-| time | `s`, `ms`, `min`, `h` |
-| mass | `kg`, `g` |
-| temperature | `K` |
-| velocity | `m/s`, `mm/s`, `cm/s`, `km/h` |
-| pressure | `Pa`, `kPa`, `MPa`, `bar`, `atm` |
-| density | `kg/m^3`, `g/cm^3` |
-| dynamic viscosity | `Pa.s`, `mPa.s`, `P`, `cP` |
-| kinematic viscosity | `m^2/s`, `mm^2/s`, `cSt` |
-| thermal diffusivity | `m^2/s`, `mm^2/s` |
-| thermal conductivity | `W/(m.K)` |
-| specific heat | `J/(kg.K)` |
-| body force | `N/m^3` |
-| dimensionless | `1` |
-
-The table is a `Unit` record: dimension exponents plus a factor to SI. Adding a
-unit is one table entry plus a test.
-
-## YAML block
-
-```yaml
-units:
-  length: m
-  time: s
-  mass: kg
-  temperature: K
-  velocity: m/s
-  pressure: Pa
-  density: kg/m^3
-  dynamicViscosity: Pa.s
-  kinematicViscosity: m^2/s
-  thermalDiffusivity: m^2/s
-  thermalConductivity: W/(m.K)
-  specificHeat: J/(kg.K)
-  bodyForce: N/m^3
-```
-
-Every entry is optional and defaults to the SI unit shown. `-dumpConfig` emits
-the block with SI defaults. The block applies globally to all values of that
-family. Entries are independent: `mass: g` and
-`density: kg/m^3` mean mass-valued keys are read in grams and density-valued
-keys in kg/m³. Set the base and derived entries consistently, or leave the
-derived entries at SI.
-
-Example:
-
-```yaml
-units:
-  length: mm
-  pressure: kPa
-  dynamicViscosity: mPa.s
-```
-
-- A mesh coordinate `1000` is read as `1000 mm` and stored as `1 m`.
-- A pressure `101.325` is stored as `101325 Pa`.
-- A viscosity `1.0` is stored as `1.0e-3 Pa.s`.
-
-## Field units
-
-A generic scalar may not have an obvious physical unit. Declare it:
-
-```yaml
-fields:
-  u:
-    unit: m/s
-    initial:
-      type: constant
-      value: 1.0
-  T:
-    unit: K
-    initial:
-      type: constant
-      value: 300.0
-  alpha:
-    unit: 1          # dimensionless
-```
-
-For a vector field, the same unit applies to all three components. The solver
-supplies a default for known fields:
-
-| field | default unit |
-|---|---|
-| velocity | `units.velocity` |
-| pressure | `units.pressure` |
-| temperature | `units.temperature` |
-
-## Binding contract
-
 `ConfigSchema` entries carry a `Dimension`:
 
 ```cpp
 schema.addDouble("flow.lidVelocity", 1.0,
-                 "lid speed", Dimension::Velocity);
-schema.addDouble("flow.pressure", 0.0,
-                 "outlet pressure", Dimension::Pressure);
-schema.addVec3("fields.u.initial.value", {1,0,0},
-               "initial velocity", Dimension::Velocity);
+                 "lid speed [m/s]", Dimension::Velocity);
+schema.addDouble("flow.outletPressure", 0.0,
+                 "outlet pressure [Pa]", Dimension::Pressure);
 ```
 
-The binder:
-
-1. reads the `units:` block;
-2. resolves the dimension of the key;
-3. converts the YAML number to SI;
-4. stores a plain `double` in `PhysicalProperties` or the case struct.
-
-The solver never sees a unit string or a conversion factor.
+A value with the wrong dimension for its key must fail even in SI mode. The
+dimension tag is not a unit conversion; it is a correctness check.
 
 ## Solver contract
 
-A solver function never sees a unit string. Its public configuration struct
-contains SI values:
+A solver never sees a unit string or a conversion factor. Its configuration
+struct contains SI values:
 
 ```cpp
 struct BurgersCase {
-  double viscosity;      // m^2/s, SI
-  double inletVelocity;  // m/s, SI
-  double endTime;        // s, SI
-  double length;         // m, SI
+  double viscosity;      // m^2/s
+  double inletVelocity;  // m/s
+  double endTime;        // s
+  double length;         // m
 };
 ```
 
 `PhysicalProperties` is SI. Boundary-condition values are SI. Kernels operate
-on SI `Real` values. The only place a unit appears is the config binder and the
+on SI `Real` values. The only unit-related code is in the config binder and the
 run-manifest metadata.
-
-## Validation
-
-- Unknown unit string: error with the accepted strings for that family.
-- Wrong dimension: `units.pressure: m/s` is an error.
-- Unit on a dimensionless key (`reynolds`, `cfl`): error.
-- `fields.<name>.unit` missing for a generic scalar with no default: error.
-- `units.length` and `mesh.scale` both present: error; `mesh.scale` is removed.
 
 ## Output
 
-VTK, CSV and checkpoints are written in SI. The run manifest records:
+VTK, CSV and checkpoints store SI values. The run manifest records:
 
 ```yaml
 units:
-  length: mm
-  pressure: kPa
-...
-conversions:
-  length: 1.0e-3
-  pressure: 1.0e3
+  system: SI
 ```
+
+## Validation
+
+- no `units:` block: accepted, SI;
+- `units.system: SI`: accepted;
+- `units.system: CGS`: error;
+- `units.length: mm`: error (unknown key in v1.0);
+- a pressure value assigned to a velocity key: error;
+- a unit string in a kernel signature: code review failure.
+
+## Future extension
+
+When non-SI is needed:
+
+1. add a `UnitSystem` enum and a fixed unit table in `src/core/Units.hpp`;
+2. add `units.length`, `units.pressure`, ... or per-value suffixes;
+3. convert to SI in the config binder;
+4. keep the solver contract unchanged (SI `double`).
+
+The `units:` block already exists, so the YAML shape does not have to change.
 
 ## Tests
 
-- `1000 mm` length equals `1 m`.
-- `1 kPa` equals `1000 Pa`.
-- `1 mPa.s` equals `1e-3 Pa.s`.
-- `1 cSt` equals `1e-6 m²/s`.
-- wrong dimension fails;
-- unknown unit fails;
-- vector components all converted;
-- dimensionless key with a unit fails;
-- no unit symbols in a kernel signature.
-
-## Future
-
-Per-value suffixes (`1.0 cm`, `1.0e-3 Pa s`) and a `units.system: CGS` preset can
-be added later. Internally everything stays SI.
+- default SI accepted;
+- `system: SI` accepted;
+- `system: CGS` rejected;
+- per-quantity unit rejected in v1.0;
+- wrong dimension rejected;
+- manifest records `system: SI`;
+- no unit symbols in kernel signatures.

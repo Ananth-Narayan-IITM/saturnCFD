@@ -33,7 +33,7 @@ A single codebase that:
 | selection | `Solver` interface + registry; `solver:` in YAML |
 | time loop | `Simulation` owns time, step, output, checkpoints and manifest |
 | config | typed schema, generated `-dumpConfig`, strict `-checkConfig` |
-| units | SI internally; YAML `units:` block converted once at binding |
+| units | SI only in v1.0; `units.system: SI` or omitted; non-SI is an error |
 | CLI | single-dash camelCase options; `-help`, `-checkMesh`, `-writeVtk` |
 | AMR | out of v1.0; revisit after incompressible NS is stable, for two-phase flow |
 
@@ -68,6 +68,7 @@ saturnCFD -checkMesh mesh.msh -report report.json
 saturnCFD -checkMesh mesh.msh -writeVtk output/mesh
 saturnCFD -checkConfig case.yaml
 saturnCFD -dumpConfig burgers
+saturnCFD -dumpConfig burgers -writeTemplate burgers.yaml
 saturnCFD -help
 saturnCFD -help checkMesh
 ```
@@ -105,8 +106,7 @@ finite-volume mesh with cell/face fields, not a patch-based AMR container.
 - AMR, regridding, two-phase flow;
 - compressible flow;
 - GPU kernels (design for them, implement later);
-- a full units library beyond the YAML `units:` block (values are converted
-  to SI at binding);
+- non-SI unit systems (v1.0 accepts SI only; other systems are rejected);
 - a home-grown Krylov solver.
 
 ## 7. Next actions

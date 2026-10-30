@@ -2,12 +2,12 @@
 
 **Status:** accepted (ADR `0008`)
 
-The solver uses **SI internally**. YAML values may be written in a declared
-unit and are converted to SI once, at configuration binding. There is no hidden
-non-dimensionalisation in v1.0. Benchmark cases use SI values that happen to
-correspond to the usual dimensionless set-up.
+The solver uses **SI internally and in YAML**. v1.0 accepts SI only; any other
+unit system is a validation error, not a conversion. There is no hidden
+non-dimensionalisation. Benchmark cases use SI values that happen to correspond
+to the usual dimensionless set-up.
 
-The binding contract is in [`../protocols/units.md`](../protocols/units.md).
+The contract is in [`../protocols/units.md`](../protocols/units.md).
 
 ## 1. Conventions
 
@@ -26,36 +26,37 @@ The binding contract is in [`../protocols/units.md`](../protocols/units.md).
 | cell volume | \(V_P\) | m³ |
 | face area | \(A_f\) | m² |
 
-Mesh coordinates are read in `units.length` and converted to metres at read
-time. There is no `mesh.scale`; the unit block is the single conversion point.
+Mesh coordinates are metres. There is no `mesh.scale`.
 
-## 1a. YAML units block
+## 1a. YAML units declaration
+
+Accepted in v1.0:
+
+```yaml
+units:
+  system: SI
+```
+
+Also accepted, with the same meaning:
+
+```yaml
+# no units block: SI is the default
+```
+
+Rejected in v1.0:
+
+```yaml
+units:
+  system: CGS
+```
 
 ```yaml
 units:
   length: mm
-  time: s
-  velocity: m/s
-  pressure: kPa
-  density: kg/m^3
-  dynamicViscosity: mPa.s
-  kinematicViscosity: m^2/s
-  temperature: K
 ```
 
-All entries are optional and default to SI. A value of `1000` in a length slot
-with `length: mm` becomes `1 m`; a pressure of `101.325` with `pressure: kPa`
-becomes `101325 Pa`. The solver sees SI only.
-
-A generic scalar declares its unit:
-
-```yaml
-fields:
-  u:
-    unit: m/s
-  T:
-    unit: K
-```
+The validation error says that only SI is implemented and that non-SI
+conversion is a future extension. No silent conversion occurs.
 
 ## 2. Dynamic pressure, not kinematic pressure
 
@@ -147,17 +148,16 @@ with \(T\) [K], \(\alpha\) [m²/s], \(S\) [K/s].
 
 - Do not mix a dimensionless velocity with a dimensional pressure in one case.
 - Do not hard-code \(\rho=1\) without writing it in the case file.
-- Do not scatter conversion factors through kernels. Conversions belong in the
-  config binder and `PhysicalProperties`; the solver receives SI.
-- Do not add a units library to hot kernels; convert at the boundary.
+- Do not scatter conversion factors through kernels. v1.0 has no conversion;
+  any future conversion belongs in the config binder, never in a kernel.
+- Do not add a units library to hot kernels; convert at the boundary only.
 
 ## 6. Future extensions
 
-The v1.0 `units:` block is a global declaration per quantity family. Later
-extensions can add:
+v1.0 accepts `units.system: SI` only. Later extensions can add:
 
+- `units.system: CGS` and a fixed unit table;
 - per-value suffixes such as `1.0 cm`, `1.0e-3 Pa s`;
-- a `units.system: CGS` preset;
 - `mp-units` or a small `Quantity<Dimension>` wrapper at the config and I/O
   boundary only.
 

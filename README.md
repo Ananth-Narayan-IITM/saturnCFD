@@ -24,8 +24,9 @@ Accepted so far:
 - PETSc for all linear algebra; no home-grown Krylov solver;
 - separate solver modules for Burgers, heat, Stokes and incompressible flow;
 - YAML schema generated from solver code, with strict validation;
-- SI units internally; a `units:` block converts YAML values at binding;
-- single-dash CLI, `-help`, `-checkMesh`, `-writeVtk` mesh export;
+- SI only in v1.0; non-SI YAML input is a validation error;
+- single-dash CLI, `-help`, `-checkMesh`, `-writeVtk` mesh export,
+  generated solver templates with `-dumpConfig -writeTemplate`;
 - no AMR in v1.0; AMR/two-phase is a later milestone.
 
 ## Equations and validation
@@ -48,6 +49,7 @@ saturnCFD -checkMesh mesh.msh -report report.json
 saturnCFD -checkMesh mesh.msh -writeVtk output/mesh
 saturnCFD -checkConfig case.yaml
 saturnCFD -dumpConfig burgers
+saturnCFD -dumpConfig burgers -writeTemplate burgers.yaml
 saturnCFD -help
 saturnCFD -help checkMesh
 ```

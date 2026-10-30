@@ -38,7 +38,7 @@ decision is visible, argued, dated, and can be superseded without archaeology.
 | `0005` | `Solver` lifecycle and registry; `Simulation` owns the time loop | accepted |
 | `0006` | Typed config schema, generated templates, strict validation | accepted |
 | `0007` | `checkMesh` module and structured-mesh detection | accepted |
-| `0008` | SI units from the start; units parsed at the config boundary | accepted |
+| `0008` | SI only in v1.0; non-SI input is a validation error | accepted |
 | `0009` | Documentation, equations and citation protocol | accepted |
 | `0010` | CLI: single-dash camelCase options, `-help`, mesh VTK export | accepted |
 

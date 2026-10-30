@@ -36,9 +36,10 @@ passes on CPU.
 
 2. **Configuration and units**
    - `ConfigSchema`, typed entries, defaults, units, validators.
-   - `src/core/Units.hpp`: dimension table, unit strings, SI factors.
-   - `units:` block and `fields.<name>.unit`; conversion to SI at binding.
-   - `-dumpConfig <solver>`, `-checkConfig`, `-listSolvers`, `-help`.
+   - `src/core/Units.hpp`: dimension tags and `UnitSystem { SI }`.
+   - `units.system: SI` or omitted; any non-SI input is a validation error.
+   - `-dumpConfig <solver>`, `-writeTemplate <file>`, `-checkConfig`,
+     `-listSolvers`, `-help`.
    - Ten validation stages; BC and initial conditions in YAML.
 
 3. **Finite volume**
@@ -62,6 +63,8 @@ passes on CPU.
 
 - `checkMesh` passes on all accepted test meshes and rejects all bad ones.
 - `-checkConfig` catches every category of error in the tests.
+- Non-SI `units:` input is rejected; SI or absent is accepted.
+- `-dumpConfig -writeTemplate` produces a template that passes `-checkConfig`.
 - A 1D Poisson problem and a manufactured diffusion problem solve through
   PETSc to the expected order.
 

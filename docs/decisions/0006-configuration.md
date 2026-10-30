@@ -22,14 +22,15 @@ separate YAML template file guarantees that it will drift from the code.
 - Each solver registers its options in `registerOptions()`. Common options are
   registered by the mesh, time, linear-solver and I/O modules.
 - `-dumpConfig <solver>` calls the same registration code and prints a
-  commented YAML template. No separate template file exists.
+  commented YAML template; `-writeTemplate <file>` writes it. No separate
+  template file is maintained.
 - `-checkConfig <case.yaml>` runs the full validation and exits without
   solving.
 - Unknown keys are errors, not warnings. Missing required keys are errors.
 - Validation stages, in order:
   1. syntax and types;
   2. schema (required, unknown, range, enum);
-  3. units parse, match the expected dimension and convert to SI;
+  3. units are absent or `system: SI`; non-SI is an error;
   4. cross-field consistency (CFL, time step, dimension, solver/field match);
   5. mesh file exists, parses and passes `checkMesh`;
   6. every mesh patch has a BC, and every BC patch exists;

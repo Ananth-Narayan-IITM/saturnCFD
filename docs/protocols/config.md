@@ -38,6 +38,7 @@ Each solver implements `registerOptions(ConfigSchema&)`. Common modules
 - `-help [option]` — general or per-option help.
 - `-listSolvers`
 - `-dumpConfig <solver>` — generate a commented template from the schema.
+- `-dumpConfig <solver> -writeTemplate <file>` — write the template to a file.
 - `-dumpConfig <solver> -mesh <file>` — include actual patch names.
 - `-checkConfig <case.yaml>` — run all stages and exit.
 - `-checkMesh <file.msh>` — mesh-only check, with optional `-report` and
@@ -48,8 +49,8 @@ Each solver implements `registerOptions(ConfigSchema&)`. Common modules
 1. **Syntax** — YAML parses; duplicate keys rejected; line numbers kept.
 2. **Schema** — required keys present; unknown keys rejected; type, range,
    enum and vector length correct.
-3. **Units** — the `units:` block parses, every unit has the expected
-   dimension, and every dimensioned value is converted to SI.
+3. **Units** — the `units:` block is absent or says `system: SI`; every
+   dimensioned value is in its SI unit. Non-SI is an error.
 4. **Cross-field** — solver/field compatibility; CFL and time step; dimension;
    required physical properties.
 5. **Mesh** — file exists, parses, `checkMesh` passes.
@@ -65,21 +66,16 @@ the actual value, and exits non-zero.
 
 ## Units block
 
+v1.0 accepts SI only:
+
 ```yaml
 units:
-  length: m
-  time: s
-  velocity: m/s
-  pressure: Pa
-  density: kg/m^3
-  dynamicViscosity: Pa.s
-  kinematicViscosity: m^2/s
-  temperature: K
+  system: SI
 ```
 
-All entries are optional and default to SI. Values are converted once, at
-binding; the solver sees SI `double` only. A generic scalar declares its unit
-in `fields.<name>.unit`. See `docs/protocols/units.md`.
+The block is optional; omitting it means SI. Any other system, and any
+per-quantity unit such as `length: mm`, is a validation error. There is no
+conversion in v1.0. See `docs/protocols/units.md`.
 
 A complete fragment:
 
@@ -87,10 +83,7 @@ A complete fragment:
 solver: burgers
 
 units:
-  length: mm
-  time: s
-  velocity: m/s
-  dynamicViscosity: mPa.s
+  system: SI
 
 mesh:
   file: meshes/channel.msh
@@ -98,7 +91,6 @@ mesh:
 
 fields:
   u:
-    unit: m/s
     initial:
       type: constant
       value: 1.0
@@ -115,8 +107,8 @@ boundary:
     type: empty
 ```
 
-The mesh coordinates are interpreted in mm and stored in m; the velocity and
-the inlet value stay in m/s; the viscosity is converted from mPa·s to Pa·s.
+All values are SI: mesh coordinates in m, velocity in m/s, pressure in Pa,
+viscosity in Pa·s, temperature in K.
 
 ## Invariants
 
@@ -133,7 +125,11 @@ Config parsing and validation are host-only and happen before
 
 ## Tests
 
-- round-trip: `-dumpConfig` then `-checkConfig`;
+- round-trip: `-dumpConfig -writeTemplate` then `-checkConfig`;
+- no `units:` block: accepted as SI;
+- `units.system: SI`: accepted;
+- `units.system: CGS`: rejected;
+- `units.length: mm`: rejected;
 - unknown key;
 - missing required key;
 - wrong type;
