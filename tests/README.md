@@ -8,6 +8,11 @@ every solver gets a regression case.
 ```text
 tests/
   TestMain.cpp
+  TestFvMain.cpp
+  TestFv.cpp
+  TestLocalMesh.cpp
+  TestParallel.cpp
+  UniformMesh.hpp
   core/
   config/
   mesh/
@@ -28,6 +33,7 @@ tests/
 | `[unit]` | helpers and algorithms |
 | `[mesh]` | reader, topology, structured detection, VTK |
 | `[config]` | YAML, schema, SI-only units, BCs |
+| `[fv]` | fields, LocalMesh, operators, boundary ghosts |
 | `[mms]` | manufactured-solution order |
 | `[regression]` | accepted end-to-end cases |
 | `[parity]` | CPU/GPU agreement |
@@ -42,10 +48,11 @@ ctest --preset mesh             # mesh tests only
 ctest --preset config           # configuration tests only
 ctest --preset cli              # CLI tests only
 ctest --preset mpi              # 1/2/4-rank MPI tests
+ctest --preset fv               # LocalMesh, operators and MMS
 
 # equivalent fallback
-ctest --test-dir build --output-on-failure
-ctest --test-dir build -L regression --output-on-failure
+ctest --test-dir build-cpu --output-on-failure
+ctest --test-dir build-cpu -L fv --output-on-failure
 ```
 
 ## Rules

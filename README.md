@@ -6,10 +6,11 @@ driven by YAML and validated against analytic solutions.
 
 **Status: Phase 1 in progress.** Mesh reading, `checkMesh`, the SI-only
 validator, yaml-cpp schema validation, CLI help, VTK mesh export, the MPI
-partition/halo substrate, Kokkos `CellField`, the device halo adapter, the
-uniform Cartesian Laplacian and periodic manufactured-solution tests are in
-place. The general `LocalMesh`, remaining FVM operators, PETSc wrapper and
-solver authoring are next. Solver physics starts in Phase 2.
+partition/halo substrate, Kokkos `CellField`/`FaceField`, the device halo
+adapter, structured `LocalMesh`, interpolation/gradient/divergence,
+Dirichlet/Neumann ghost fill and periodic manufactured-solution tests are in
+place. Non-orthogonal correction, convective fluxes, PETSc wrapper and solver
+authoring are next. Solver physics starts in Phase 2.
 
 MPI and GPU are **first-class from the first FVM layer**, not a later port.
 The decomposition, ghost-cell and one-GPU benchmark plan is in
@@ -25,7 +26,7 @@ cmake --preset default
 cmake --build --preset default -j
 ctest --preset regression          # the common case
 ctest --preset mpi                 # 1/2/4-rank halo and FVM tests
-ctest --preset fv                  # CellField, halo, 2D/3D MMS
+ctest --preset fv                  # fields, halo, LocalMesh, gradient/divergence MMS
 ctest --preset default             # all tests, output on failure
 ```
 

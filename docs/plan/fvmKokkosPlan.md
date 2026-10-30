@@ -1,8 +1,9 @@
 # FVM layer with Kokkos-backed fields
 
-**Status:** first slice implemented with ADR `0016` (Kokkos fields, halo
-adapter, uniform Cartesian Laplacian, periodic MMS). The general `LocalMesh`
-and the remaining operators are next.
+**Status:** CPU operator slice implemented with ADR `0016` (Kokkos
+`CellField`/`FaceField`, halo adapter, structured `LocalMesh`, interpolation,
+gradient, divergence, Dirichlet/Neumann ghosts, periodic MMS). Non-orthogonal
+correction and convective fluxes are next.
 
 This is the plan for the first Kokkos field/FVM increment. It builds directly
 on the MPI partition/halo layer already implemented.
@@ -13,12 +14,22 @@ on the MPI partition/halo layer already implemented.
   the CPU default. A CUDA build uses an installed Kokkos and its
   `nvcc_wrapper`.
 - `CellField` is a ghosted Kokkos view with `ncomp` components.
+- `FaceField` stores the six face values of each owned cell for the temporary
+  interpolation/divergence workspace.
 - `FieldHalo` performs device pack, host mirror, MPI `Isend`/`Irecv`, device
   unpack, and local periodic copies. Buffers are allocated once.
-- `CartesianGeometry` and `laplacian` implement the seven-point operator on a
-  uniform block.
+- `LocalMesh` extracts structured cell/face geometry and boundary patch tags
+  from the global hex mesh into device views with host mirrors.
+- `fillBoundaryGhosts` fills physical Dirichlet/Neumann ghosts after the
+  periodic/partition halo.
+- `interpolate`, `gradient` and `divergence` are implemented for the
+  cell-local face representation.
+- `CartesianGeometry` and `laplacian` remain the uniform-block seven-point
+  operator used by the periodic Laplacian MMS.
 - Periodic 2D and 3D manufactured Laplacian tests pass on 1, 2 and 4 ranks
   with observed order 2.00 (within 0.03 at the finest level).
+- Periodic gradient/divergence MMS on `LocalMesh` passes on 1, 2 and 4 ranks
+  with observed order about 1.97 and 1.99 for the two refinement pairs.
 - GPU-labelled tests are compiled and run in a CUDA build; the local machine
   has the GPU but no CUDA toolkit, so that build is not yet verified here.
 
@@ -125,29 +136,35 @@ Global indices are passed to `operator()`; the field subtracts
 `VectorCellField` is a three-component `CellField` or a small wrapper around
 one. It is not a separate memory layout.
 
-`FaceField` is a later slice. The first operators compute face fluxes into
-temporary face arrays; once pressure correction needs a persistent face flux,
-it gets a first-class `FaceField`.
+`FaceField` is implemented as temporary cell-local storage: `(i,j,k,dir,c)` is
+the face of cell `(i,j,k)` in direction `dir`. An internal face is stored from
+both sides, which is exactly what the cell-centred Gauss loops need. A
+persistent face-flux field with unique ownership comes with pressure
+correction.
 
 ## 4. Local geometry on device
 
-The first implemented geometry is `CartesianGeometry`: a uniform block with
-spacing `h_d`, cell centres `x_d = origin_d + (i_d + 1/2) h_d`, and the
-seven-point coefficient `1/h_d^2`. It is enough to verify the halo, the
-operator and the MMS order without mixing in mesh-quality corrections.
+`LocalMesh` is implemented for structured hexahedral meshes. It extracts, for
+every owned cell:
 
-The general `LocalMesh`/`DeviceGeometry` is the next slice. It owns:
+- cell volume and centroid (3 components);
+- outward face area, unit normal and centroid for each of the six faces;
+- owner-centroid to face-centroid normal distance;
+- boundary patch index, or `-1` for an internal face.
 
-- `cellVolume`, `cellCentroid` (3 components);
-- face area, face normal, face centroid for faces of owned cells;
-- local point coordinates including ghost layers;
-- patch/BC tags for boundary faces.
+Geometry lives in Kokkos views and is copied once before the time loop. Host
+mirrors are aliases on a CPU build, so the boundary fill does not duplicate
+memory there.
 
-The host `Mesh`/`checkMesh` remains the source of geometry construction. The
-first implementation may extract the local block from the global mesh on each
-rank; the production path is rank 0 read + scatter, then device copies.
+`CartesianGeometry` remains as the simpler uniform-block geometry used by the
+periodic Laplacian MMS.
 
-Geometry lives in Kokkos views and is copied once before the time loop.
+Remaining for general meshes:
+
+- non-orthogonal interpolation and Laplacian correction;
+- local point coordinates for higher-order reconstruction;
+- production path: rank 0 read + scatter instead of each rank reading the
+  global mesh.
 
 ## 5. Halo adapter
 
@@ -188,22 +205,29 @@ Rules:
 
 ## 7. First FVM operators
 
-1. **Done (uniform).** `laplacian` — orthogonal seven-point stencil.
-2. `gradient` — cell-centred gradient from face values.
-3. `divergence` — sum face fluxes / cell volume.
-4. `interpolate` — cell to face.
-5. Non-orthogonal Laplacian correction on general hexahedra.
-6. `convectiveFlux` — upwind/Rusanov, then MUSCL/TVD.
+1. **Done.** `interpolate` — linear cell to face.
+2. **Done.** `gradient` — Gauss gradient from face values.
+3. **Done.** `divergence` — sum face fluxes / cell volume.
+4. **Done.** `fillBoundaryGhosts` — Dirichlet/Neumann physical ghosts.
+5. **Done (uniform).** `laplacian` — orthogonal seven-point stencil.
+6. Next: non-orthogonal Laplacian correction on general hexahedra.
+7. Next: `convectiveFlux` — upwind/Rusanov, then MUSCL/TVD.
 
-Boundary conditions are applied to ghost cells before an operator reads them.
+Boundary conditions are applied to ghost cells before an operator reads them:
+periodic/partition through `FieldHalo`, physical through
+`fillBoundaryGhosts`.
 
 The first validation set:
 
-- constant field: gradient zero, divergence of constant flux zero;
-- linear field: gradient exact on a uniform hex block;
-- divergence theorem: sum of face fluxes equals volume integral;
+- **done:** linear field: interpolation, gradient and divergence exact on a
+  uniform hex block with Dirichlet ghosts;
+- **done:** Neumann ghosts give the exact linear gradient;
+- **done:** 2D LocalMesh ignores the empty direction;
+- **done:** periodic gradient and divergence MMS, second-order in 3D;
+- **done:** periodic divergence integrates to zero over the domain;
 - **done:** manufactured Laplacian: second-order convergence in 2D/3D;
-- advection of a smooth pulse: correct speed and no overshoot with a limiter.
+- next: divergence theorem on a non-uniform mesh;
+- next: advection of a smooth pulse with a limiter.
 
 ## 7a. Manufactured-solution methodology
 
@@ -245,7 +269,10 @@ discrete operator against the continuous PDE.
 Implemented:
 
 - `tests/TestFv.cpp` — CellField fill/reduce, Kokkos halo with two periodic
-  ghost layers, 2D/3D MMS order, and a stored CPU reference norm;
+  ghost layers, 2D/3D Laplacian MMS order, and a stored CPU reference norm;
+- `tests/TestLocalMesh.cpp` — LocalMesh geometry, linear interpolation,
+  Dirichlet/Neumann ghost fill, linear gradient/divergence exactness, a 2D
+  empty-direction check, and periodic gradient/divergence MMS;
 - `tests/TestFvMain.cpp` — MPI then Kokkos initialization, global failure
   reduction;
 - `saturn_fv_tests` runs under `mpirun -np 1/2/4` and as a serial binary when
@@ -259,8 +286,9 @@ Implemented:
 CTest labels: `fv`, `mpi`, `gpu`, `parity`, `regression`.
 
 Still to add: 1-rank vs 2-rank *cross-run* equality (the current MMS/order and
-reference checks run identically on 1/2/4 ranks), Dirichlet/Neumann MMS,
-advection-diffusion MMS, and the halo/stencil benchmark.
+reference checks run identically on 1/2/4 ranks), Dirichlet/Neumann
+*Laplacian* MMS order (the linear ghost tests already verify the ghost
+values), advection-diffusion MMS, and the halo/stencil benchmark.
 
 ## 9. Performance
 
@@ -278,14 +306,14 @@ Do not claim multi-GPU scaling from one GPU.
 
 1. **Done.** Kokkos dependency and `cpu`/`gpu` presets.
 2. **Done.** `CellField` + host mirror + fill/reduce tests.
-3. **Done (uniform).** `CartesianGeometry` device geometry.
+3. **Done.** `LocalMesh` structured geometry from the global mesh.
 4. **Done.** `FieldHalo` pack/unpack adapter.
 5. **Done.** `CellField` halo tests on 1/2/4 ranks.
-6. **Partially done.** `laplacian` (orthogonal); gradient/divergence/
-   interpolation next.
-7. **Partially done.** Periodic 2D/3D MMS; Dirichlet/Neumann and
-   advection-diffusion next.
-8. **Pending.** GPU execution verification and the halo/stencil benchmark.
+6. **Done.** `FaceField`, `interpolate`, `gradient`, `divergence`.
+7. **Done.** Dirichlet/Neumann boundary ghost fill.
+8. **Done.** Linear exactness and periodic gradient/divergence MMS.
+9. **Next.** Non-orthogonal correction, convective fluxes, advection MMS.
+10. **Pending.** GPU execution verification and the halo/stencil benchmark.
 
 ## 11. Open decisions
 
@@ -294,14 +322,16 @@ Resolved:
 1. Kokkos acquisition: pinned FetchContent for CPU; installed Kokkos for CUDA
    because `nvcc_wrapper` must be the compiler at configure time.
 2. First kernel policy: MDRange with an explicit signed `IndexType<int>`.
-3. Face field: later; temporary face arrays first.
+3. Face field: cell-local `FaceField` workspace; persistent face flux later.
 4. GPU precision: double for the first verified slice; float later.
-5. LocalMesh construction: local extraction first, rank-0 scatter hidden
-   behind `LocalMesh` for production.
+5. LocalMesh construction: each rank extracts its local block from the global
+   mesh; rank-0 scatter is the production path later.
 
 Open:
 
-1. `LocalMesh` face/BC storage layout for non-uniform hexahedra.
+1. Non-orthogonal face-gradient correction on general hexahedra.
 2. Cross-run rank-parity comparison (1 vs 2 vs 4) versus the current
    per-run norm check.
 3. GPU-aware MPI versus host staging once the CUDA build is available.
+4. General non-uniform interpolation weight at partition faces (equal weights
+   are used for ghost-touching faces now).

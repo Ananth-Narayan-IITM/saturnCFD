@@ -149,22 +149,33 @@ assembles the same operator.
 |---|---|---|---|
 | 3D periodic Laplacian | $8^3,16^3,32^3$ | 1.978, 1.994 | $L^2(32^3)=0.13435580757778084$ |
 | 2D periodic Laplacian | $16^2,32^2,64^2$ | 1.994, 1.999 | — |
+| 3D periodic gradient (LocalMesh) | $8^3,16^3,32^3$ | 1.967, 1.992 | — |
+| 3D periodic divergence (LocalMesh) | $8^3,16^3,32^3$ | 1.967, 1.992 | — |
 
 The 32$^3$ value is stored in `tests/TestFv.cpp` and checked to `1e-10` on
 every run. The CUDA build carries the same reference with a `1e-9` window for
 device reduction ordering; that build is written but not yet executed here
 because the CUDA toolkit is absent.
 
+The LocalMesh gradient/divergence cases use the Gauss face sum and linear
+interpolation. Their observed order is slightly below 2 at the coarsest pair,
+as expected for a centred face interpolation on a smooth trigonometric field.
+The linear-field tests separately show exactness with Dirichlet/Neumann ghosts.
+
 ## 6. Test matrix
 
-Implemented now: the 2D/3D periodic Laplacian on 1/2/4 CPU ranks, plus a
-CUDA-labelled reference case. Pending: Dirichlet, Neumann, advection–diffusion
+Implemented now: the 2D/3D periodic Laplacian and 3D periodic
+gradient/divergence on 1/2/4 CPU ranks, plus linear-field Dirichlet/Neumann
+ghost tests. Pending: Dirichlet/Neumann Laplacian order, advection–diffusion
 and execution on a CUDA host.
 
 | case | ranks | backend | BC |
 |---|---|---|---|
 | 2D periodic Laplacian | 1, 2, 4 | CPU | periodic |
 | 3D periodic Laplacian | 1, 2, 4 | CPU | periodic |
+| 3D periodic gradient/divergence | 1, 2, 4 | CPU | periodic |
+| linear gradient/divergence | 1, 2, 4 | CPU | Dirichlet |
+| linear gradient | 1, 2, 4 | CPU | Neumann |
 | 3D Dirichlet Laplacian | 1, 2 | CPU | Dirichlet |
 | 3D Neumann Laplacian | 1, 2 | CPU | Neumann |
 | 2D/3D periodic Laplacian | 1 | GPU | periodic |

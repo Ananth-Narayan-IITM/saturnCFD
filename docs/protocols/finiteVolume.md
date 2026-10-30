@@ -14,15 +14,28 @@ foundation.
   `nGrow` ghost layers. Index `(i,j,k,c)` is global; the field subtracts its
   local ghost origin. `LayoutLeft` makes `i` contiguous, matching the host
   halo buffers.
-- `FaceField` — values per face; used for fluxes and face gradients. Planned.
+- `FaceField` — six face values per owned cell, `(i,j,k,dir,c)`. An internal
+  face is stored from both sides; this is the cell-local workspace used by
+  interpolation and divergence.
 - `VectorCellField` — a `CellField` with three components $(u,v,w)$.
-- `BoundaryField` — per-patch values or gradients, filled before an operator.
+- `BoundaryField` — per-patch values or gradients, implemented as
+  `BoundaryCondition` callbacks in `fillBoundaryGhosts`.
 
 All fields are indexed by cell or face id; no hidden `Array4` global-index
-arithmetic. Ghost cells are explicit and exchanged by `FieldHalo`; ghost
-faces are a later slice. The first implemented operator is the orthogonal
-seven-point `laplacian` on a uniform `CartesianGeometry`; the general
-non-orthogonal correction and `LocalMesh` are next.
+arithmetic. Ghost cells are explicit: periodic and partition ghosts are
+exchanged by `FieldHalo`, physical ghosts are filled by
+`fillBoundaryGhosts`.
+
+`LocalMesh` stores structured cell/face geometry and patch tags. Implemented
+operators:
+
+- `interpolate` — linear cell to face;
+- `gradient` — Gauss gradient `(1/V) sum_f phi_f A_f n_f`;
+- `divergence` — `(1/V) sum_f u_f . n_f A_f`.
+
+The orthogonal seven-point `laplacian` on `CartesianGeometry` remains for the
+uniform periodic MMS. Non-orthogonal correction on general hexahedra is the
+next operator slice.
 
 ## Integral form
 
@@ -40,10 +53,10 @@ $$
 
 | operator | input | output | notes |
 |---|---|---|---|
-| `gradient` | `CellField` | `VectorCellField` | Gauss or least-squares; boundary values included |
-| `divergence` | `FaceField` | `CellField` | sum of face fluxes / $V_P$ |
-| `laplacian` | `CellField` | `CellField` | over-relaxed non-orthogonal correction |
-| `interpolate` | `CellField` | `FaceField` | linear with face weight |
+| `gradient` | `CellField` | `CellField` with 3 components | Gauss; implemented |
+| `divergence` | `FaceField` (3 components) | `CellField` | sum of face fluxes / $V_P$; implemented |
+| `laplacian` | `CellField` | `CellField` | orthogonal uniform stencil implemented; non-orthogonal correction next |
+| `interpolate` | `CellField` | `FaceField` | linear with face weight; implemented |
 | `convectiveFlux` | face velocity + face value | `FaceField` | Rusanov/upwind/MUSCL |
 | `rhieChowFlux` | velocity, pressure | `FaceField` | collocated pressure correction |
 
@@ -83,17 +96,18 @@ validated by the checkerboard test.
 
 ## Boundary conditions
 
-Supported v1.0 types:
+Implemented:
 
-- `fixedValue` (Dirichlet, scalar or vector);
-- `zeroGradient` (Neumann);
-- `noSlip` (vector, zero velocity);
-- `symmetry`;
-- `empty` (2D front/back);
-- `periodic` (mapping built from patch geometry; later).
+- `fixedValue` (Dirichlet, scalar or vector): `fillBoundaryGhosts` mirrors the
+  boundary value;
+- `zeroGradient` / general Neumann: ghost layer `l` is
+  `owner + 2*l*d*g`;
+- `noSlip`: a zero Dirichlet condition on all velocity components;
+- `empty`: directions beyond `LocalMesh::dimension()` are ignored;
+- `periodic`: `FieldHalo` fills the wrapped ghost cells.
 
-BCs are read from YAML, validated against mesh patch names, and applied by the
-operator before it is used.
+Still to wire: YAML patch selection, `symmetry`, and a patch-to-BC schema. The
+current tests construct `BoundaryCondition` callbacks directly.
 
 ## Parallel invariants
 

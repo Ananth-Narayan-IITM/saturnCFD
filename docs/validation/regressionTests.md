@@ -141,6 +141,13 @@ If the change is not understood, it is a bug, not a new baseline.
 | `fv/haloPeriodic` | Kokkos halo, two ghosts, 26 directions, 1/2/4 ranks | implemented |
 | `fv/mms3d` | 3D periodic Laplacian order and stored `L2` | implemented |
 | `fv/mms2d` | 2D periodic Laplacian order | implemented |
+| `fv/localMesh` | cell/face geometry, patch tags, face distance | implemented |
+| `fv/linearGradient` | linear interpolation/gradient exact with Dirichlet ghosts | implemented |
+| `fv/linearDivergence` | linear divergence exact with Dirichlet ghosts | implemented |
+| `fv/neumann` | Neumann ghosts reproduce the exact linear gradient | implemented |
+| `fv/divergenceIntegral` | periodic divergence integrates to zero | implemented |
+| `fv/gradientMms` | periodic gradient order on 1/2/4 ranks | implemented |
+| `fv/divergenceMms` | periodic divergence order on 1/2/4 ranks | implemented |
 | `fv/gpu` | device space, 32^3 MMS against the CPU reference, halo roundoff | implemented in code; needs a CUDA host to run |
 
 The FVM entry is a library regression until the Burgers solver exists: the

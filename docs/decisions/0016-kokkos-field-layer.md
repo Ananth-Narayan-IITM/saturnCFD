@@ -1,7 +1,8 @@
 # 0016 — Kokkos-backed field and FVM layer
 
-- **Status:** accepted (first slice: CellField, FieldHalo, Cartesian Laplacian,
-  periodic MMS; general LocalMesh and remaining operators follow)
+- **Status:** accepted (CellField/FaceField, FieldHalo, structured LocalMesh,
+  interpolation, gradient, divergence, boundary ghosts, and periodic MMS;
+  non-orthogonal correction and convective fluxes follow)
 - **Date:** 2026-10-31
 - **Owner:** saturnCFD v1
 - **Supersedes:** none
@@ -56,12 +57,16 @@ and GPU. This is where the field layout and kernel policy are fixed.
 
 ## Validation / exit criteria
 
-- `CellField` fill/reduce works on CPU and GPU.
-- Halo of a `CellField` matches the analytic periodic field on 1/2/4 ranks.
-- Constant/linear-field FVM tests pass.
-- Manufactured Poisson shows the expected order.
-- CPU/GPU parity within the precision floor.
-- `mpirun -np 1` GPU runs the field/halo test.
+- **CPU done:** `CellField` fill/reduce; GPU execution still pending a CUDA
+  host.
+- **Done:** halo of a `CellField` matches the analytic periodic field on 1/2/4
+  ranks, including two ghost layers and all 26 directions.
+- **Done:** `LocalMesh` geometry, linear interpolation, linear
+  gradient/divergence exactness, and Dirichlet/Neumann ghost fill.
+- **Done:** periodic Laplacian, gradient and divergence MMS show the expected
+  order on 1/2/4 ranks.
+- **Pending:** CPU/GPU parity on a CUDA host.
+- **Pending:** `mpirun -np 1` GPU runs the field/halo test.
 
 ## References
 

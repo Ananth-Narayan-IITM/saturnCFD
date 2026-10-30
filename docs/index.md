@@ -6,8 +6,9 @@ solutions.
 
 **Status:** Phase 1 in progress. Mesh, `checkMesh`, SI-only validation,
 yaml-cpp schema validation, CLI help, VTK mesh export, MPI partition/halo and
-the first Kokkos FVM slice (`CellField`, device halo, Cartesian Laplacian and
-periodic MMS) are in place. Solver physics starts in Phase 2.
+the CPU Kokkos FVM slice (`CellField`, `FaceField`, `LocalMesh`, interpolation,
+gradient, divergence, boundary ghosts and periodic MMS) are in place. Solver
+physics starts in Phase 2.
 
 ## Where to start
 

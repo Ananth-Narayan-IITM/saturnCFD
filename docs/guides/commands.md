@@ -48,6 +48,7 @@ apps/main.cpp     -> build-cpu/saturnCFD
 tests/*           -> build-cpu/saturn_tests
 tests/TestMpi*    -> build-cpu/saturn_mpi_tests
 tests/TestFv*     -> build-cpu/saturn_fv_tests
+tests/TestLocalMesh* -> build-cpu/saturn_fv_tests
 ```
 
 MPI and Kokkos are linked into `saturn_core`. Kokkos is pinned by default;
@@ -123,7 +124,7 @@ ctest --preset mesh
 ctest --preset config
 ctest --preset cli
 ctest --preset mpi           # partition/halo + FVM, 1/2/4 ranks
-ctest --preset fv            # CellField, halo, 2D/3D MMS
+ctest --preset fv            # fields, halo, LocalMesh, gradient/divergence MMS
 ctest --preset gpu           # GPU-labelled tests in build-gpu
 ```
 

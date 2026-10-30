@@ -15,6 +15,9 @@ if(SATURN_ENABLE_KOKKOS)
   list(APPEND SATURN_CORE_SOURCES
     fv/FieldHalo.cpp
     fv/Laplacian.cpp
+    fv/LocalMesh.cpp
+    fv/Operators.cpp
+    fv/BoundaryFill.cpp
   )
 endif()
 

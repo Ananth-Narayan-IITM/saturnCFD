@@ -27,10 +27,11 @@ passes on CPU.
 ## Phase 1 — substrate
 
 **Status:** mesh reader, `checkMesh`, SI-only validator, yaml-cpp schema, CLI,
-MPI partition/halo, Kokkos `CellField`, the device halo adapter, the uniform
-Cartesian Laplacian and periodic MMS, Doxygen pipeline and regression tests are
-in place. General `LocalMesh`, the remaining FVM operators, PETSc wrapper and
-solver authoring remain. The detailed checklist is
+MPI partition/halo, Kokkos `CellField`/`FaceField`, the device halo adapter,
+`LocalMesh`, interpolation/gradient/divergence, Dirichlet/Neumann ghost fill,
+the uniform Cartesian Laplacian and periodic MMS, Doxygen pipeline and
+regression tests are in place. Non-orthogonal correction, convective fluxes,
+PETSc wrapper and solver authoring remain. The detailed checklist is
 [`phase1Status.md`](phase1Status.md).
 
 **Deliverables**
@@ -67,10 +68,12 @@ solver authoring remain. The detailed checklist is
    - Kokkos `CellField` with ghosts — done.
    - `FieldHalo` device halo adapter — done.
    - `CartesianGeometry` + orthogonal Laplacian + periodic 2D/3D MMS — done.
-   - `LocalMesh` general device geometry; `FaceField`/`VectorCellField` — next.
-   - Gradient, divergence, interpolation, non-orthogonal Laplacian — next.
-   - Convective flux: upwind, Rusanov, MUSCL + limiter.
-   - Boundary-condition application (Dirichlet/Neumann ghosts).
+   - `LocalMesh` structured geometry + `FaceField` — done.
+   - Gradient, divergence, interpolation — done; linear exactness and
+     periodic MMS pass on 1/2/4 ranks.
+   - Dirichlet/Neumann boundary ghosts — done.
+   - Non-orthogonal Laplacian correction — next.
+   - Convective flux: upwind, Rusanov, MUSCL + limiter — next.
    - All operators iterate owned cells only and read ghost values.
    - Plan: [`fvmKokkosPlan.md`](fvmKokkosPlan.md), ADR `0016`.
 

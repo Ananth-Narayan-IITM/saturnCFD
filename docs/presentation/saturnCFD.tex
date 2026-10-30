@@ -94,15 +94,18 @@
     \item SI-only validation: non-SI input is rejected, not converted.
     \item Single-dash CLI with help topics and shell completion.
     \item MPI Cartesian partition and 26-neighbour halo exchange.
-    \item Kokkos \texttt{CellField}, device pack/unpack halo, Cartesian
-          Laplacian.
-    \item Periodic 2D/3D manufactured Laplacian at order 2 on 1/2/4 ranks.
+    \item Kokkos \texttt{CellField}/\texttt{FaceField}, device pack/unpack halo,
+          structured \texttt{LocalMesh}.
+    \item Interpolation, Gauss gradient, divergence and Dirichlet/Neumann
+          boundary ghosts.
+    \item Periodic Laplacian, gradient and divergence MMS at order 2 on
+          1/2/4 ranks.
     \item 19 CTest cases, regression tests, Doxygen HTML/PDF.
   \end{itemize}
 
   \begin{block}{Status}
-    The mesh/config/comm slice and the first Kokkos FVM slice are working.
-    General \texttt{LocalMesh}, the remaining operators and PETSc are next.
+    The mesh/config/comm slice and the CPU Kokkos FVM operator slice are
+    working. Non-orthogonal correction, convective fluxes and PETSc are next.
   \end{block}
 \end{frame}
 
@@ -371,7 +374,8 @@ time:
   \end{block}
 
   \begin{block}{Measured on 1, 2 and 4 ranks}
-    3D observed order 1.978 and 1.994; 2D 1.994 and 1.999. The 32$^3$ reference
+    Laplacian: 3D 1.978/1.994, 2D 1.994/1.999. Gradient and divergence on
+    \texttt{LocalMesh}: 1.967/1.992. The 32$^3$ reference
     $L^2=0.1343558076$ is stored for GPU parity.
   \end{block}
 \end{frame}
@@ -476,7 +480,9 @@ rm -rf build-cpu build-gpu
       CTest total & 19/19 passing \\
       MPI distribution \& halo & 1, 2, 4 ranks passing \\
       Kokkos field + halo & 2 ghosts, 26 directions, 1/2/4 ranks \\
+      LocalMesh + operators & linear exactness, 1/2/4 ranks \\
       MMS Laplacian & order 2 in 2D/3D, 1/2/4 ranks \\
+      MMS gradient/divergence & order 1.97/1.99, 1/2/4 ranks \\
       Mesh \texttt{checkMesh} & pass/reject fixtures passing \\
       Config SI-only & accept/reject fixtures passing \\
       CLI regression & help, outputs, completion, templates \\
@@ -486,7 +492,7 @@ rm -rf build-cpu build-gpu
   \end{center}
 
   \begin{block}{What is not yet tested}
-    General \texttt{LocalMesh}, gradient/divergence, Dirichlet/Neumann MMS,
+    Non-orthogonal Laplacian correction, Dirichlet/Neumann Laplacian MMS,
     advection--diffusion MMS, CUDA execution (no toolkit on this PC) and
     multi-GPU scaling. These are the next gates.
   \end{block}
@@ -504,7 +510,8 @@ rm -rf build-cpu build-gpu
           \item CLI/help/completion/install
           \item MPI partition + 26-neighbour halo
           \item Kokkos field + device halo
-          \item Cartesian Laplacian + periodic MMS
+          \item \texttt{LocalMesh} + operators + BC ghosts
+          \item Periodic Laplacian/gradient/divergence MMS
           \item 1/2/4-rank tests
           \item Doxygen HTML/PDF
         \end{itemize}
@@ -513,10 +520,9 @@ rm -rf build-cpu build-gpu
     \begin{column}{0.48\textwidth}
       \begin{block}{Next}
         \begin{itemize}
-          \item General \texttt{LocalMesh} geometry
-          \item gradient/divergence/interpolation
-          \item Dirichlet/Neumann BC ghosts
-          \item advection--diffusion MMS
+          \item Non-orthogonal Laplacian correction
+          \item Convective fluxes and limiters
+          \item Advection--diffusion MMS
           \item CUDA build verification
           \item Burgers physics and PETSc
         \end{itemize}

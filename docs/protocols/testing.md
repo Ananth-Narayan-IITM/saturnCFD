@@ -56,7 +56,7 @@ expected orders, rank/backend matrix and pitfalls are in
 
 ## Implemented FV tests
 
-`tests/TestFv.cpp` currently checks:
+`tests/TestFv.cpp` checks:
 
 - `CellField` fill and owned-cell reduction;
 - Kokkos halo on two periodic ghost layers, all 26 directions, 1/2/4 ranks;
@@ -66,6 +66,20 @@ expected orders, rank/backend matrix and pitfalls are in
 - a stored 32^3 CPU reference `L2` (`0.13435580757778084`) checked to `1e-10`;
 - CUDA-only cases (`SATURN_BACKEND_CUDA`): active device, 32^3 MMS against the
   CPU reference to `1e-9`, and periodic halo roundoff.
+
+`tests/TestLocalMesh.cpp` checks:
+
+- `LocalMesh` cell volume/centroid, face area/normal/distance and patch tags;
+- linear interpolation exact at face centroids;
+- Dirichlet ghost mirror values;
+- linear gradient with Dirichlet ghosts exact at every cell;
+- linear divergence with Dirichlet ghosts exact at every cell;
+- Neumann ghosts reproduce the exact linear gradient;
+- 2D `LocalMesh` ignores the empty direction;
+- periodic divergence integrates to zero over the domain;
+- periodic 3D gradient MMS: observed order 1.967 and 1.992;
+- periodic 3D divergence MMS: observed order 1.967 and 1.992;
+- all cases run on 1, 2 and 4 ranks.
 
 The same binary is run under `mpirun -np 1/2/4`; a failure on any rank fails the
 CTest test. A CUDA build adds the `gpu` label and `ctest --preset gpu` runs the

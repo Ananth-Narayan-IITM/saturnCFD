@@ -45,6 +45,7 @@ if(SATURN_ENABLE_KOKKOS)
   add_executable(saturn_fv_tests
     TestFvMain.cpp
     TestFv.cpp
+    TestLocalMesh.cpp
   )
   set_target_properties(saturn_fv_tests PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")

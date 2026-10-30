@@ -297,7 +297,7 @@ void printTopic(const std::string& topic) {
   } else if (topic == "mpi") {
     std::cout
         << "mpi\n\n"
-           "Run the MPI test suite (partition/halo and FVM MMS):\n\n"
+           "Run the MPI test suite (partition/halo and FVM):\n\n"
            "  ctest --preset mpi\n"
            "  mpirun -np 2 build-cpu/saturn_mpi_tests\n"
            "  mpirun -np 4 build-cpu/saturn_mpi_tests\n"
@@ -400,7 +400,7 @@ void printTopic(const std::string& topic) {
            "  ctest --preset config\n"
            "  ctest --preset cli\n"
            "  ctest --preset mpi           halo/partition + FVM on 1/2/4\n"
-           "  ctest --preset fv            CellField, halo, 2D/3D MMS\n"
+           "  ctest --preset fv            LocalMesh, operators, MMS\n"
            "  ctest --preset gpu           GPU-labelled FV tests\n"
            "  ctest --list-presets         list them\n";
   } else {
