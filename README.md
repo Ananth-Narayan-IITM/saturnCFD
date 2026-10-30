@@ -109,11 +109,23 @@ doxygen docs/Doxyfile
 # PDF:  make -C build/doxygen/latex
 ```
 
-The GitHub Pages source must be set once to **GitHub Actions** in repository
-settings (**Settings → Pages → Build and deployment → Source: GitHub Actions**).
-If the workflow reports `Get Pages site failed`, that setting has not been
-enabled yet; the built HTML is still uploaded as the `saturnCFD-docs-html`
-workflow artifact.
+The docs workflow publishes the HTML to the `gh-pages` branch. Enable Pages
+once in repository settings:
+
+**Settings → Pages → Build and deployment → Deploy from a branch →
+Branch: `gh-pages` / (root)` → Save.**
+
+Direct link: https://github.com/Ananth-Narayan-IITM/saturnCFD/settings/pages
+
+The workflow also needs write access to push `gh-pages`:
+**Settings → Actions → General → Workflow permissions → Read and write
+permissions**.
+
+If Pages is not enabled, the site returns 404 even though the `gh-pages` branch
+exists; the built HTML is also uploaded as the `saturnCFD-docs-html` workflow
+artifact. The workflow intentionally does not call the Pages create-site API,
+because a workflow token is not allowed to create a Pages site
+(`Resource not accessible by integration`).
 
 ## Equations and validation
 

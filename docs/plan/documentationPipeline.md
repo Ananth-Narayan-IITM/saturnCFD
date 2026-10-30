@@ -72,8 +72,9 @@ CMake targets:
 - runs on push to `v1`/`main` and on `workflow_dispatch`;
 - installs Doxygen and Graphviz;
 - runs `mkdir -p build && doxygen docs/Doxyfile`;
-- uploads `build/doxygen/html` with `actions/upload-pages-artifact`;
-- deploys with `actions/deploy-pages`.
+- uploads `build/doxygen/html` as the `saturnCFD-docs-html` artifact;
+- publishes `build/doxygen/html` to the `gh-pages` branch with
+  `peaceiris/actions-gh-pages`.
 
 The Pages URL is:
 
@@ -82,9 +83,17 @@ https://ananth-narayan-iitm.github.io/saturnCFD/
 ```
 
 Manual repository setting (once): **Settings -> Pages -> Build and deployment ->
-Source: GitHub Actions**. If the workflow reports `Get Pages site failed`, this
-setting has not been enabled yet. The HTML is also uploaded as the
-`saturnCFD-docs-html` artifact, so the build is not lost.
+Deploy from a branch -> Branch: `gh-pages` / (root) -> Save**.
+Direct link: https://github.com/Ananth-Narayan-IITM/saturnCFD/settings/pages.
+
+The workflow also needs permission to push the branch: **Settings -> Actions ->
+General -> Workflow permissions -> Read and write permissions**. If Pages is not
+enabled, the site returns 404 even though the branch exists. The HTML is also
+uploaded as the `saturnCFD-docs-html` artifact, so the build is not lost.
+
+The workflow does not call `actions/configure-pages` or `actions/deploy-pages`.
+A workflow token cannot create a Pages site (`Resource not accessible by
+integration`); branch publishing avoids that admin-only API.
 
 The PDF is built on `workflow_dispatch` and uploaded as a workflow artifact.
 It is not rebuilt on every push because the TeX installation is large.

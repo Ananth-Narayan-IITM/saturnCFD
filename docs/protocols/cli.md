@@ -115,7 +115,9 @@ boundary patch.
 `-completion <shell>` prints a completion script. It is generated from the same
 option list as the parser, so `-dump<Tab>` completes `-dumpConfig`. Path-valued
 options (`-checkMesh`, `-report`, `-writeVTK`, `-checkConfig`,
-`-writeTemplate`, `-mesh`) complete files and directories.
+`-writeTemplate`, `-mesh`) complete files and directories; directories get a
+trailing slash, so `tests<Tab>` becomes `tests/` and the next `<Tab>` lists its
+contents.
 
 ```bash
 source <(saturnCFD -completion bash)

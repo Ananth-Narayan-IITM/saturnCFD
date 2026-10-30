@@ -31,11 +31,15 @@ serve both without duplicating equations.
 3. **GitHub Pages hosts the HTML.**
    - `.github/workflows/docs.yml` builds on push to `v1`/`main` and on
      `workflow_dispatch`.
-   - It uploads `build/doxygen/html` and deploys with `actions/deploy-pages`.
-   - It also uploads the HTML as the `saturnCFD-docs-html` artifact.
-   - `configure-pages` runs with `enablement: true`; if the repository has not
-     enabled Pages, the one-time setting is **Settings -> Pages -> Source:
-     GitHub Actions**.
+   - It uploads the HTML as the `saturnCFD-docs-html` artifact.
+   - It publishes `build/doxygen/html` to the `gh-pages` branch with
+     `peaceiris/actions-gh-pages`.
+   - The one-time setting is **Settings -> Pages -> Deploy from a branch ->
+     Branch: `gh-pages` / (root)**.
+   - The workflow does **not** call the Pages create-site API. A workflow token
+     cannot create a Pages site (`Resource not accessible by integration`).
+   - Workflow permissions must allow branch writes: **Settings -> Actions ->
+     General -> Workflow permissions -> Read and write permissions**.
    - The URL is `https://ananth-narayan-iitm.github.io/saturnCFD/`.
    - The PDF is built on `workflow_dispatch` and uploaded as an artifact.
 4. **clang-format is mandatory.**
@@ -55,14 +59,14 @@ serve both without duplicating equations.
 | Doxygen only, no Markdown filter | `$` equations would not render in HTML/PDF |
 | Markdown `\f$` everywhere | GitHub/VS Code would show raw delimiters |
 | Manual PDF export | drifts from the source and is not reproducible |
-| GitHub Pages from `gh-pages` branch | Actions artifact deployment is simpler and avoids a generated branch |
+| `actions/deploy-pages` from Actions artifacts | requires the Pages site to exist; a workflow token cannot create it (`Resource not accessible by integration`) |
 | No format CI | style drift; the user explicitly asked for consistency |
 
 ## Consequences
 
 - **Docs:** one source, two outputs (HTML and PDF).
-- **CI:** Pages permissions (`pages: write`, `id-token: write`) and a manual
-  Pages source setting once.
+- **CI:** `contents: write` to publish the `gh-pages` branch, and a manual
+  Pages source setting once (`gh-pages` branch / root).
 - **Math:** the filter must handle code fences and inline code correctly; it is
   tested on the theory pages.
 - **PDF:** TeX dependencies are heavy; PDF is manual/release, not every push.

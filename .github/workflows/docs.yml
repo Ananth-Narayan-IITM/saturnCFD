@@ -6,9 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
@@ -36,26 +34,17 @@ jobs:
           name: saturnCFD-docs-html
           path: build/doxygen/html
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
+      # Branch deployment avoids the Pages create-site API, which a
+      # workflow token is not allowed to call. Enable Pages once with:
+      # Settings -> Pages -> Deploy from a branch -> gh-pages / (root).
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          enablement: true
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: build/doxygen/html
-
-  deploy:
-    needs: html
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/doxygen/html
+          publish_branch: gh-pages
+          force_orphan: true
+          enable_jekyll: false
 
   pdf:
     if: github.event_name == 'workflow_dispatch'

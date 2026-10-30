@@ -100,6 +100,19 @@ void printCompletion(const std::string& shell) {
   if (shell == "bash") {
     std::cout << R"BASH(# saturnCFD bash completion
 # install: source <(saturnCFD -completion bash)
+_saturnCFD_paths() {
+  local cur="$1"
+  local IFS=$'\n'
+  COMPREPLY=( $(compgen -f -- "${cur}") )
+  local i
+  for i in "${!COMPREPLY[@]}"; do
+    if [[ -d "${COMPREPLY[$i]}" ]]; then
+      COMPREPLY[$i]="${COMPREPLY[$i]}/"
+    fi
+  done
+  compopt -o filenames 2>/dev/null
+}
+
 _saturnCFD_complete() {
   local cur prev
   COMPREPLY=()
@@ -125,12 +138,10 @@ _saturnCFD_complete() {
       COMPREPLY=( $(compgen -W "common" -- "${cur}") )
       ;;
     -checkMesh|-report|-writeVTK|-checkConfig|-writeTemplate|-mesh)
-      COMPREPLY=( $(compgen -f -- "${cur}") )
-      compopt -o filenames 2>/dev/null
+      _saturnCFD_paths "${cur}"
       ;;
     *)
-      COMPREPLY=( $(compgen -f -- "${cur}") )
-      compopt -o filenames 2>/dev/null
+      _saturnCFD_paths "${cur}"
       ;;
   esac
 }
