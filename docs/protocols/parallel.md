@@ -1,6 +1,6 @@
 # P4 — Parallel protocol: MPI decomposition, ghosts and Kokkos
 
-**Status:** proposed (ADR `0014`)
+**Status:** accepted (ADR `0014`)
 
 ## Purpose
 

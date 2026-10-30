@@ -41,6 +41,7 @@ ctest --preset regression       # regression tests only
 ctest --preset mesh             # mesh tests only
 ctest --preset config           # configuration tests only
 ctest --preset cli              # CLI tests only
+ctest --preset mpi              # 1/2/4-rank MPI tests
 
 # equivalent fallback
 ctest --test-dir build --output-on-failure

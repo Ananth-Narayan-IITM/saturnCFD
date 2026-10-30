@@ -95,6 +95,19 @@
           "label": "cli"
         }
       }
+    },
+    {
+      "name": "mpi",
+      "displayName": "MPI tests",
+      "configurePreset": "default",
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "label": "mpi"
+        }
+      }
     }
   ]
 }

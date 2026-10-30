@@ -5,9 +5,10 @@ scalar transport (Burgers, heat), Stokes and incompressible Navier–Stokes,
 driven by YAML and validated against analytic solutions.
 
 **Status: Phase 1 in progress.** Mesh reading, `checkMesh`, the SI-only
-validator, yaml-cpp schema validation, CLI help, VTK mesh export and
-regression tests are in place. The MPI/Kokkos finite-volume layer, PETSc
-wrapper and solver authoring are next. Solver physics starts in Phase 2.
+validator, yaml-cpp schema validation, CLI help, VTK mesh export, the MPI
+partition/halo substrate and regression tests are in place. The Kokkos
+finite-volume layer, PETSc wrapper and solver authoring are next. Solver
+physics starts in Phase 2.
 
 MPI and GPU are **first-class from the first FVM layer**, not a later port.
 The decomposition, ghost-cell and one-GPU benchmark plan is in
@@ -22,6 +23,7 @@ and is a reference for validation data and algorithms, not a tree to copy.
 cmake --preset default
 cmake --build --preset default -j
 ctest --preset regression          # the common case
+ctest --preset mpi                 # 1/2/4-rank halo tests
 ctest --preset default             # all tests, output on failure
 ```
 
@@ -53,6 +55,8 @@ saturnCFD -checkMesh tests/data/meshes/box2x2x2.msh -writeVTK results/mesh
 saturnCFD -dumpConfig common -writeTemplate common
 saturnCFD -checkConfig common.yaml
 saturnCFD -help checkMesh
+saturnCFD -help mpi
+saturnCFD -help test
 ```
 
 Enable completion once per shell:

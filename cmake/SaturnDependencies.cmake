@@ -54,9 +54,21 @@ else()
   set(SATURN_DOCTEST_ORIGIN "disabled")
 endif()
 
+# --------------------------------------------------------------------- MPI --
+if(SATURN_ENABLE_MPI)
+  find_package(MPI COMPONENTS CXX REQUIRED)
+  if(NOT SATURN_MPI_PREFLAGS AND MPI_CXX_LIBRARY_VERSION_STRING MATCHES "Open MPI")
+    set(SATURN_MPI_PREFLAGS "--oversubscribe" CACHE STRING
+        "Extra flags for mpiexec" FORCE)
+  endif()
+  set(SATURN_MPI_ORIGIN "system")
+else()
+  set(SATURN_MPI_ORIGIN "disabled")
+endif()
+
 # -------------------------------------------------------- Kokkos and PETSc --
-# Phase 1 does not use them yet. The options exist so Phase 2 can enable them
-# without changing the top-level build.
+# The options exist so the FVM/PETSc layers can be enabled without changing the
+# top-level build.
 if(SATURN_ENABLE_KOKKOS)
   find_package(Kokkos REQUIRED)
 endif()

@@ -94,7 +94,9 @@ void printGeneralHelp() {
          "  saturnCFD -dumpConfig common -writeTemplate common.yaml\n"
          "  saturnCFD -checkConfig common.yaml\n"
          "  saturnCFD -completion bash\n"
-         "  saturnCFD -help checkMesh\n";
+         "  saturnCFD -help checkMesh\n"
+         "  saturnCFD -help mpi\n"
+         "  saturnCFD -help test\n";
 }
 
 void printCompletion(const std::string& shell) {
@@ -130,7 +132,7 @@ _saturnCFD_complete() {
   # Complete the value of the option immediately before the cursor.
   case "${prev}" in
     -help)
-      COMPREPLY=( $(compgen -W "checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion" -- "${cur}") )
+      COMPREPLY=( $(compgen -W "checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion mpi test" -- "${cur}") )
       ;;
     -completion)
       COMPREPLY=( $(compgen -W "bash zsh fish" -- "${cur}") )
@@ -155,7 +157,7 @@ _saturnCFD() {
   local -a opts
   opts=(-help -version -listSolvers -checkMesh -report -writeVTK -checkConfig -dumpConfig -writeTemplate -mesh -threads -completion)
   _arguments \
-    '-help[show help]::topic:(checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion)' \
+    '-help[show help]::topic:(checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion mpi test)' \
     '-version[show version]' \
     '-listSolvers[list solvers]' \
     '-checkMesh[validate a Gmsh mesh]:mesh:_files' \
@@ -173,7 +175,7 @@ _saturnCFD "$@"
   } else if (shell == "fish") {
     std::cout << R"FISH(# saturnCFD fish completion
 # install: saturnCFD -completion fish | source
-complete -c saturnCFD -l help -r -a 'checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion' -d 'Show help'
+complete -c saturnCFD -l help -r -a 'checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion mpi test' -d 'Show help'
 complete -c saturnCFD -l version -d 'Show version'
 complete -c saturnCFD -l listSolvers -d 'List registered solvers'
 complete -c saturnCFD -l checkMesh -r -F -d 'Validate a Gmsh mesh'
@@ -289,11 +291,34 @@ void printTopic(const std::string& topic) {
                  "  source <(saturnCFD -completion zsh)    # zsh\n"
                  "  saturnCFD -completion fish | source    # fish\n\n"
                  "Then type: saturnCFD -dump<Tab>\n";
+  } else if (topic == "mpi") {
+    std::cout
+        << "mpi\n\n"
+           "Run the MPI test suite:\n\n"
+           "  ctest --preset mpi\n"
+           "  mpirun --oversubscribe -np 2 build/saturn_mpi_tests\n"
+           "  mpirun --oversubscribe -np 4 build/saturn_mpi_tests\n\n"
+           "Solver runs (Phase 2+):\n\n"
+           "  mpirun -np 4 saturnCFD case.yaml\n"
+           "  mpirun -np 1 saturnCFD case.yaml     # one GPU, one rank\n\n"
+           "One rank per GPU for performance. --oversubscribe is only for a\n"
+           "workstation with fewer slots than ranks. The cluster uses srun or\n"
+           "mpirun with the allocated tasks.\n";
+  } else if (topic == "test") {
+    std::cout << "test\n\n"
+                 "  ctest --preset default       all tests\n"
+                 "  ctest --preset regression    regression only\n"
+                 "  ctest --preset unit\n"
+                 "  ctest --preset mesh\n"
+                 "  ctest --preset config\n"
+                 "  ctest --preset cli\n"
+                 "  ctest --preset mpi           MPI halo/partition tests\n"
+                 "  ctest --list-presets         list them\n";
   } else {
     throw UsageError("unknown help topic '" + topic +
                      "'; topics: checkMesh, report, writeVTK, checkConfig, "
                      "dumpConfig, writeTemplate, mesh, units, config, solvers, "
-                     "completion");
+                     "completion, mpi, test");
   }
 }
 

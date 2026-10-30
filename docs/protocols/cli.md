@@ -59,6 +59,8 @@ saturnCFD -help units
 saturnCFD -help config
 saturnCFD -help mesh
 saturnCFD -help completion
+saturnCFD -help mpi
+saturnCFD -help test
 
 # shell completion
 source <(saturnCFD -completion bash)
@@ -266,6 +268,8 @@ Non-SI input is a validation error. There is no conversion in v1.0.
 | `config` | YAML groups, units, BCs, initial conditions |
 | `solvers` | available solvers and their state variables |
 | `completion` | bash, zsh and fish install lines |
+| `mpi` | MPI test/run commands, one-rank-per-GPU policy |
+| `test` | ctest presets and labels |
 
 Each detailed page states the argument, the preconditions, the files read and
 written, the exit codes and a complete example. Unknown topics print the list of

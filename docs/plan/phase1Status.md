@@ -1,8 +1,9 @@
 # Phase 1 status and remaining work
 
-**Status:** mesh, configuration and CLI foundation are implemented. The
-MPI/Kokkos finite-volume layer, PETSc wrapper and solver authoring are next.
-The parallel design is in [`mpiGpuDesign.md`](mpiGpuDesign.md).
+**Status:** mesh, configuration, CLI and the MPI partition/halo substrate are
+implemented. The Kokkos finite-volume layer, PETSc wrapper and solver
+authoring are next. The parallel design is in
+[`mpiGpuDesign.md`](mpiGpuDesign.md).
 
 ## Done
 
@@ -21,12 +22,14 @@ The parallel design is in [`mpiGpuDesign.md`](mpiGpuDesign.md).
 | doctest suite and regression cases | done |
 | Doxygen HTML/PDF and Pages workflow | done |
 | clang-format target and CI check | done |
+| `src/comm` MeshPartition, 26-neighbour halo | done |
+| 1/2/4-rank analytic halo tests | done |
+| `ctest --preset mpi` | done |
 
 ## Pending
 
 | area | pending item |
 |---|---|
-| `src/comm` | MeshPartition, 26-neighbour halo, MPI+Kokkos runtime |
 | `src/fv` | ghosted cell/face fields, gradient, divergence, Laplacian, interpolation, convective fluxes, boundary application |
 | `src/simulation` | `Solver` interface, registry, time loop, diagnostics |
 | `src/solvers` | `burgers` skeleton, `addSolver(burgers)`, `saturnCFDSolver` tool |
@@ -44,15 +47,15 @@ two-phase flow, compressible flow.
 
 ## Recommended order
 
-1. **Parallel decomposition and halo**
+1. **Parallel decomposition and halo — host MPI slice done**
    - `MeshPartition` from `MPI_Dims_create`/`MPI_Cart_create`.
    - one owner per cell, two ghost layers, 26-neighbour exchange.
    - periodic local copies before remote exchange.
-   - Kokkos pack/unpack; rank-to-device mapping.
+   - host-staged pack/unpack and `MPI_Isend`/`Irecv`.
    - tests on 1, 2 and 4 ranks; analytic periodic field.
    - MPI test main with global failure reduction.
-   - halo/stencil benchmark; strong/weak scaling.
-   - ASan/UBSan and `compute-sanitizer` checks.
+   - Remaining: Kokkos field adapter, GPU pack/unpack, rank-to-device
+     mapping, halo/stencil benchmark, ASan/UBSan and compute-sanitizer.
 
 2. **Finite-volume layer**
    - ghosted `CellField`, `FaceField`, `VectorCellField`.

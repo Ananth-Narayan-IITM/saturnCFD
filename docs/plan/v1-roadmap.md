@@ -27,9 +27,9 @@ passes on CPU.
 ## Phase 1 — substrate
 
 **Status:** mesh reader, `checkMesh`, SI-only validator, yaml-cpp schema, CLI,
-Doxygen pipeline and regression tests are in place. Finite-volume operators,
-PETSc wrapper and solver authoring remain. The detailed checklist is
-[`phase1Status.md`](phase1Status.md).
+MPI partition/halo, Doxygen pipeline and regression tests are in place.
+Kokkos FVM operators, PETSc wrapper and solver authoring remain. The detailed
+checklist is [`phase1Status.md`](phase1Status.md).
 
 **Deliverables**
 

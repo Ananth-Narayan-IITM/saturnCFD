@@ -1,7 +1,7 @@
 # MPI and GPU design
 
-**Status:** proposed. This page is the design to approve before the FVM layer
-is written.
+**Status:** accepted (ADR `0014`). The MPI partition/halo slice is implemented;
+the Kokkos field adapter and GPU pack/unpack are next.
 
 ## 1. Goal
 

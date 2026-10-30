@@ -133,6 +133,10 @@ If the change is not understood, it is a bug, not a new baseline.
 | `cli/writeVTK` | `-writeVTK` adds `.vtp` and `.pvd` | implemented |
 | `cli/completion` | generated completion contains `-dumpConfig` | implemented |
 | `cli/templateExtension` | `-writeTemplate results/file` creates `results/file.yaml` | implemented |
+| `mpi/partition` | local extents sum to global, no overlap | implemented |
+| `mpi/haloPeriodic` | analytic periodic ghosts on 1/2/4 ranks | implemented |
+| `mpi/halo2d` | one-cell-thick 2D halo | implemented |
+| `mpi/haloComponents` | multi-component exchange | implemented |
 
 Phase 2 adds `burgers/traveling64` and `burgers/shock128`.
 

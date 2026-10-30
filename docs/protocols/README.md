@@ -15,7 +15,7 @@ flow without being rewritten for each one.
 | P1b | SI-only units and dimensional checks | `units.md` | accepted |
 | P2 | mesh: structured `.msh`, `checkMesh` | `mesh.md` | accepted |
 | P3 | finite volume: fields, operators, Rhie–Chow | `finiteVolume.md` | accepted |
-| P4 | MPI decomposition, ghosts and Kokkos | `parallel.md` | proposed |
+| P4 | MPI decomposition, ghosts and Kokkos | `parallel.md` | accepted |
 | P5 | configuration and validation | `config.md` | accepted |
 | P6 | solver lifecycle and registry | `solver.md` | accepted |
 | P6b | user-editable solver authoring | `../guides/writingASolver.md` | accepted |

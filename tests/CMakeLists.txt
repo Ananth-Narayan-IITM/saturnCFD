@@ -18,6 +18,29 @@ add_test(NAME saturn_tests COMMAND saturn_tests)
 set_tests_properties(saturn_tests PROPERTIES
   LABELS "unit;mesh;config;regression")
 
+if(SATURN_ENABLE_MPI)
+  add_executable(saturn_mpi_tests
+    TestMpiMain.cpp
+    TestParallel.cpp
+  )
+  set_target_properties(saturn_mpi_tests PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+  target_link_libraries(saturn_mpi_tests PRIVATE
+    saturn::core doctest::doctest MPI::MPI_CXX)
+
+  add_test(NAME mpi_np1
+    COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 1
+            ${SATURN_MPI_PREFLAGS} $<TARGET_FILE:saturn_mpi_tests>)
+  add_test(NAME mpi_np2
+    COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 2
+            ${SATURN_MPI_PREFLAGS} $<TARGET_FILE:saturn_mpi_tests>)
+  add_test(NAME mpi_np4
+    COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 4
+            ${SATURN_MPI_PREFLAGS} $<TARGET_FILE:saturn_mpi_tests>)
+  set_tests_properties(mpi_np1 mpi_np2 mpi_np4 PROPERTIES
+    LABELS "mpi" RUN_SERIAL TRUE)
+endif()
+
 # CLI regression checks: the path a user actually runs.
 add_test(NAME cli_help COMMAND saturnCFD -help)
 add_test(NAME cli_version COMMAND saturnCFD -version)

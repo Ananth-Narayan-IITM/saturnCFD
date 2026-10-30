@@ -8,6 +8,7 @@ reused by every solver.
 | `core/` | types, units, errors, logging, timers, physical properties |
 | `config/` | yaml-cpp source, schema, binding, validation, template generation |
 | `mesh/` | Gmsh reader, `Mesh`, `checkMesh`, `StructuredMesh`, VTK export |
+| `comm/` | `MeshPartition`, MPI halo exchange, rank/device runtime |
 | `fv/` | cell/face fields, finite-volume operators, fluxes, Rhie–Chow, BCs |
 | `linalg/` | PETSc wrappers, matrix assembly, linear-solver interface |
 | `io/` | VTU/PVD, CSV diagnostics, checkpoints, run manifest |

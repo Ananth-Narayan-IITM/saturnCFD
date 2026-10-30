@@ -117,21 +117,30 @@ The CI check runs `clang-format --dry-run --Werror`.
 
 ## MPI and GPU
 
-MPI/Kokkos are not enabled in the current mesh/config/CLI slice. They land with
-the finite-volume layer; the decomposition, ghost-cell and one-GPU benchmark
-plan is in [`../plan/mpiGpuDesign.md`](../plan/mpiGpuDesign.md). Do not assume a
-single-rank CPU path for the FVM implementation.
-
-When the MPI test binary lands, the intended commands are:
+The MPI partition/halo layer is implemented. Run its tests with:
 
 ```bash
+ctest --preset mpi
+# equivalent:
+mpirun --oversubscribe -np 1 build/saturn_mpi_tests
 mpirun --oversubscribe -np 2 build/saturn_mpi_tests
 mpirun --oversubscribe -np 4 build/saturn_mpi_tests
-ctest --preset mpi
 ```
 
-The benchmark and Valgrind/Compute Sanitizer commands are in
-[`profiling.md`](profiling.md) and
+`--oversubscribe` is for a workstation with fewer slots than ranks. On the
+cluster, use `srun`/`mpirun` with the allocated tasks and one rank per GPU.
+
+Solver runs are Phase 2+. The intended form is:
+
+```bash
+mpirun -np 4 saturnCFD case.yaml
+mpirun -np 1 saturnCFD case.yaml      # one GPU, one rank
+```
+
+Kokkos/GPU execution and the one-GPU benchmark land with the FVM layer. The
+decomposition, ghost-cell and benchmark plan is in
+[`../plan/mpiGpuDesign.md`](../plan/mpiGpuDesign.md). The benchmark and
+Valgrind/Compute Sanitizer commands are in [`profiling.md`](profiling.md) and
 [`../plan/parallelTesting.md`](../plan/parallelTesting.md).
 
 ## What not to memorise
