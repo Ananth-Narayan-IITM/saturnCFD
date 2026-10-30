@@ -22,10 +22,10 @@ Navier–Stokes solver is stable, and will be developed for two-phase flow.
    2.2 with `gmsh -format msh2`.
 2. **Accepted topology:** logically structured hexahedral meshes only. Every
    cell is a hexahedron; the cell dual graph must be a Cartesian grid with
-   contiguous \((i,j,k)\) indices. Curvilinear and stretched hexahedral meshes
+   contiguous $(i,j,k)$ indices. Curvilinear and stretched hexahedral meshes
    are allowed. Non-hexahedral or non-contiguous meshes are rejected.
 3. **Detection:** the reader builds a general `Mesh` (points, cells, faces,
-   patches); a classifier then attempts to assign a unique \((i,j,k)\) to every
+   patches); a classifier then attempts to assign a unique $(i,j,k)$ to every
    cell by walking face neighbours. Success produces a `StructuredMesh`;
    failure is a hard error with a `checkMesh` report explaining why.
 4. **2D rule:** a mesh with one cell in one direction and `empty` patches on
@@ -53,7 +53,7 @@ Navier–Stokes solver is stable, and will be developed for two-phase flow.
 
 - **Code:** a general `Mesh` parser, a `StructuredMesh` classifier/view,
   `CellField` and `FaceField`; v0's `BoxArray`/`MultiFab` are not the core.
-- **Performance:** regular \((i,j,k)\) neighbour lookup, compact stencils.
+- **Performance:** regular $(i,j,k)$ neighbour lookup, compact stencils.
 - **Portability:** the same structured kernel works in 1D/2D/3D; no
   unstructured face loops in hot paths.
 - **Risk:** `.msh` files that look structured but have hanging nodes or

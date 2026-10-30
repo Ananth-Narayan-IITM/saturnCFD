@@ -4,7 +4,7 @@
 
 ## 1. Governing equations
 
-\[
+$$
 \rho\left(
 \frac{\partial \mathbf{u}}{\partial t}
 + \nabla\cdot(\mathbf{u}\otimes\mathbf{u})
@@ -12,40 +12,40 @@
 = -\nabla p + \mu\nabla^2\mathbf{u} + \mathbf{f},
 \qquad
 \nabla\cdot\mathbf{u}=0,
-\]
+$$
 
-or, divided by \(\rho\),
+or, divided by $\rho$,
 
-\[
+$$
 \frac{\partial \mathbf{u}}{\partial t}
 + \nabla\cdot(\mathbf{u}\otimes\mathbf{u})
 = -\frac{1}{\rho}\nabla p + \nu\nabla^2\mathbf{u}
 + \frac{\mathbf{f}}{\rho},
 \qquad
 \nabla\cdot\mathbf{u}=0.
-\]
+$$
 
 The pressure is dynamic pressure [Pa]. For constant density, the kinematic
-pressure \(p/\rho\) is an alternative; v1 stores dynamic pressure for the
+pressure $p/\rho$ is an alternative; v1 stores dynamic pressure for the
 two-phase future.
 
 The Reynolds number is
 
-\[
+$$
 Re = \frac{\rho U L}{\mu}.
-\]
+$$
 
 ## 2. Discretisation
 
 Cell-centred finite volume on the structured hexahedral mesh:
 
-\[
+$$
 V_P\frac{d(\rho\mathbf{u}_P)}{dt}
 + \sum_f \dot m_f \mathbf{u}_f
 = -\sum_f p_f\mathbf{S}_f
 + \sum_f \mu\nabla\mathbf{u}_f\cdot\mathbf{S}_f
 + V_P\mathbf{f}_P.
-\]
+$$
 
 The convective face value uses upwind or a TVD/MUSCL reconstruction; the
 diffusive term uses the non-orthogonal correction. The face flux is
@@ -53,31 +53,31 @@ Rhie–Chow-corrected to suppress checkerboarding.
 
 The discrete continuity equation is
 
-\[
+$$
 \frac{1}{V_P}\sum_f \mathbf{u}_f\cdot\mathbf{S}_f = 0.
-\]
+$$
 
 ## 3. Time integration: PISO
 
-1. **Momentum predictor** with the old pressure \(p^n\):
-   \[
+1. **Momentum predictor** with the old pressure $p^n$:
+   $$
    a_P\mathbf{u}_P^* = \sum_N a_N\mathbf{u}_N^*
    + \mathbf{b}_P - V_P(\nabla p^n)_P.
-   \]
+   $$
 2. Compute face fluxes with Rhie–Chow.
-3. **Pressure correction** \(p'\):
-   \[
+3. **Pressure correction** $p'$:
+   $$
    \nabla\cdot\left(\frac{\Delta t}{\rho}\nabla p'\right)
    = \nabla\cdot\mathbf{u}^*.
-   \]
+   $$
 4. **Velocity correction:**
-   \[
+   $$
    \mathbf{u}^{**} = \mathbf{u}^* - \frac{\Delta t}{\rho}\nabla p',
    \qquad p^* = p^n + \alpha_p p'.
-   \]
+   $$
 5. Recompute the face flux and apply a second pressure correction (PISO
    corrector). Two correctors are the default; the number is a YAML option.
-6. Advance to \(n+1\).
+6. Advance to $n+1$.
 
 Backward Euler is the first time integrator; Crank–Nicolson is a later option.
 The convection can be explicit or semi-implicit; diffusion is implicit and
@@ -104,12 +104,12 @@ boundaries.
 
 ### Lid-driven cavity
 
-Unit square, top lid at \(U=1\), other walls no-slip. Compare the vertical
-centreline \(u(y)\) and horizontal centreline \(v(x)\) against Ghia, Ghia &
-Shin (1982) at \(Re=100\), then \(Re=1000\). Report RMS and maximum deviation,
+Unit square, top lid at $U=1$, other walls no-slip. Compare the vertical
+centreline $u(y)$ and horizontal centreline $v(x)$ against Ghia, Ghia &
+Shin (1982) at $Re=100$, then $Re=1000$. Report RMS and maximum deviation,
 the minimum location and the zero-crossing.
 
-The v0 implementation reached RMS 0.0024 at \(Re=100\), 128², with a staggered
+The v0 implementation reached RMS 0.0024 at $Re=100$, 128², with a staggered
 projection. v1 must reproduce or improve that on the collocated PISO path.
 
 ### Taylor–Green vortex
@@ -128,7 +128,7 @@ laminar parabolic profile.
 Every step or output interval:
 
 - maximum velocity and kinetic energy;
-- \(\|\nabla\cdot\mathbf{u}\|_2\) and \(\|\nabla\cdot\mathbf{u}\|_\infty\);
+- $\|\nabla\cdot\mathbf{u}\|_2$ and $\|\nabla\cdot\mathbf{u}\|_\infty$;
 - pressure mean and range;
 - momentum residual, pressure-correction residual, PETSc iterations;
 - CFL and active time-step limit.

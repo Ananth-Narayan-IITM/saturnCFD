@@ -38,17 +38,17 @@ saturnCFD examples/burgers/traveling.yaml
 saturnCFD -checkMesh meshes/channel.msh
 
 # validate + JSON report
-saturnCFD -checkMesh meshes/channel.msh -report results/channel-mesh.json
+saturnCFD -checkMesh meshes/channel.msh -report results/channelMesh.json
 
 # validate + ParaView output
-saturnCFD -checkMesh meshes/channel.msh -writeVtk results/channel-mesh
+saturnCFD -checkMesh meshes/channel.msh -writeVtk results/channelMesh
 
 # validate a case without running it
 saturnCFD -checkConfig examples/burgers/traveling.yaml
 
 # print or write a solver template
 saturnCFD -dumpConfig burgers
-saturnCFD -dumpConfig burgers -writeTemplate burgers-template.yaml
+saturnCFD -dumpConfig burgers -writeTemplate burgersTemplate.yaml
 saturnCFD -dumpConfig burgers -mesh meshes/channel.msh -writeTemplate burgers.yaml
 
 # help
@@ -67,7 +67,7 @@ solver's option registration. `-writeTemplate <file>` writes the same content to
 a file. There is no hand-maintained template file.
 
 ```bash
-saturnCFD -dumpConfig burgers -writeTemplate burgers-template.yaml
+saturnCFD -dumpConfig burgers -writeTemplate burgersTemplate.yaml
 ```
 
 The template contains:
@@ -141,7 +141,7 @@ notes:
 
 examples:
   saturnCFD examples/burgers/traveling.yaml
-  saturnCFD -checkMesh meshes/channel.msh -writeVtk results/channel-mesh
+  saturnCFD -checkMesh meshes/channel.msh -writeVtk results/channelMesh
   saturnCFD -dumpConfig burgers -writeTemplate burgers.yaml
 ```
 
@@ -185,7 +185,7 @@ With -writeTemplate, the same content is written to a file.
 
 example:
   saturnCFD -dumpConfig burgers
-  saturnCFD -dumpConfig burgers -writeTemplate burgers-template.yaml
+  saturnCFD -dumpConfig burgers -writeTemplate burgersTemplate.yaml
   saturnCFD -dumpConfig burgers -mesh meshes/channel.msh -writeTemplate burgers.yaml
 ```
 

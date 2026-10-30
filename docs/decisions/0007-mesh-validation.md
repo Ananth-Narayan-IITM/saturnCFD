@@ -35,11 +35,11 @@ convention is fixed by ADR `0010`.
 3. Build unique faces from sorted node ids. Each face must belong to one
    boundary cell or two volume cells; more than two is a non-manifold error.
 4. For each cell, pair its six faces into three opposite pairs.
-5. Choose a seed cell and assign \((0,0,0)\). Walk face neighbours, assigning
-   \(\pm e_i\), and propagate indices by BFS/DFS.
+5. Choose a seed cell and assign $(0,0,0)$. Walk face neighbours, assigning
+   $\pm e_i$, and propagate indices by BFS/DFS.
 6. Reject any conflict: two paths assigning different indices to one cell.
 7. After the walk, require the index set to be exactly
-   \([0,n_x-1]\times[0,n_y-1]\times[0,n_z-1]\) and every internal face to
+   $[0,n_x-1]\times[0,n_y-1]\times[0,n_z-1]$ and every internal face to
    connect cells differing by exactly one in exactly one index.
 8. On success, build the `StructuredMesh` view: `(i,j,k) -> cellId`,
    `cellId -> (i,j,k)`, neighbour tables and face tables.

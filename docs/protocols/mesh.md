@@ -12,7 +12,7 @@ finite-volume layer can use without re-checking topology.
 - **Cell** — a hexahedral control volume.
 - **Face** — a quadrilateral shared by one or two cells.
 - **Patch** — a named set of boundary faces, from a Gmsh physical group.
-- **Structured** — every cell has a unique contiguous \((i,j,k)\) and every
+- **Structured** — every cell has a unique contiguous $(i,j,k)$ and every
   internal face connects cells that differ by exactly one index.
 - **Empty patch** — the front/back boundary of a one-cell-thick 2D mesh.
 
@@ -47,7 +47,7 @@ structured neighbour tables.
 1. All volume cells are hexahedra.
 2. Every face belongs to one or two cells; never more.
 3. Each cell has six faces, paired into three opposite pairs.
-4. A BFS from a seed assigns \((0,0,0)\) and propagates \(\pm e_i\).
+4. A BFS from a seed assigns $(0,0,0)$ and propagates $\pm e_i$.
 5. No cell receives two different indices.
 6. The final index set is exactly a contiguous box.
 7. Every internal face changes exactly one index by exactly one.

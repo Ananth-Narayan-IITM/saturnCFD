@@ -20,8 +20,9 @@ not considered complete.
   `PascalCase`; constants `k` + `PascalCase`; `enum class`; `#pragma once`.
 - **API docs:** Doxygen for every public class and function: `@brief`,
   `@param`, `@return`, `@pre`, `@post`, `@note`, `@warning`.
-- **Equations:** Doxygen `\f$...\f$` and `\f[...\f]`, MathJax enabled; theory
-  pages in Markdown with LaTeX.
+- **Equations:** Doxygen `\f$...\f$` and `\f[...\f]`, MathJax enabled. Theory
+  pages in Markdown use `$...$` inline and `$$ ... $$` display, not `\(...\)`
+  or `\[...\]`, so GitHub/VS Code/Obsidian render them.
 - **Theory pages:** each solver has `docs/theory/<solver>.md` with governing
   equations, assumptions, non-dimensionalisation, discretisation, boundary
   conditions, time integration, stability, linearisation, verification,

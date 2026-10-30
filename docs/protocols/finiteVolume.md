@@ -12,7 +12,7 @@ foundation.
 
 - `CellField<Real>` — `ncomp` values per cell, stored contiguously, cell-major.
 - `FaceField<Real>` — values per face; used for fluxes and face gradients.
-- `VectorCellField` — a `CellField` with three components \((u,v,w)\).
+- `VectorCellField` — a `CellField` with three components $(u,v,w)$.
 - `BoundaryField` — per-patch values or gradients, filled before an operator.
 
 All fields are indexed by cell or face id; no hidden `Array4` global-index
@@ -20,22 +20,22 @@ arithmetic. Ghost cells/faces are explicit for MPI later.
 
 ## Integral form
 
-For a cell \(P\) with volume \(V_P\), faces \(f\), area \(A_f\) and outward
-normal \(\mathbf{n}_f\):
+For a cell $P$ with volume $V_P$, faces $f$, area $A_f$ and outward
+normal $\mathbf{n}_f$:
 
-\[
+$$
 \frac{d}{dt}\left(V_P \phi_P\right)
 + \sum_f \phi_f\,\mathbf{u}_f\cdot\mathbf{n}_f A_f
 = \sum_f \Gamma_f\,\nabla\phi_f\cdot\mathbf{n}_f A_f
 + V_P S_P .
-\]
+$$
 
 ## Operators
 
 | operator | input | output | notes |
 |---|---|---|---|
 | `gradient` | `CellField` | `VectorCellField` | Gauss or least-squares; boundary values included |
-| `divergence` | `FaceField` | `CellField` | sum of face fluxes / \(V_P\) |
+| `divergence` | `FaceField` | `CellField` | sum of face fluxes / $V_P$ |
 | `laplacian` | `CellField` | `CellField` | over-relaxed non-orthogonal correction |
 | `interpolate` | `CellField` | `FaceField` | linear with face weight |
 | `convectiveFlux` | face velocity + face value | `FaceField` | Rusanov/upwind/MUSCL |
@@ -43,21 +43,21 @@ normal \(\mathbf{n}_f\):
 
 ## Face interpolation
 
-For a face between \(P\) and \(N\):
+For a face between $P$ and $N$:
 
-\[
+$$
 \phi_f = w_P \phi_P + w_N \phi_N,\qquad
 w_P = \frac{d_{fN}}{d_{PN}},\quad w_N = 1-w_P.
-\]
+$$
 
 For non-orthogonal meshes the face-normal gradient is split into an
 orthogonal part and a correction:
 
-\[
+$$
 \nabla\phi_f\cdot\mathbf{n}_f
 = \frac{\phi_N-\phi_P}{d_{PN}}
 + \underbrace{\left(\overline{\nabla\phi}_f - \frac{\phi_N-\phi_P}{d_{PN}}\mathbf{n}_f\right)\cdot\mathbf{n}_f}_{\text{correction}}.
-\]
+$$
 
 The correction is deferred or iterated; document which.
 
@@ -66,10 +66,10 @@ The correction is deferred or iterated; document which.
 The face velocity is not a plain average. It is corrected so that the pressure
 gradient in the flux is compact:
 
-\[
+$$
 \mathbf{u}_f = \overline{\mathbf{u}}_f
 + \Delta t\left(\overline{\nabla p}_f - \nabla p_f\right)
-\]
+$$
 
 (in the unsteady form; the steady SIMPLE form omits the time factor). The exact
 sign and discretisation are derived in `docs/theory/finiteVolume.md` and

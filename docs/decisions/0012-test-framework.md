@@ -1,6 +1,6 @@
-# 0012 — Test framework: doctest (proposed)
+# 0012 — Test framework: doctest
 
-- **Status:** proposed
+- **Status:** accepted
 - **Date:** 2026-10-31
 - **Owner:** saturnCFD v1
 - **Supersedes:** none
@@ -34,7 +34,7 @@ and line. It is header-only, has no external dependency and compiles very
 quickly compared with Catch2 or GoogleTest. It supports subcases, tags,
 decorators, exception checks and custom reporters.
 
-## Decision (recommended)
+## Decision
 
 Adopt **doctest** as the v1 test framework:
 

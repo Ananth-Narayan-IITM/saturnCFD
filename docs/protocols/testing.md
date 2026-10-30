@@ -1,6 +1,6 @@
 # P9 — Testing protocol
 
-**Status:** proposed (framework: doctest, ADR `0012`)
+**Status:** accepted (framework: doctest, ADR `0012`)
 
 ## Purpose
 
@@ -9,12 +9,10 @@ part of the definition of done, not an afterthought.
 
 ## Framework
 
-**doctest** is the recommended framework (ADR `0012`): a single-header C++
-framework with auto-registration, subcases, tags and fast compilation. Tests run
-through CTest.
-
-If doctest is not accepted, the fallback is Catch2 v3. The v0 custom harness is
-retired.
+**doctest** is the framework (ADR `0012`): a single-header C++ framework with
+auto-registration, subcases, tags and fast compilation. Tests run through CTest.
+Catch2 v3 remains the fallback if doctest becomes limiting. The v0 custom
+harness is retired.
 
 ## Test categories
 
@@ -81,8 +79,8 @@ TEST_CASE("units: SI only") {
 The Burgers traveling wave is stored as a case plus expected error norms:
 
 ```text
-tests/regression/burgers/traveling-64.yaml
-tests/regression/burgers/traveling-64.expected
+tests/regression/burgers/traveling64.yaml
+tests/regression/burgers/traveling64.expected
 ```
 
 The test runs the case, reads the diagnostics, and checks the norms against the

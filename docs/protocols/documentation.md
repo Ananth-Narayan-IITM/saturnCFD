@@ -4,6 +4,10 @@
 
 ## Style
 
+- File and case names: `camelCase` where practical, e.g.
+  `traveling64.yaml`, `burgersTemplate.yaml`, `meshReport.json`. Avoid hyphens
+  and underscores in new case/test file names. Standard names (`CMakeLists.txt`,
+  `README.md`, `.clang-format`) and ADR numbers are exceptions.
 - Functions: `camelCase`.
 - Types and classes: `PascalCase`.
 - Member variables: `m` + `PascalCase`.
@@ -30,6 +34,14 @@ Every public class and function has a Doxygen comment:
  * @note The operator is matrix-free; assemble separately for PETSc.
  */
 ```
+
+## Math
+
+- Markdown: `$...$` inline, `$$ ... $$` display, on their own lines.
+- Do not use `\(...\)` or `\[...\]` in Markdown; many viewers do not render
+  them.
+- Doxygen comments: `\f$...\f$` inline and `\f[...\f]` display.
+- Every page with equations must be checked in a Markdown preview.
 
 ## Theory pages
 

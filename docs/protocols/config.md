@@ -131,6 +131,7 @@ Config parsing and validation are host-only and happen before
 
 ## Tests
 
+- malformed YAML reports yaml-cpp line/column;
 - round-trip: `-dumpConfig -writeTemplate` then `-checkConfig`;
 - no `units:` block: accepted as SI;
 - `units.system: SI`: accepted;

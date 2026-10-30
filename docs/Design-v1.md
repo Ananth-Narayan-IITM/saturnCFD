@@ -54,8 +54,8 @@ Navier–Stokes.
 |---|---|---|---|
 | 1 | Burgers (scalar, then vector) | convection, shocks, limiters, diffusion, time integration | viscous traveling wave; inviscid shock |
 | 2 | heat / convection–diffusion | scalar transport, Péclet effects, boundary layers | 1D boundary layer; 2D/3D MMS |
-| 3 | Stokes | vector elliptic operator, pressure coupling, PETSc | Poiseuille, Couette, cavity at \(Re\to0\) |
-| 4 | incompressible Navier–Stokes | nonlinear convection + pressure projection | Ghia cavity \(Re=100/1000\); Taylor–Green |
+| 3 | Stokes | vector elliptic operator, pressure coupling, PETSc | Poiseuille, Couette, cavity at $Re\to0$ |
+| 4 | incompressible Navier–Stokes | nonlinear convection + pressure projection | Ghia cavity $Re=100/1000$; Taylor–Green |
 
 Compressible flow is out of v1.0. Two-phase flow and AMR are later.
 
@@ -94,10 +94,8 @@ src/
     stokes/
     incompressible/
   simulation/   time loop, solver registry, factory
-user/
-  solvers/      user-copied solvers, built into the binary
 tools/
-  newSolver.sh  scaffold a solver from a built-in
+  newSolver.cpp C++ scaffold, built as saturnNewSolver
 apps/main.cpp
 ```
 
@@ -109,16 +107,18 @@ finite-volume mesh with cell/face fields, not a patch-based AMR container.
 - **Kokkos** — performance portability.
 - **PETSc** — linear algebra.
 - **yaml-cpp 0.8.x** — YAML parsing; no hand-written parser.
-- **doctest** — test framework (proposed).
+- **doctest** — test framework.
 - CMake >= 3.24, C++20.
 
 ## 5b. User-editable solvers
 
 A solver is a self-contained directory with its lifecycle, options, state,
-equations and diagnostics. Built-ins live in `src/solvers/<name>`; users copy
-one to `user/solvers/<name>`, edit the equations and rebuild. User solvers are
-compiled into `saturnCFD`; there is no runtime plugin in v1.0. See
-[`guides/writingASolver.md`](guides/writingASolver.md) and ADR `0011`.
+equations and diagnostics. Users copy a built-in under `src/solvers/<name>`,
+add one `add_subdirectory(<name>)` line to `src/solvers/CMakeLists.txt`, edit
+the equations and rebuild. `saturnNewSolver` (C++) performs the copy and prints
+the line. User solvers are compiled into `saturnCFD`; there is no runtime plugin
+in v1.0. See [`guides/writingASolver.md`](guides/writingASolver.md) and ADR
+`0011`.
 
 ## 6. What is deliberately not in v1.0
 
@@ -131,8 +131,8 @@ compiled into `saturnCFD`; there is no runtime plugin in v1.0. See
 
 ## 7. Next actions
 
-1. Accept or reject doctest (ADR `0012`); yaml-cpp is already accepted.
-2. Write the remaining protocol specs P1 (core), P8 (I/O) and P9 (testing).
+1. yaml-cpp (ADR `0006`) and doctest (ADR `0012`) are accepted.
+2. Write the remaining protocol specs P1 (core) and P8 (I/O).
 3. Implement `checkMesh`, the yaml-cpp schema, the SI-only validator, `-help`
    and the user-solver scaffold first, because every solver depends on them.
 4. Implement Burgers and validate against the traveling wave before touching

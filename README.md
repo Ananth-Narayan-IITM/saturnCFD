@@ -36,7 +36,7 @@ Accepted so far:
 - Kokkos
 - PETSc
 - yaml-cpp 0.8.x
-- doctest (test framework, proposed)
+- doctest (test framework)
 
 ## Equations and validation
 
@@ -84,19 +84,18 @@ src/
     stokes/
     incompressible/
   simulation/   time loop, solver registry
-user/
-  solvers/      user-copied solvers, built into the binary
 tools/
-  newSolver.sh  scaffold a solver from a built-in
+  newSolver.cpp C++ scaffold, built as saturnNewSolver
 apps/main.cpp
 ```
 
 ## Writing a solver
 
 ```bash
-cp -r src/solvers/burgers user/solvers/myBurgers
-# edit createFields, equations and options
-cmake -S . -B build -DSATURN_USER_SOLVERS=user/solvers
+saturnNewSolver burgers myBurgers
+# add: add_subdirectory(myBurgers)   to src/solvers/CMakeLists.txt
+# edit src/solvers/myBurgers/createFields.cpp and equations.cpp
+cmake -S . -B build
 cmake --build build -j
 saturnCFD -listSolvers
 saturnCFD -dumpConfig myBurgers -writeTemplate myBurgers.yaml

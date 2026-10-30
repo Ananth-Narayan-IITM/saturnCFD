@@ -69,8 +69,8 @@ Compressible flow is out of v1.0.
 |---|---|
 | Burgers | viscous traveling wave and inviscid shock; observed order and conservation |
 | Heat | 1D steady boundary layer and 2D/3D manufactured solution |
-| Stokes | Poiseuille, Couette and cavity at \(Re\to0\); divergence norm |
-| Incompressible | Ghia cavity at \(Re=100\), then \(Re=1000\); Taylor–Green vortex |
+| Stokes | Poiseuille, Couette and cavity at $Re\to0$; divergence norm |
+| Incompressible | Ghia cavity at $Re=100$, then $Re=1000$; Taylor–Green vortex |
 
 ## References
 

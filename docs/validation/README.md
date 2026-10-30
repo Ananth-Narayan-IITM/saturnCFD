@@ -36,30 +36,30 @@ Every page states:
 
 ## Error norms
 
-For a scalar field \(\phi\):
+For a scalar field $\phi$:
 
-\[
+$$
 L^1 = \frac{1}{N}\sum_P |\phi_P-\phi_P^{\text{ref}}|,\qquad
 L^2 = \sqrt{\frac{1}{N}\sum_P (\phi_P-\phi_P^{\text{ref}})^2},\qquad
 L^\infty = \max_P |\phi_P-\phi_P^{\text{ref}}|.
-\]
+$$
 
 For a vector field, report each component and the magnitude.
 
 ## Observed order
 
-For a refinement ratio \(r\),
+For a refinement ratio $r$,
 
-\[
+$$
 p \approx \frac{\log(e_{\text{coarse}}/e_{\text{fine}})}{\log r}.
-\]
+$$
 
 Report the order for each norm and state whether the asymptotic range was
 reached.
 
 ## Tolerance policy
 
-- double precision: \(10^{-10}\) for linear solver residuals, \(10^{-8}\) for
+- double precision: $10^{-10}$ for linear solver residuals, $10^{-8}$ for
   analytic comparisons;
-- single precision (later GPU): \(10^{-5}\) to \(10^{-4}\), documented.
+- single precision (later GPU): $10^{-5}$ to $10^{-4}$, documented.
 - Never hide a failed case by loosening a tolerance without recording why.

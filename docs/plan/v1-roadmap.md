@@ -14,7 +14,7 @@ passes on CPU.
 - ADRs `0001`–`0012` (see `docs/decisions/`).
 - Protocol pages for CLI, units, mesh, finite volume, configuration, linear
   algebra, solver lifecycle, testing and documentation.
-- Dependency decisions: Kokkos, PETSc, yaml-cpp 0.8, doctest (proposed).
+- Dependency decisions: Kokkos, PETSc, yaml-cpp 0.8, doctest.
 - Theory pages with equations, exact solutions and validation plans.
 
 **Exit criterion**
@@ -63,11 +63,12 @@ passes on CPU.
    - Checkpoint format (binary with metadata).
 
 6. **Solver authoring**
-   - `src/solvers/<name>/` layout and `user/solvers/<name>/` discovery.
+   - `src/solvers/<name>/` layout; a user copy adds one
+     `add_subdirectory(<name>)` line to `src/solvers/CMakeLists.txt`.
    - `SATURN_REGISTER_SOLVER` and the solver API version.
-   - `tools/newSolver.sh` scaffold.
-   - A build test that copies `burgers`, builds `myBurgers`, lists it and
-     generates its template.
+   - `tools/newSolver.cpp`, built as `saturnNewSolver` (C++, no Bash).
+   - A build test that copies `burgers` to `src/solvers/myBurgers`, adds the
+     line, builds, lists it and generates its template.
 
 **Exit criterion**
 
@@ -76,8 +77,8 @@ passes on CPU.
 - yaml-cpp parse errors report line/column.
 - Non-SI `units:` input is rejected; SI or absent is accepted.
 - `-dumpConfig -writeTemplate` produces a template that passes `-checkConfig`.
-- A copied `burgers` solver builds as `user/solvers/myBurgers` and appears in
-  `-listSolvers`.
+- A copied `burgers` solver builds as `src/solvers/myBurgers` after one CMake
+  line and appears in `-listSolvers`.
 - A 1D Poisson problem and a manufactured diffusion problem solve through
   PETSc to the expected order.
 
@@ -119,14 +120,14 @@ passes on CPU.
 
 - `src/solvers/stokes`: SIMPLE, vector momentum, pressure correction.
 - Rhie–Chow face flux.
-- Poiseuille, Couette, cavity at \(Re\to0\), 2D/3D MMS.
+- Poiseuille, Couette, cavity at $Re\to0$, 2D/3D MMS.
 - PETSc null-space handling for all-Neumann pressure.
 - `docs/validation/stokes.md`.
 
 **Exit criterion**
 
 - Poiseuille and Couette match to machine precision on a uniform mesh.
-- Cavity at \(Re\to0\) matches the reference.
+- Cavity at $Re\to0$ matches the reference.
 - Divergence norm is below tolerance; no checkerboard.
 
 ## Phase 5 — incompressible Navier–Stokes
@@ -135,7 +136,7 @@ passes on CPU.
 
 - `src/solvers/incompressible`: PISO, backward Euler first, Crank–Nicolson
   later.
-- Ghia cavity at \(Re=100\), then \(Re=1000\).
+- Ghia cavity at $Re=100$, then $Re=1000$.
 - Taylor–Green vortex.
 - `docs/validation/incompressible.md`.
 
@@ -158,9 +159,9 @@ passes on CPU.
 | phase | analytic | manufactured | benchmark | conservation |
 |---|---|---|---|---|
 | mesh | — | — | — | — |
-| Burgers | traveling wave | 2D/3D MMS | shock | \(\int u\) |
+| Burgers | traveling wave | 2D/3D MMS | shock | $\int u$ |
 | heat | boundary layer | 2D/3D MMS | Gaussian pulse | energy |
-| Stokes | Poiseuille/Couette | 2D/3D MMS | cavity \(Re\to0\) | mass |
+| Stokes | Poiseuille/Couette | 2D/3D MMS | cavity $Re\to0$ | mass |
 | incompressible | — | — | Ghia, Taylor–Green | mass, energy |
 
 ## Risks

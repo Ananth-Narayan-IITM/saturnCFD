@@ -2,36 +2,40 @@
 
 **Status:** accepted model (ADR `0011`). No solver code is written yet.
 
-This guide is the saturnCFD equivalent of copying an OpenFOAM solver directory,
-editing its equations and rebuilding. You edit a small solver directory; the
-mesh, finite-volume, PETSc and I/O layers stay untouched.
+This is the saturnCFD equivalent of copying an OpenFOAM solver directory,
+editing its equations and rebuilding. You copy a solver under `src/solvers/`,
+add one CMake line, edit the equations, and rebuild. The mesh, finite-volume,
+PETSc and I/O layers stay untouched.
 
 ## 1. Copy a solver
 
 ```bash
-cp -r src/solvers/burgers user/solvers/myBurgers
-# or, once the scaffold tool exists:
-tools/newSolver.sh burgers myBurgers
+saturnNewSolver burgers myBurgers
 ```
 
-Rename the class and the registration string:
+`saturnNewSolver` is a C++ tool (`tools/newSolver.cpp`). It copies
+`src/solvers/burgers` to `src/solvers/myBurgers`, renames the class and the
+registration string, and prints the exact CMake line to add:
 
-```cpp
-// user/solvers/myBurgers/MyBurgersSolver.cpp
-SATURN_REGISTER_SOLVER("myBurgers",
-                       [] { return std::make_unique<MyBurgersSolver>(); })
+```text
+Add this line to src/solvers/CMakeLists.txt:
+
+  add_subdirectory(myBurgers)
 ```
 
-Configure with the user solver directory:
+You can also do it by hand:
 
 ```bash
-cmake -S . -B build -DSATURN_USER_SOLVERS=user/solvers
+cp -r src/solvers/burgers src/solvers/myBurgers
+# edit the class/registration names
+# add add_subdirectory(myBurgers) to src/solvers/CMakeLists.txt
+```
+
+Then:
+
+```bash
+cmake -S . -B build
 cmake --build build -j
-```
-
-Check that it is registered and generate its case template:
-
-```bash
 saturnCFD -listSolvers
 saturnCFD -dumpConfig myBurgers -writeTemplate myBurgers.yaml
 saturnCFD -checkConfig myBurgers.yaml
@@ -41,7 +45,7 @@ saturnCFD myBurgers.yaml
 ## 2. Directory layout
 
 ```text
-user/solvers/myBurgers/
+src/solvers/myBurgers/
   CMakeLists.txt
   MyBurgersSolver.hpp
   MyBurgersSolver.cpp     # lifecycle + registration only
@@ -76,7 +80,8 @@ Every option is registered with a type, default, description and dimension:
 ```cpp
 void MyBurgersSolver::registerOptions(ConfigSchema& schema) const {
   schema.addDouble("flow.viscosity", 1.0e-3,
-                   "kinematic viscosity [m^2/s]", Dimension::KinematicViscosity);
+                   "kinematic viscosity [m^2/s]",
+                   Dimension::KinematicViscosity);
   schema.addDouble("flow.inletVelocity", 1.0,
                    "inlet velocity [m/s]", Dimension::Velocity);
   schema.addInt("time.maxSteps", 10000, "hard step limit");
@@ -100,7 +105,7 @@ not write a separate template file.
 
 The core provides the mesh patch list, the field containers and the BC
 application helpers. The solver decides which fields exist and what their
-units/dimensions mean.
+dimensions mean.
 
 ## 5. Equations
 
@@ -134,15 +139,14 @@ A user solver is a static library linked into `saturnCFD` at configure time.
 There is no runtime plugin in v1.0: this keeps Kokkos/CUDA device code and C++
 ABI predictable.
 
-Options:
+Add exactly one line to `src/solvers/CMakeLists.txt`:
 
-1. `user/solvers/<name>/CMakeLists.txt` plus
-   `-DSATURN_USER_SOLVERS=user/solvers`;
-2. a list of directories in the top-level CMake;
-3. for a one-off experiment, place the solver in `src/solvers/<name>` and add it
-   to `src/solvers/CMakeLists.txt`.
+```cmake
+add_subdirectory(myBurgers)
+```
 
-The first is the recommended user path; it requires no core edit.
+The solver's own `CMakeLists.txt` defines its static library and calls the
+registration macro. No other core file changes.
 
 ## 7. Solver API version
 
@@ -173,8 +177,7 @@ The user solver is compiled with the same Kokkos backend as the core. That is
 why there is no runtime plugin:
 
 - CPU: serial/OpenMP builds work like any other solver;
-- CUDA/HIP: the solver's kernels are compiled by the same wrapper; a `.so`
-  plugin would need relocatable device code and matching compiler flags;
+- CUDA/HIP: the solver's kernels are compiled by the same wrapper;
 - do not use host-only code inside a Kokkos kernel;
 - keep units out of kernels: the solver already receives SI.
 
@@ -193,8 +196,8 @@ v1.0 model.
 
 **Do not**
 
-- edit `src/simulation`, `src/mesh`, `src/fv`, `src/linalg` or `src/io` for a new
-  PDE;
+- edit `src/simulation`, `src/mesh`, `src/fv`, `src/linalg` or `src/io` for a
+  new PDE;
 - add hidden YAML keys;
 - introduce a unit conversion in a kernel;
 - hard-code mesh dimensions or patch names;
@@ -204,8 +207,8 @@ v1.0 model.
 
 To change Burgers to a forced Burgers equation:
 
-1. copy `src/solvers/burgers` to `user/solvers/forcedBurgers`;
-2. rename the class and registration to `forcedBurgers`;
+1. run `saturnNewSolver burgers forcedBurgers`;
+2. add `add_subdirectory(forcedBurgers)` to `src/solvers/CMakeLists.txt`;
 3. add an option in `ForcedBurgersOptions.cpp`:
    ```cpp
    schema.addDouble("flow.forcing", 0.0,
@@ -216,4 +219,4 @@ To change Burgers to a forced Burgers equation:
 6. build, `-dumpConfig forcedBurgers`, `-checkConfig`, run a manufactured case;
 7. record the observed order in `docs/validation/`.
 
-No core file changes.
+No core file changes beyond the one CMake line.

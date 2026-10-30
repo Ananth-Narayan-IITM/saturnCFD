@@ -32,7 +32,7 @@ PETSc as a `Mat` (AIJ/MPIAIJ). `Vector` wraps a `Vec`.
 ## Vector form
 
 - Momentum: one operator with block size 3, or one operator and three right-hand
-  sides. The sparsity pattern is shared by \(u,v,w\).
+  sides. The sparsity pattern is shared by $u,v,w$.
 - Pressure: one scalar Poisson operator.
 - The solver reports the preconditioned residual and the true residual.
 

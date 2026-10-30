@@ -45,16 +45,18 @@ same registry.
 
 ## User-editable solvers
 
-A solver is a self-contained directory under `src/solvers/<name>/` (built-in)
-or `user/solvers/<name>/` (user). It contains its lifecycle, options, state
-setup, equations and diagnostics. It is compiled into `saturnCFD` at build time;
-there is no runtime plugin in v1.0.
+A solver is a self-contained directory under `src/solvers/<name>/`. It contains
+its lifecycle, options, state setup, equations and diagnostics. It is compiled
+into `saturnCFD` at build time; there is no runtime plugin in v1.0.
 
-A user copies a solver, edits `createFields`, `equations` and `options`, and
-builds with:
+A user copies a built-in solver, adds one line to
+`src/solvers/CMakeLists.txt`, edits `createFields`, `equations` and `options`,
+and rebuilds:
 
 ```bash
-cmake -S . -B build -DSATURN_USER_SOLVERS=user/solvers
+saturnNewSolver burgers myBurgers
+# add: add_subdirectory(myBurgers)   to src/solvers/CMakeLists.txt
+cmake -S . -B build
 cmake --build build -j
 ```
 

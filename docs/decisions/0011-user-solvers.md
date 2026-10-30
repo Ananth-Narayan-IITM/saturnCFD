@@ -12,39 +12,43 @@
 The solver must be editable by the user the way OpenFOAM solvers are: copy a
 solver directory, change the equations or the state, rebuild, and run it with a
 new case file. The core mesh, finite-volume, PETSc and I/O code must not be
-edited for a new equation set. The user should not have to fork the whole
-project.
+edited for a new equation set.
 
-At the same time, v1.0 is CPU-first with Kokkos and CUDA planned. Runtime
-plugins are awkward for device code and C++ ABI stability. The extension model
-must work on CPU now and remain usable when the GPU backend arrives.
+The user explicitly prefers the copy-and-add-one-CMake-line workflow over an
+external plugin directory. The scaffold tool must be C++, not a shell script,
+so it behaves the same on every machine.
 
 ## Decision
 
-1. **A solver is a self-contained directory**, not a branch inside a shared
-   monolithic file.
-2. **Built-in solvers** live in `src/solvers/<name>/`. **User solvers** live in
-   `user/solvers/<name>/`. Both have the same structure and the same API.
-3. **User solvers are compiled into the binary at configure/build time.** They
-   are static libraries linked into `saturnCFD`. There is no runtime `.so`
-   plugin in v1.0. This keeps Kokkos/CUDA device code and ABI predictable.
-4. **Registration is one line** in the solver source:
+1. **A solver is a self-contained directory** under `src/solvers/<name>/`.
+   Built-in solvers and user copies use exactly the same layout and API.
+2. **User workflow:** copy a built-in solver, add one line to
+   `src/solvers/CMakeLists.txt`, rebuild.
+   ```bash
+   cp -r src/solvers/burgers src/solvers/myBurgers
+   # add: add_subdirectory(myBurgers)
+   ```
+   or let the C++ scaffold do the copy and print the line.
+3. **No `user/solvers/` discovery path in v1.0.** One solver tree, one CMake
+   list. This is the simplest mental model and matches the user's preference.
+4. **Compile-time linking.** User solvers are static libraries linked into
+   `saturnCFD`. There is no runtime `.so` plugin in v1.0; Kokkos/CUDA device
+   code and C++ ABI stay predictable.
+5. **Registration is one line** in the solver source:
    ```cpp
    SATURN_REGISTER_SOLVER("myBurgers",
                           [] { return std::make_unique<MyBurgersSolver>(); })
    ```
-5. **The solver registers its own YAML options.** `-dumpConfig myBurgers`
+6. **The solver registers its own YAML options.** `-dumpConfig myBurgers`
    generates the template from the user's code.
-6. **The solver API has a version constant.** A user solver compiled against an
+7. **The solver API has a version constant.** A user solver compiled against an
    incompatible core fails at compile time with a clear message.
-7. **`user/solvers/` is discovered at configure time.** A `user/solvers/CMakeLists.txt`
-   or `SATURN_USER_SOLVERS` list adds the directories. No core edit is needed.
-8. **A scaffold tool** (`tools/newSolver.sh <builtin> <newName>`) copies a
-   built-in solver into `user/solvers/`, renames the class and registration, and
-   leaves the equations for the user to edit.
-9. **OpenFOAM analogy:** copy `src/solvers/burgers` to `user/solvers/myBurgers`,
-   edit `createFields`, `equations` and `options`, reconfigure/build, then
-   `saturnCFD -listSolvers` shows `myBurgers`.
+8. **The scaffold is C++:** `tools/newSolver.cpp`, built as the `saturnNewSolver`
+   executable. It copies the directory, renames the class/registration strings,
+   and prints the exact CMake line to add. No Bash script.
+9. **OpenFOAM analogy:** copy `src/solvers/burgers` to
+   `src/solvers/myBurgers`, edit `createFields` and `equations`, add one CMake
+   line, rebuild, then `saturnCFD -listSolvers` shows `myBurgers`.
 
 ## Solver directory layout
 
@@ -59,7 +63,7 @@ src/solvers/burgers/
   equations.cpp            # flux/operator assembly and advance
   diagnostics.cpp          # solver-specific diagnostics
   README.md                # what to edit, validation case
-  cases/traveling.yaml     # example case
+  cases/traveling64.yaml   # example case
 ```
 
 The split is deliberate: a user changing the physics edits `equations.cpp` and
@@ -68,22 +72,22 @@ The split is deliberate: a user changing the physics edits `equations.cpp` and
 ## User workflow
 
 ```bash
-# 1. copy a solver
-cp -r src/solvers/burgers user/solvers/myBurgers
+# 1. copy and rename (C++ tool; no shell script)
+saturnNewSolver burgers myBurgers
 
-# or scaffold it
-tools/newSolver.sh burgers myBurgers
+# 2. add the printed line to src/solvers/CMakeLists.txt:
+#    add_subdirectory(myBurgers)
 
-# 2. edit the equations/options/state
-#    user/solvers/myBurgers/equations.cpp
-#    user/solvers/myBurgers/createFields.cpp
-#    user/solvers/myBurgers/BurgersOptions.cpp
+# 3. edit the equations/options/state
+#    src/solvers/myBurgers/equations.cpp
+#    src/solvers/myBurgers/createFields.cpp
+#    src/solvers/myBurgers/MyBurgersOptions.cpp
 
-# 3. configure and build
-cmake -S . -B build -DSATURN_USER_SOLVERS=user/solvers
+# 4. build
+cmake -S . -B build
 cmake --build build -j
 
-# 4. inspect and run
+# 5. inspect and run
 saturnCFD -listSolvers
 saturnCFD -dumpConfig myBurgers -writeTemplate myBurgers.yaml
 saturnCFD myBurgers.yaml
@@ -97,19 +101,20 @@ The user does not edit `src/simulation`, `src/mesh`, `src/fv`, `src/linalg` or
 | alternative | why not chosen |
 |---|---|
 | Runtime `.so` plugins | C++ ABI, Kokkos/CUDA device code and symbol visibility are fragile; defer to CPU-only later |
+| `user/solvers/` auto-discovery | extra path and CMake magic; the user prefers copy + one line |
 | One monolithic solver file with `#ifdef` | not editable, not testable, not OpenFOAM-like |
 | User forks the whole repository | duplicates the substrate and loses upstream fixes |
-| Edit core files for each new equation | violates the separation and makes every change a merge conflict |
+| Bash scaffold script | not portable; the user wants C++ control |
 | Python user-defined equations | too slow for the target and adds an interpreter; not v1.0 |
 
 ## Consequences
 
-- **Build:** adding a solver requires a CMake reconfigure. This is the same
-  workflow as OpenFOAM's `wmake`, one step up.
+- **Build:** adding a solver requires a CMake reconfigure and one new line. Same
+  spirit as OpenFOAM's `wmake`, with CMake instead of a custom build system.
 - **API stability:** the solver interface becomes a public contract. Changes
   need an API version bump and a migration note.
-- **Testing:** each built-in solver is also the reference for the user template;
-  the scaffold test copies it, builds it and runs a small case.
+- **Testing:** the scaffold test copies `burgers`, builds `myBurgers`, lists it
+  and generates its template.
 - **GPU:** user solvers are compiled with the same Kokkos backend as the core;
   no runtime plugin boundary. This is a feature, not a limitation.
 - **Risk:** a user can write an unstable scheme. The core cannot validate the
@@ -117,13 +122,14 @@ The user does not edit `src/simulation`, `src/mesh`, `src/fv`, `src/linalg` or
 
 ## Validation / exit criteria
 
-- `tools/newSolver.sh burgers myBurgers` creates a buildable copy.
-- `saturnCFD -listSolvers` lists `myBurgers`.
+- `saturnNewSolver burgers myBurgers` creates a buildable copy under
+  `src/solvers/myBurgers` and prints the CMake line.
+- After adding the line, `saturnCFD -listSolvers` lists `myBurgers`.
 - `-dumpConfig myBurgers` produces a template with the user's options.
 - A copied solver with a changed coefficient runs and differs from the original
   in the expected way.
-- `-DSATURN_USER_SOLVERS=...` builds without editing `src/`.
 - A solver compiled against the wrong API version fails with a clear error.
+- The project builds on a machine without Bash-specific tooling.
 
 ## References
 

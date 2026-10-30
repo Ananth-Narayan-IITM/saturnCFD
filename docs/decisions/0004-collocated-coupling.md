@@ -21,7 +21,7 @@ default centred solver and the collocated mixed spaces of Nektar++/NekRS.
 
 **Use a collocated, cell-centred finite-volume formulation.**
 
-- Velocity \(\mathbf{u}_P=(u_P,v_P,w_P)\) and dynamic pressure \(p_P\) live at
+- Velocity $\mathbf{u}_P=(u_P,v_P,w_P)$ and dynamic pressure $p_P$ live at
   the cell centroid.
 - Convective and diffusive fluxes are evaluated on faces; face values are
   interpolated from the two adjacent cells.
@@ -60,7 +60,7 @@ default centred solver and the collocated mixed spaces of Nektar++/NekRS.
 ## Validation / exit criteria
 
 - Plane Poiseuille and Couette profiles match the analytic solution.
-- Lid-driven cavity at \(Re\to0\) converges and has no checkerboard pressure.
+- Lid-driven cavity at $Re\to0$ converges and has no checkerboard pressure.
 - The discrete divergence norm is below a stated tolerance after each
   pressure correction.
 - The pressure null space is handled explicitly and the mean pressure is
