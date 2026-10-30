@@ -66,8 +66,10 @@ two-phase flow, compressible flow.
    - temporary face fluxes; persistent `FaceField` when pressure needs it.
    - upwind/Rusanov/MUSCL convection.
    - boundary-condition application.
-   - tests: constant/linear fields, divergence theorem, manufactured Poisson,
-     limiter behaviour, CPU/GPU parity.
+   - tests: constant/linear fields, divergence theorem, MMS periodic/Dirichlet/
+     Neumann, steady and one-step advection–diffusion, limiter behaviour,
+     CPU/GPU parity.
+   - MMS methodology: [`../theory/manufacturedSolutions.md`](../theory/manufacturedSolutions.md).
    - plan: [`fvmKokkosPlan.md`](fvmKokkosPlan.md), ADR `0016`.
 
 3. **Solver lifecycle and skeleton**

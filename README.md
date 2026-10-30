@@ -65,8 +65,7 @@ saturnCFD -help test
 ```
 
 `CMAKE_BUILD_TYPE=Release` is an optimised, no-debug-symbols build. The
-compilation database is `build/compile_commands.json` (with a
-`build/compileCommands.json` copy). Clean with
+compilation database is `build/compile_commands.json`. Clean with
 `cmake --build build --target clean` or by removing the build directory.
 
 Enable completion once per shell:
@@ -166,6 +165,7 @@ because a workflow token is not allowed to create a Pages site
 - [Stokes](docs/theory/stokes.md)
 - [Incompressible Navier–Stokes](docs/theory/incompressible.md)
 - [Units](docs/theory/units.md)
+- [Manufactured solutions](docs/theory/manufacturedSolutions.md)
 - [References](docs/references.bib)
 
 ## Command line

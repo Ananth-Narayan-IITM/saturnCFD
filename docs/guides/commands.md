@@ -61,7 +61,6 @@ Compilation database:
 
 ```text
 build/compile_commands.json    # CMake/clangd standard
-build/compileCommands.json     # camelCase copy
 ```
 
 CPU/GPU builds are separate build directories because CMake fixes the compiler
@@ -71,11 +70,24 @@ commands are:
 ```bash
 cmake --preset cpu        # build-cpu, OpenMP
 cmake --build --preset cpu -j
+cmake --install build-cpu --prefix "$HOME/.local"
+
 cmake --preset gpu        # build-gpu, CUDA
 cmake --build --preset gpu -j
+cmake --install build-gpu --prefix "$HOME/.local"
 ```
 
-They do not coexist in one build directory.
+They do not coexist in one build directory. Install puts one `saturnCFD` on
+`PATH`; the installed binary carries the backend it was compiled with. Install
+the CPU or GPU build last to choose which one `saturnCFD` runs. Do not call
+`build-cpu/saturnCFD` or `build-gpu/saturnCFD` directly.
+
+Then the run is always:
+
+```bash
+mpirun -np 4 saturnCFD case.yaml
+mpirun -np 1 saturnCFD case.yaml
+```
 
 ## Clean
 

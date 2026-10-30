@@ -14,6 +14,7 @@ validation results and the observations.
 | [`stokes.md`](stokes.md) | Stokes equations, SIMPLE, Poiseuille/Couette |
 | [`incompressible.md`](incompressible.md) | incompressible Navier–Stokes, PISO, cavity |
 | [`units.md`](units.md) | SI convention, dynamic pressure, dimensionless groups |
+| [`manufacturedSolutions.md`](manufacturedSolutions.md) | MMS methodology, expected orders, pitfalls |
 
 ## Math rendering
 

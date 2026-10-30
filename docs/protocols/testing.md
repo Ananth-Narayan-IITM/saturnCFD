@@ -21,7 +21,7 @@ harness is retired.
 | `[unit]` | boxes, fields, units, config, mesh helpers | every build |
 | `[mesh]` | Gmsh reader, `checkMesh`, structured detection | every build |
 | `[config]` | schema, YAML, SI-only units, BC/initial validation | every build |
-| `[mms]` | manufactured-solution order of accuracy | nightly / release |
+| `[mms]` | manufactured-solution order of accuracy | every FVM change |
 | `[mpi]` | partition, halo, 1/2/4-rank equality | MPI CI |
 | `[gpu]` | GPU parity and device indexing | GPU CI |
 | `[regression]` | analytic and benchmark cases (Burgers wave, Poiseuille, Ghia) | nightly / release |
@@ -46,6 +46,12 @@ tests/
     incompressible/
   regression/             case files + expected values
 ```
+
+## Manufactured solutions
+
+MMS is the primary verification method for the FVM operators. The methodology,
+expected orders, rank/backend matrix and pitfalls are in
+[`../theory/manufacturedSolutions.md`](../theory/manufacturedSolutions.md).
 
 ## Regression policy
 

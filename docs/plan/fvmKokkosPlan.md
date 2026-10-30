@@ -25,9 +25,19 @@ different build directories:
 ```bash
 cmake --preset cpu        # build-cpu, OpenMP
 cmake --build --preset cpu -j
+cmake --install build-cpu --prefix "$HOME/.local"
 
 cmake --preset gpu        # build-gpu, CUDA
 cmake --build --preset gpu -j
+cmake --install build-gpu --prefix "$HOME/.local"
+```
+
+The installed `saturnCFD` carries the backend it was compiled with. Install the
+CPU or GPU build last to choose which one runs. The run command is always:
+
+```bash
+mpirun -np 4 saturnCFD case.yaml
+mpirun -np 1 saturnCFD case.yaml
 ```
 
 Planned cache variables:
@@ -150,6 +160,40 @@ The first validation set:
 - divergence theorem: sum of face fluxes equals volume integral;
 - manufactured Poisson: second-order convergence;
 - advection of a smooth pulse: correct speed and no overshoot with a limiter.
+
+## 7a. Manufactured-solution methodology
+
+MMS is the primary verification method for this layer, not an afterthought.
+The full derivation and pitfalls are in
+[`../theory/manufacturedSolutions.md`](../theory/manufacturedSolutions.md).
+
+The first MMS cases are:
+
+1. **2D/3D periodic Laplacian**
+   $$
+   \phi=\sin(2\pi x)\sin(2\pi y)\,[\sin(2\pi z)],
+   \quad
+   s=-d(2\pi)^2\phi.
+   $$
+   Run on 1, 2 and 4 ranks. Expected order: 2.
+2. **Dirichlet Laplacian** with exact boundary values; verifies boundary
+   ghosts.
+3. **Neumann Laplacian** with $\phi=\cos(\pi x)\cos(\pi y)[\cos(\pi z)]$;
+   verifies zero-normal-gradient ghosts.
+4. **Steady advection–diffusion** with a smooth manufactured field; verifies
+   the convection sign, interpolation and limiter branch.
+5. **One-step transient advection–diffusion**; refines $h$ and $\Delta t$
+   separately to separate spatial and temporal order.
+6. **CPU/GPU parity** and **1-rank/2-rank parity** on the same MMS case.
+
+For every case record $L^1$, $L^2$, $L^\infty$, observed order, rank count,
+backend and precision. A test passes only when the order is in the asymptotic
+range and matches the expected order within about 0.2.
+
+Why MMS, not just a benchmark: a physical benchmark cannot tell whether a
+second-order scheme is actually second order, and a unit test cannot catch a
+halo or face-orientation bug in the assembled operator. MMS tests the assembled
+discrete operator against the continuous PDE.
 
 ## 8. Tests
 
