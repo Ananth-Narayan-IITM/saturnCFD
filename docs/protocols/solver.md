@@ -43,6 +43,24 @@ registerSolver("burgers", [] { return std::make_unique<BurgersSolver>(); });
 `-listSolvers`, `solver:` in YAML and `-dumpConfig <solver>` all use the
 same registry.
 
+## User-editable solvers
+
+A solver is a self-contained directory under `src/solvers/<name>/` (built-in)
+or `user/solvers/<name>/` (user). It contains its lifecycle, options, state
+setup, equations and diagnostics. It is compiled into `saturnCFD` at build time;
+there is no runtime plugin in v1.0.
+
+A user copies a solver, edits `createFields`, `equations` and `options`, and
+builds with:
+
+```bash
+cmake -S . -B build -DSATURN_USER_SOLVERS=user/solvers
+cmake --build build -j
+```
+
+The full workflow, directory layout and API-version rule are in
+[`../guides/writingASolver.md`](../guides/writingASolver.md) and ADR `0011`.
+
 ## Time loop
 
 ```text

@@ -18,9 +18,10 @@ flow without being rewritten for each one.
 | P4 | parallel distribution and halo | (later) | deferred |
 | P5 | configuration and validation | `config.md` | accepted |
 | P6 | solver lifecycle and registry | `solver.md` | accepted |
+| P6b | user-editable solver authoring | `../guides/writingASolver.md` | accepted |
 | P7 | linear algebra (PETSc) | `linearAlgebra.md` | accepted |
 | P8 | I/O: VTU, CSV, checkpoint, manifest | (to write) | proposed |
-| P9 | verification: unit, MMS, regression | (to write) | proposed |
+| P9 | testing: unit, MMS, regression, parity | `testing.md` | proposed |
 | P10 | physics: Burgers, heat, Stokes, NS | `docs/theory/` | in progress |
 
 ## Rules for every protocol

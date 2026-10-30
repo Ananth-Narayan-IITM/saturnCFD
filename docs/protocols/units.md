@@ -63,6 +63,7 @@ are caught now.
 | time | T | s |
 | mass | M | kg |
 | temperature | Θ | K |
+| acceleration | L/T² | m/s² |
 | velocity | L/T | m/s |
 | pressure | M/(L T²) | Pa |
 | density | M/L³ | kg/m³ |

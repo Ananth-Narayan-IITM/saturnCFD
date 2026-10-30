@@ -41,7 +41,9 @@ decision is visible, argued, dated, and can be superseded without archaeology.
 | `0008` | SI only in v1.0; non-SI input is a validation error | accepted |
 | `0009` | Documentation, equations and citation protocol | accepted |
 | `0010` | CLI: single-dash camelCase options, `-help`, mesh VTK export | accepted |
+| `0011` | User-editable solvers, OpenFOAM-style, compiled into the binary | accepted |
+| `0012` | Test framework: doctest | proposed |
 
-The remaining open items are the YAML parser choice (yaml-cpp recommended), the
-test framework, and the exact GPU/MPI milestone. They do not block the mesh,
-Burgers or heat work.
+yaml-cpp is accepted as the YAML parser (ADR `0006`). The remaining open items
+are the test framework (ADR `0012`, doctest recommended) and the exact GPU/MPI
+milestone. They do not block the mesh, Burgers or heat work.

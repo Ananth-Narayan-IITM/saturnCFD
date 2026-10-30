@@ -11,9 +11,10 @@ passes on CPU.
 
 **Deliverables**
 
-- ADRs `0001`–`0010` (see `docs/decisions/`).
+- ADRs `0001`–`0012` (see `docs/decisions/`).
 - Protocol pages for CLI, units, mesh, finite volume, configuration, linear
-  algebra, solver lifecycle and documentation.
+  algebra, solver lifecycle, testing and documentation.
+- Dependency decisions: Kokkos, PETSc, yaml-cpp 0.8, doctest (proposed).
 - Theory pages with equations, exact solutions and validation plans.
 
 **Exit criterion**
@@ -36,6 +37,7 @@ passes on CPU.
 
 2. **Configuration and units**
    - `ConfigSchema`, typed entries, defaults, units, validators.
+   - yaml-cpp 0.8.x behind `ConfigSource`.
    - `src/core/Units.hpp`: dimension tags and `UnitSystem { SI }`.
    - `units.system: SI` or omitted; any non-SI input is a validation error.
    - `-dumpConfig <solver>`, `-writeTemplate <file>`, `-checkConfig`,
@@ -56,15 +58,26 @@ passes on CPU.
 5. **I/O**
    - VTU/PVD for structured hex meshes; `-writeVtk` from `-checkMesh`.
    - CSV diagnostics in SI.
-   - Run manifest (git hash, build, PETSc version, mesh hash, case hash).
+   - Run manifest (git hash, build, PETSc version, yaml-cpp version, mesh hash,
+     case hash).
    - Checkpoint format (binary with metadata).
+
+6. **Solver authoring**
+   - `src/solvers/<name>/` layout and `user/solvers/<name>/` discovery.
+   - `SATURN_REGISTER_SOLVER` and the solver API version.
+   - `tools/newSolver.sh` scaffold.
+   - A build test that copies `burgers`, builds `myBurgers`, lists it and
+     generates its template.
 
 **Exit criterion**
 
 - `checkMesh` passes on all accepted test meshes and rejects all bad ones.
 - `-checkConfig` catches every category of error in the tests.
+- yaml-cpp parse errors report line/column.
 - Non-SI `units:` input is rejected; SI or absent is accepted.
 - `-dumpConfig -writeTemplate` produces a template that passes `-checkConfig`.
+- A copied `burgers` solver builds as `user/solvers/myBurgers` and appears in
+  `-listSolvers`.
 - A 1D Poisson problem and a manufactured diffusion problem solve through
   PETSc to the expected order.
 

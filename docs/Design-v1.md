@@ -94,11 +94,31 @@ src/
     stokes/
     incompressible/
   simulation/   time loop, solver registry, factory
+user/
+  solvers/      user-copied solvers, built into the binary
+tools/
+  newSolver.sh  scaffold a solver from a built-in
 apps/main.cpp
 ```
 
 v0's `BoxArray`/`MultiFab` are not the v1 core: v1 is a structured
 finite-volume mesh with cell/face fields, not a patch-based AMR container.
+
+## 5a. Dependencies
+
+- **Kokkos** — performance portability.
+- **PETSc** — linear algebra.
+- **yaml-cpp 0.8.x** — YAML parsing; no hand-written parser.
+- **doctest** — test framework (proposed).
+- CMake >= 3.24, C++20.
+
+## 5b. User-editable solvers
+
+A solver is a self-contained directory with its lifecycle, options, state,
+equations and diagnostics. Built-ins live in `src/solvers/<name>`; users copy
+one to `user/solvers/<name>`, edit the equations and rebuild. User solvers are
+compiled into `saturnCFD`; there is no runtime plugin in v1.0. See
+[`guides/writingASolver.md`](guides/writingASolver.md) and ADR `0011`.
 
 ## 6. What is deliberately not in v1.0
 
@@ -111,10 +131,10 @@ finite-volume mesh with cell/face fields, not a patch-based AMR container.
 
 ## 7. Next actions
 
-1. Write the remaining protocol specs P1 (core), P8 (I/O) and P9 (verification).
-2. Verify the references and equation signs in the theory pages.
-3. Implement `checkMesh`, the YAML schema, the units binder and `-help` first,
-   because every solver depends on them.
+1. Accept or reject doctest (ADR `0012`); yaml-cpp is already accepted.
+2. Write the remaining protocol specs P1 (core), P8 (I/O) and P9 (testing).
+3. Implement `checkMesh`, the yaml-cpp schema, the SI-only validator, `-help`
+   and the user-solver scaffold first, because every solver depends on them.
 4. Implement Burgers and validate against the traveling wave before touching
    Stokes.
 5. Add mesh VTK export early so every validation case can be inspected in

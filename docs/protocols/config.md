@@ -44,6 +44,12 @@ Each solver implements `registerOptions(ConfigSchema&)`. Common modules
 - `-checkMesh <file.msh>` — mesh-only check, with optional `-report` and
   `-writeVtk`.
 
+## Parser
+
+The YAML parser is **yaml-cpp 0.8.x**, wrapped by `ConfigSource`. It is found
+with `find_package(yaml-cpp 0.8 QUIET)` or fetched at a pinned tag. Parse errors
+carry yaml-cpp's line/column marks. There is no hand-written YAML parser.
+
 ## Validation stages
 
 1. **Syntax** — YAML parses; duplicate keys rejected; line numbers kept.

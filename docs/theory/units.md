@@ -15,6 +15,7 @@ The contract is in [`../protocols/units.md`](../protocols/units.md).
 |---|---|---|
 | length, mesh coordinates | \(x,y,z\) | m |
 | time | \(t\) | s |
+| acceleration | \(\mathbf{a}\) | m/s² |
 | velocity | \(\mathbf{u}\) | m/s |
 | dynamic pressure | \(p\) | Pa = kg/(m·s²) |
 | density | \(\rho\) | kg/m³ |

@@ -23,11 +23,20 @@ Accepted so far:
 - collocated cell-centred variables, Rhie–Chow, SIMPLE/PISO;
 - PETSc for all linear algebra; no home-grown Krylov solver;
 - separate solver modules for Burgers, heat, Stokes and incompressible flow;
-- YAML schema generated from solver code, with strict validation;
+- YAML schema generated from solver code, parsed with **yaml-cpp 0.8**;
 - SI only in v1.0; non-SI YAML input is a validation error;
 - single-dash CLI, `-help`, `-checkMesh`, `-writeVtk` mesh export,
   generated solver templates with `-dumpConfig -writeTemplate`;
+- user-editable solvers: copy a solver directory, edit equations, rebuild;
 - no AMR in v1.0; AMR/two-phase is a later milestone.
+
+## Dependencies
+
+- C++20 compiler, CMake >= 3.24
+- Kokkos
+- PETSc
+- yaml-cpp 0.8.x
+- doctest (test framework, proposed)
 
 ## Equations and validation
 
@@ -75,8 +84,28 @@ src/
     stokes/
     incompressible/
   simulation/   time loop, solver registry
+user/
+  solvers/      user-copied solvers, built into the binary
+tools/
+  newSolver.sh  scaffold a solver from a built-in
 apps/main.cpp
 ```
+
+## Writing a solver
+
+```bash
+cp -r src/solvers/burgers user/solvers/myBurgers
+# edit createFields, equations and options
+cmake -S . -B build -DSATURN_USER_SOLVERS=user/solvers
+cmake --build build -j
+saturnCFD -listSolvers
+saturnCFD -dumpConfig myBurgers -writeTemplate myBurgers.yaml
+```
+
+The solver directory is self-contained; the mesh, finite-volume, PETSc and I/O
+layers are not edited. See
+[`docs/guides/writingASolver.md`](docs/guides/writingASolver.md) and ADR
+`0011`.
 
 ## Inspecting v0
 

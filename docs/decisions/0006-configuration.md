@@ -38,9 +38,10 @@ separate YAML template file guarantees that it will drift from the code.
   8. initial conditions have the right shape and dimension;
   9. linear-solver backend and parameters are available;
   10. output directory is writable.
-- The parser is behind a `ConfigSource` interface. The recommended parser is
-  yaml-cpp; a self-contained subset parser remains possible if dependency
-  weight matters.
+- The parser is **yaml-cpp 0.8.x**, behind a `ConfigSource` interface. It is
+  found with `find_package(yaml-cpp 0.8 QUIET)` or fetched at a pinned tag.
+  Parse errors keep yaml-cpp's line/column marks. No hand-written YAML parser is
+  maintained.
 - `-dumpConfig <solver> -mesh <file>` may list the actual patch names and
   emit a matching `boundary:` skeleton.
 

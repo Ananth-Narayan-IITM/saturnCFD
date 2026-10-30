@@ -54,6 +54,8 @@ public:
 ## Consequences
 
 - **Code:** `src/simulation`, `src/solvers/<name>`, a registry and a factory.
+- **Extensibility:** user solvers live in `user/solvers/<name>` and are built
+  into the binary; see ADR `0011` and `docs/guides/writingASolver.md`.
 - **YAML:** `solver:` selects the module; `-dumpConfig <solver>` calls its
   registration function.
 - **Testing:** each solver can be driven by a small `Simulation` in a unit test.
