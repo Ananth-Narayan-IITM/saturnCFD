@@ -21,7 +21,8 @@ finite-volume layer can use without re-checking topology.
 - Gmsh `.msh` ASCII 2.2 first, 4.1 second.
 - Only volume elements of type hexahedron (Gmsh type 5) are accepted.
 - Physical groups become patches. A patch name must be unique.
-- `mesh.scale` multiplies coordinates once, at read time, into metres.
+- Coordinates are read in `units.length` and converted to metres at read time.
+  There is no separate `mesh.scale`.
 
 ## Pipeline
 
@@ -63,7 +64,7 @@ If any invariant fails, the mesh is rejected as unstructured or malformed.
 
 ## `checkMesh` report
 
-`saturnCFD --check-mesh file.msh [--json report.json]` prints:
+`saturnCFD -checkMesh file.msh [-report report.json] [-writeVtk prefix]` prints:
 
 - file, format, cell/point/face counts, element types;
 - patch names and face counts;
@@ -73,6 +74,10 @@ If any invariant fails, the mesh is rejected as unstructured or malformed.
 - errors, warnings, status.
 
 Errors exit non-zero and prevent any solver. Warnings do not.
+
+`-writeVtk prefix` writes `<prefix>.vtu` (volume mesh with cell quality), one
+`<prefix>_<patch>.vtp` per boundary patch, `<prefix>.pvd` for ParaView and
+`<prefix>.json` with patch names and metrics. Open the `.pvd`.
 
 ## Host/device rules
 
@@ -97,7 +102,8 @@ Errors exit non-zero and prevent any solver. Warnings do not.
 - tetrahedral mesh: fail with unsupported element;
 - one flipped face: fail with orientation;
 - one-cell-thick box with `empty`: 2D;
-- non-contiguous hex mesh: fail as unstructured.
+- non-contiguous hex mesh: fail as unstructured;
+- `-writeVtk` output contains the volume and every named patch.
 
 ## References
 

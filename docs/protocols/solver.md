@@ -40,7 +40,7 @@ public:
 registerSolver("burgers", [] { return std::make_unique<BurgersSolver>(); });
 ```
 
-`--list-solvers`, `solver:` in YAML and `--dump-config <solver>` all use the
+`-listSolvers`, `solver:` in YAML and `-dumpConfig <solver>` all use the
 same registry.
 
 ## Time loop

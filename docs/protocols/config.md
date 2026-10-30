@@ -35,36 +35,95 @@ Each solver implements `registerOptions(ConfigSchema&)`. Common modules
 
 ## Commands
 
-- `--list-solvers`
-- `--dump-config <solver>` — generate a commented template from the schema.
-- `--dump-config <solver> --mesh <file>` — include actual patch names.
-- `--check-config <case.yaml>` — run all stages and exit.
-- `--check-mesh <file.msh>` — mesh-only check.
+- `-help [option]` — general or per-option help.
+- `-listSolvers`
+- `-dumpConfig <solver>` — generate a commented template from the schema.
+- `-dumpConfig <solver> -mesh <file>` — include actual patch names.
+- `-checkConfig <case.yaml>` — run all stages and exit.
+- `-checkMesh <file.msh>` — mesh-only check, with optional `-report` and
+  `-writeVtk`.
 
 ## Validation stages
 
 1. **Syntax** — YAML parses; duplicate keys rejected; line numbers kept.
 2. **Schema** — required keys present; unknown keys rejected; type, range,
    enum and vector length correct.
-3. **Cross-field** — solver/field compatibility; CFL and time step; dimension;
+3. **Units** — the `units:` block parses, every unit has the expected
+   dimension, and every dimensioned value is converted to SI.
+4. **Cross-field** — solver/field compatibility; CFL and time step; dimension;
    required physical properties.
-4. **Mesh** — file exists, parses, `checkMesh` passes.
-5. **Boundary** — every mesh patch has a BC; every BC patch exists.
-6. **BC semantics** — type valid for the field; value shape matches the
+5. **Mesh** — file exists, parses, `checkMesh` passes.
+6. **Boundary** — every mesh patch has a BC; every BC patch exists.
+7. **BC semantics** — type valid for the field; value shape matches the
    dimension; no `fixedValue` on an `empty` patch.
-7. **Initial conditions** — shape, dimension and range valid.
-8. **Linear solver** — PETSc available; method/preconditioner names valid.
-9. **Output** — prefix directory writable.
+8. **Initial conditions** — shape, dimension and range valid.
+9. **Linear solver** — PETSc available; method/preconditioner names valid.
+10. **Output** — prefix directory writable.
 
 A failure prints the key, the file/line where possible, the expected value and
 the actual value, and exits non-zero.
+
+## Units block
+
+```yaml
+units:
+  length: m
+  time: s
+  velocity: m/s
+  pressure: Pa
+  density: kg/m^3
+  dynamicViscosity: Pa.s
+  kinematicViscosity: m^2/s
+  temperature: K
+```
+
+All entries are optional and default to SI. Values are converted once, at
+binding; the solver sees SI `double` only. A generic scalar declares its unit
+in `fields.<name>.unit`. See `docs/protocols/units.md`.
+
+A complete fragment:
+
+```yaml
+solver: burgers
+
+units:
+  length: mm
+  time: s
+  velocity: m/s
+  dynamicViscosity: mPa.s
+
+mesh:
+  file: meshes/channel.msh
+  dimension: auto
+
+fields:
+  u:
+    unit: m/s
+    initial:
+      type: constant
+      value: 1.0
+
+boundary:
+  inlet:
+    type: fixedValue
+    value: 1.0
+  outlet:
+    type: zeroGradient
+  walls:
+    type: zeroGradient
+  frontAndBack:
+    type: empty
+```
+
+The mesh coordinates are interpreted in mm and stored in m; the velocity and
+the inlet value stay in m/s; the viscosity is converted from mPa·s to Pa·s.
 
 ## Invariants
 
 - The template is generated from the same registration used to read a case.
 - No solver reads a key that is not in the schema.
 - No default is duplicated in two places.
-- A case that passes `--check-config` cannot fail later because of config
+- A case that passes `-checkConfig` cannot fail later because of config
   semantics.
 
 ## Host/device rules
@@ -74,7 +133,7 @@ Config parsing and validation are host-only and happen before
 
 ## Tests
 
-- round-trip: `--dump-config` then `--check-config`;
+- round-trip: `-dumpConfig` then `-checkConfig`;
 - unknown key;
 - missing required key;
 - wrong type;

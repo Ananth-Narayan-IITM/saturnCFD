@@ -24,7 +24,8 @@ Accepted so far:
 - PETSc for all linear algebra; no home-grown Krylov solver;
 - separate solver modules for Burgers, heat, Stokes and incompressible flow;
 - YAML schema generated from solver code, with strict validation;
-- SI units internally; a full units parser is deferred;
+- SI units internally; a `units:` block converts YAML values at binding;
+- single-dash CLI, `-help`, `-checkMesh`, `-writeVtk` mesh export;
 - no AMR in v1.0; AMR/two-phase is a later milestone.
 
 ## Equations and validation
@@ -38,11 +39,28 @@ Accepted so far:
 - [Units](docs/theory/units.md)
 - [References](docs/references.bib)
 
+## Command line
+
+```bash
+saturnCFD case.yaml
+saturnCFD -checkMesh mesh.msh
+saturnCFD -checkMesh mesh.msh -report report.json
+saturnCFD -checkMesh mesh.msh -writeVtk output/mesh
+saturnCFD -checkConfig case.yaml
+saturnCFD -dumpConfig burgers
+saturnCFD -help
+saturnCFD -help checkMesh
+```
+
+`-writeVtk` writes a volume `.vtu`, one boundary `.vtp` per patch, a `.pvd`
+collection and a JSON sidecar. Open the `.pvd` in ParaView. The full option
+list is in [`docs/protocols/cli.md`](docs/protocols/cli.md).
+
 ## Planned layout
 
 ```text
 src/
-  core/         types, errors, logging, timer, physical properties
+  core/         types, errors, logging, timer, units, physical properties
   config/       YAML schema, parser, validation
   mesh/         Mesh, GmshReader, CheckMesh, StructuredMesh
   fv/           gradient, divergence, laplacian, interpolation,

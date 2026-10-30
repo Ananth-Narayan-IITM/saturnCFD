@@ -54,7 +54,7 @@ public:
 ## Consequences
 
 - **Code:** `src/simulation`, `src/solvers/<name>`, a registry and a factory.
-- **YAML:** `solver:` selects the module; `--dump-config <solver>` calls its
+- **YAML:** `solver:` selects the module; `-dumpConfig <solver>` calls its
   registration function.
 - **Testing:** each solver can be driven by a small `Simulation` in a unit test.
 - **Risk:** the interface must not leak solver-specific state into
@@ -62,8 +62,8 @@ public:
 
 ## Validation / exit criteria
 
-- `--list-solvers` prints the registered names.
-- `--dump-config burgers` prints only Burgers options plus common options.
+- `-listSolvers` prints the registered names.
+- `-dumpConfig burgers` prints only Burgers options plus common options.
 - An unknown solver name is a clear error.
 - A trivial solver can be registered in a test and advanced without changing
   `Simulation`.

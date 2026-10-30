@@ -14,6 +14,14 @@ records what was measured, not only what matched.
 | `mesh.md` | `checkMesh` | waiting for Phase 1 |
 | `config.md` | YAML validation | waiting for Phase 1 |
 
+Mesh validation is reproducible with:
+
+```bash
+saturnCFD -checkMesh mesh.msh -report report.json -writeVtk output/mesh
+```
+
+Open `output/mesh.pvd` in ParaView to inspect the volume and boundary patches.
+
 ## Required content
 
 Every page states:

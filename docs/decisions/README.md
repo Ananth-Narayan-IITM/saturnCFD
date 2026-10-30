@@ -38,8 +38,9 @@ decision is visible, argued, dated, and can be superseded without archaeology.
 | `0005` | `Solver` lifecycle and registry; `Simulation` owns the time loop | accepted |
 | `0006` | Typed config schema, generated templates, strict validation | accepted |
 | `0007` | `checkMesh` module and structured-mesh detection | accepted |
-| `0008` | SI units from the start; full units layer later | proposed |
+| `0008` | SI units from the start; units parsed at the config boundary | accepted |
 | `0009` | Documentation, equations and citation protocol | accepted |
+| `0010` | CLI: single-dash camelCase options, `-help`, mesh VTK export | accepted |
 
 The remaining open items are the YAML parser choice (yaml-cpp recommended), the
 test framework, and the exact GPU/MPI milestone. They do not block the mesh,

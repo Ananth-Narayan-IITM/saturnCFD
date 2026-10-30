@@ -1,10 +1,13 @@
 # Units and dimensional consistency
 
-**Status:** proposed (ADR `0008`)
+**Status:** accepted (ADR `0008`)
 
-The solver uses **SI internally and in YAML**. There is no hidden
+The solver uses **SI internally**. YAML values may be written in a declared
+unit and are converted to SI once, at configuration binding. There is no hidden
 non-dimensionalisation in v1.0. Benchmark cases use SI values that happen to
 correspond to the usual dimensionless set-up.
+
+The binding contract is in [`../protocols/units.md`](../protocols/units.md).
 
 ## 1. Conventions
 
@@ -23,8 +26,36 @@ correspond to the usual dimensionless set-up.
 | cell volume | \(V_P\) | m³ |
 | face area | \(A_f\) | m² |
 
-Mesh coordinates are multiplied by `mesh.scale` once at read time, so a mesh in
-millimetres can be imported with `scale: 1.0e-3`.
+Mesh coordinates are read in `units.length` and converted to metres at read
+time. There is no `mesh.scale`; the unit block is the single conversion point.
+
+## 1a. YAML units block
+
+```yaml
+units:
+  length: mm
+  time: s
+  velocity: m/s
+  pressure: kPa
+  density: kg/m^3
+  dynamicViscosity: mPa.s
+  kinematicViscosity: m^2/s
+  temperature: K
+```
+
+All entries are optional and default to SI. A value of `1000` in a length slot
+with `length: mm` becomes `1 m`; a pressure of `101.325` with `pressure: kPa`
+becomes `101325 Pa`. The solver sees SI only.
+
+A generic scalar declares its unit:
+
+```yaml
+fields:
+  u:
+    unit: m/s
+  T:
+    unit: K
+```
 
 ## 2. Dynamic pressure, not kinematic pressure
 
@@ -116,24 +147,21 @@ with \(T\) [K], \(\alpha\) [m²/s], \(S\) [K/s].
 
 - Do not mix a dimensionless velocity with a dimensional pressure in one case.
 - Do not hard-code \(\rho=1\) without writing it in the case file.
-- Do not scatter conversion factors through kernels. Conversions belong in
-  `PhysicalProperties`, `mesh.scale`, and the future `units:` parser.
+- Do not scatter conversion factors through kernels. Conversions belong in the
+  config binder and `PhysicalProperties`; the solver receives SI.
 - Do not add a units library to hot kernels; convert at the boundary.
 
-## 6. Future units layer
+## 6. Future extensions
 
-When the solvers are stable, add an optional `units:` block:
+The v1.0 `units:` block is a global declaration per quantity family. Later
+extensions can add:
 
-```yaml
-units:
-  length: cm
-  velocity: m/s
-  pressure: Pa
-```
+- per-value suffixes such as `1.0 cm`, `1.0e-3 Pa s`;
+- a `units.system: CGS` preset;
+- `mp-units` or a small `Quantity<Dimension>` wrapper at the config and I/O
+  boundary only.
 
-and parse values such as `1.0 cm`, `1.0e-3 Pa s`. Internally everything remains
-SI. `mp-units` or a small `Quantity<Dimension>` wrapper can be used at the
-config and I/O boundary only.
+The internal representation stays SI in every case.
 
 ## References
 

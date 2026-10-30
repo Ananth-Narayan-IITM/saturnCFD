@@ -32,8 +32,9 @@ A single codebase that:
 | solvers | separate modules for Burgers, heat, Stokes, incompressible |
 | selection | `Solver` interface + registry; `solver:` in YAML |
 | time loop | `Simulation` owns time, step, output, checkpoints and manifest |
-| config | typed schema, generated `--dump-config`, strict `--check-config` |
-| units | SI internally from the start; full units parser later |
+| config | typed schema, generated `-dumpConfig`, strict `-checkConfig` |
+| units | SI internally; YAML `units:` block converted once at binding |
+| CLI | single-dash camelCase options; `-help`, `-checkMesh`, `-writeVtk` |
 | AMR | out of v1.0; revisit after incompressible NS is stable, for two-phase flow |
 
 ## 3. Why collocated
@@ -58,11 +59,28 @@ Navier–Stokes.
 
 Compressible flow is out of v1.0. Two-phase flow and AMR are later.
 
+## 4a. Command line and mesh visualisation
+
+```bash
+saturnCFD case.yaml
+saturnCFD -checkMesh mesh.msh
+saturnCFD -checkMesh mesh.msh -report report.json
+saturnCFD -checkMesh mesh.msh -writeVtk output/mesh
+saturnCFD -checkConfig case.yaml
+saturnCFD -dumpConfig burgers
+saturnCFD -help
+saturnCFD -help checkMesh
+```
+
+`-writeVtk` writes a volume `.vtu`, one boundary `.vtp` per patch, a `.pvd`
+collection and a JSON sidecar; open the `.pvd` in ParaView. The full option
+list is in `docs/protocols/cli.md`.
+
 ## 5. Directory layout
 
 ```text
 src/
-  core/         types, errors, logging, timer, physical properties
+  core/         types, errors, logging, timer, units, physical properties
   config/       YAML schema, parser, validation
   mesh/         Mesh, GmshReader, CheckMesh, StructuredMesh
   fv/           gradient, divergence, laplacian, interpolation,
@@ -87,16 +105,17 @@ finite-volume mesh with cell/face fields, not a patch-based AMR container.
 - AMR, regridding, two-phase flow;
 - compressible flow;
 - GPU kernels (design for them, implement later);
-- a full units library (SI is enforced by convention and documented);
+- a full units library beyond the YAML `units:` block (values are converted
+  to SI at binding);
 - a home-grown Krylov solver.
 
 ## 7. Next actions
 
-1. Accept or amend ADR `0008` (units).
-2. Write the protocol specs for mesh, config, finite volume, linear algebra and
-   solver lifecycle.
-3. Write the theory pages (already drafted) and verify the references.
-4. Implement `checkMesh` and the YAML schema/validation first, because every
-   solver depends on them.
-5. Implement Burgers and validate against the traveling wave before touching
+1. Write the remaining protocol specs P1 (core), P8 (I/O) and P9 (verification).
+2. Verify the references and equation signs in the theory pages.
+3. Implement `checkMesh`, the YAML schema, the units binder and `-help` first,
+   because every solver depends on them.
+4. Implement Burgers and validate against the traveling wave before touching
    Stokes.
+5. Add mesh VTK export early so every validation case can be inspected in
+   ParaView.

@@ -1,79 +1,107 @@
-# 0008 — Units and dimensional consistency
+# 0008 — SI units from the start; units parsed at the configuration boundary
 
-- **Status:** proposed
+- **Status:** accepted
 - **Date:** 2026-10-30
 - **Owner:** saturnCFD v1
 - **Supersedes:** none
-- **Protocol:** `docs/theory/units.md`
-- **Tests:** `tests/core/units...` (later)
+- **Protocol:** `docs/protocols/units.md`
+- **Tests:** `tests/config/units...`
 
 ## Context
 
-The user wants the whole solver to be dimensionally correct, but not to spend
-the first phase on a units library. The risk is that raw `Real` values mix
-metres, seconds, pascals and dimensionless Reynolds numbers, and that adding
-units later forces a revalidation of every case.
+The user wants the whole solver to be dimensionally correct, but does not want
+a units library inside the numerical kernels. The risk is that raw `Real`
+values mix metres, seconds, pascals and hidden dimensionless numbers, and that
+adding units later forces every validation case to be re-run.
 
-## Decision (recommended)
+## Decision
 
-1. **Use SI internally and in YAML from the start.** Mesh coordinates in
-   metres, velocity in m/s, pressure in Pa, density in kg/m³, dynamic viscosity
-   in Pa·s, temperature in K, time in s.
-2. **Store dynamic pressure \(p\) [Pa]**, not kinematic pressure, so the state
-   is ready for variable-density and two-phase flow. For constant density the
-   momentum equation is divided by \(\rho\); document that operation.
-3. **No mixed dimensionless runs.** Benchmark cases use SI values with
-   \(L=1\,\mathrm{m}\), \(U=1\,\mathrm{m/s}\), \(\rho=1\,\mathrm{kg/m^3}\) and
-   \(\mu=1/Re\,\mathrm{Pa\,s}\). The Reynolds number is a derived diagnostic,
-   not a hidden unit system.
-4. **Centralise conversions.** All physical properties live in a
-   `PhysicalProperties` struct; mesh scaling lives in one reader option
-   (`mesh.scale`, default 1.0). No scattered `* 1000` or `/ rho`.
-5. **Reserve a `units:` block** in the schema for later parsing of values such
-   as `1.0 cm`, `1.0e-3 Pa s`. It is not implemented in v1.0.
-6. **Design for a units layer at the boundary.** When the solvers are stable,
-   add `mp-units` or a small `Quantity<Dimension>` wrapper to config and I/O
-   only; convert to SI before any Kokkos kernel. Do not put unit types in hot
-   kernels.
-7. **Document both forms.** Every theory page gives the dimensional equation
-   and, where useful, its dimensionless form with the reference scales.
+1. **Internal representation is SI.** Every field, property and operator uses
+   SI values. There is no dimensionless internal mode.
+2. **YAML values are interpreted in the unit declared in a global `units:`
+   block.** The block is optional; omitted entries default to SI.
+3. **The conversion happens once, at configuration binding.** By the time a
+   solver sees a value, it is an SI `double`. No unit string or conversion
+   factor enters a Kokkos kernel.
+4. **A solver declares the dimension of each option.** The schema entry says
+   whether a value is a length, time, velocity, pressure, density, dynamic
+   viscosity, kinematic viscosity, temperature, thermal diffusivity, thermal
+   conductivity, specific heat, body force or dimensionless.
+5. **`fields.<name>.unit` declares the unit of a generic scalar or vector
+   field.** The solver supplies a default when the field has an obvious
+   physical meaning (velocity, pressure, temperature).
+6. **`mesh.scale` is removed.** Mesh coordinates use `units.length`.
+7. **Output is SI.** VTK, CSV and checkpoints store SI values. The run manifest
+   records the input `units:` block and the conversion factors.
+8. **Per-value unit strings** (`1.0 cm`, `1.0e-3 Pa s`) are a later extension,
+   not required for v1.0.
 
-## Why not wait entirely
+## YAML form
 
-Adding units after all four solvers are validated forces a re-run of every
-validation case and can change empirical constants. SI from the start is almost
-free and removes that risk. A full units library can wait, but the **naming,
-property structs and conversion points** should exist now.
+```yaml
+units:
+  length: m
+  time: s
+  mass: kg
+  temperature: K
+  velocity: m/s
+  pressure: Pa
+  density: kg/m^3
+  dynamicViscosity: Pa.s
+  kinematicViscosity: m^2/s
+  thermalDiffusivity: m^2/s
+  thermalConductivity: W/(m.K)
+  specificHeat: J/(kg.K)
+  bodyForce: N/m^3
+```
+
+All entries are optional and default to the SI unit shown. `-dumpConfig`
+includes the block with the SI defaults, so the user can see and change it. A
+case may use, for example:
+
+```yaml
+units:
+  length: mm
+  pressure: kPa
+  dynamicViscosity: mPa.s
+```
+
+Then every length-valued input (mesh coordinates, geometry) is read in mm,
+every pressure in kPa and every dynamic viscosity in mPa·s. The solver receives
+metres, pascals and Pa·s.
 
 ## Alternatives considered
 
 | alternative | why not chosen |
 |---|---|
-| Fully dimensionless internally | compact for incompressible benchmarks, but bad fit for compressible/two-phase and hides unit errors |
-| Full units library now | compile-time and GPU complexity before the physics is stable |
-| Raw `Real` with no convention | the exact failure mode the user wants to avoid |
-| SI everywhere but no `PhysicalProperties` | conversions scatter and become inconsistent |
+| Fully dimensionless internally | compact for incompressible benchmarks, but poor fit for compressible/two-phase and hides unit errors |
+| Full units library inside kernels | compile-time and GPU cost; no benefit in hot loops |
+| Raw `Real` with comments only | exactly the unit confusion the user wants to avoid |
+| Per-value unit suffix first | more parser work; the global block is enough for v1.0 |
+| `mesh.scale` plus units | two conversion mechanisms; easy to double-convert |
 
 ## Consequences
 
-- **Code:** `PhysicalProperties`, `Scales` (reserved), `mesh.scale`; no unit
-  types in kernels.
-- **YAML:** all values are SI; comments state the unit.
-- **Validation:** every analytic case is written in SI and checked
-  dimensionally before implementation.
-- **Risk:** users may supply CGS or mm; `mesh.scale` and the future `units:`
-  block are the mitigation.
+- **Code:** `src/core/Units.hpp` (unit table, dimensions, factors),
+  `src/config` (unit-aware binding), `PhysicalProperties` in SI.
+- **YAML:** a `units:` block and optional `fields.<name>.unit`.
+- **Validation:** every option has a dimension; a pressure in `m/s` fails at
+  `-checkConfig`.
+- **Solver:** solvers receive SI only. They do not parse or convert units.
+- **Risk:** a user may set inconsistent derived units; the config layer
+  validates dimensions, not the user's mental model. Documentation gives the
+  recommended SI block.
 
 ## Validation / exit criteria
 
-- The Burgers traveling wave uses \(U\) [m/s], \(\nu\) [m²/s] and the argument
-  \(U(x-Ut/2)/(4\nu)\) is dimensionless.
-- The heat boundary-layer solution uses \(u x/\alpha\) as a dimensionless
-  exponent.
-- The Stokes Poiseuille profile has units of m/s.
-- The run manifest records the unit convention.
+- A case with `units.length: mm` and a 1000 mm domain produces the same
+  solution as a 1 m case.
+- A pressure written in kPa equals the same pressure in Pa after binding.
+- A velocity in `m/s` assigned to a pressure key fails validation.
+- The run manifest records the units block.
+- No unit type appears in a Kokkos kernel signature.
 
 ## References
 
-- SI Brochure, 9th edition (BIPM).
-- `mp-units` documentation (future work).
+- BIPM, *SI Brochure*, 9th edition.
+- `mp-units` documentation (future replacement for the small unit table).

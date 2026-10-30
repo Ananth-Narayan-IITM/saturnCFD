@@ -11,15 +11,14 @@ passes on CPU.
 
 **Deliverables**
 
-- ADRs `0001`–`0009` (see `docs/decisions/`).
-- Protocol pages for mesh, finite volume, configuration, linear algebra,
-  solver lifecycle and documentation.
+- ADRs `0001`–`0010` (see `docs/decisions/`).
+- Protocol pages for CLI, units, mesh, finite volume, configuration, linear
+  algebra, solver lifecycle and documentation.
 - Theory pages with equations, exact solutions and validation plans.
 
 **Exit criterion**
 
-- The substrate decisions are accepted; the units decision (`0008`) is either
-  accepted or explicitly deferred.
+- The substrate decisions are accepted, including SI units (`0008`).
 - No open question blocks mesh, config or Burgers.
 
 ## Phase 1 — substrate
@@ -30,13 +29,17 @@ passes on CPU.
    - Gmsh 2.2 ASCII reader, then 4.1.
    - General `Mesh`, `StructuredMesh`, patches, geometry arrays.
    - `checkMesh`: structured detection, 2D rule, quality report, JSON output.
+   - `-checkMesh`, `-report`, `-writeVtk`; volume `.vtu`, per-patch `.vtp`,
+     `.pvd` and a JSON sidecar for ParaView.
    - Test meshes: uniform hex, stretched hex, one-cell-thick 2D, rejected
      tet/non-manifold/flipped.
 
-2. **Configuration**
+2. **Configuration and units**
    - `ConfigSchema`, typed entries, defaults, units, validators.
-   - `--dump-config <solver>`, `--check-config`, `--list-solvers`.
-   - Nine validation stages; BC and initial conditions in YAML.
+   - `src/core/Units.hpp`: dimension table, unit strings, SI factors.
+   - `units:` block and `fields.<name>.unit`; conversion to SI at binding.
+   - `-dumpConfig <solver>`, `-checkConfig`, `-listSolvers`, `-help`.
+   - Ten validation stages; BC and initial conditions in YAML.
 
 3. **Finite volume**
    - `CellField`, `FaceField`, `VectorCellField`.
@@ -50,15 +53,15 @@ passes on CPU.
    - Null-space helper; residual diagnostics.
 
 5. **I/O**
-   - VTU/PVD for structured hex meshes.
-   - CSV diagnostics.
+   - VTU/PVD for structured hex meshes; `-writeVtk` from `-checkMesh`.
+   - CSV diagnostics in SI.
    - Run manifest (git hash, build, PETSc version, mesh hash, case hash).
    - Checkpoint format (binary with metadata).
 
 **Exit criterion**
 
 - `checkMesh` passes on all accepted test meshes and rejects all bad ones.
-- `--check-config` catches every category of error in the tests.
+- `-checkConfig` catches every category of error in the tests.
 - A 1D Poisson problem and a manufactured diffusion problem solve through
   PETSc to the expected order.
 
@@ -162,4 +165,4 @@ passes on CPU.
 - Unit + manufactured-solution tests.
 - Validation case recorded with numbers.
 - Observations written, including failures.
-- `--dump-config` and `--check-config` work for its case files.
+- `-dumpConfig` and `-checkConfig` work for its case files.
