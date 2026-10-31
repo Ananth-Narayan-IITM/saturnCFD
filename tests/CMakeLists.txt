@@ -154,6 +154,29 @@ add_test(NAME cli_checkConfig_burgers
 set_tests_properties(cli_checkConfig_burgers
   PROPERTIES LABELS "cli;config;burgers;regression")
 
+# The standalone user-facing example must stay valid and numerically clean.
+set(SATURN_BURGERS_EXAMPLE
+    "${SATURN_SOURCE_DIR}/examples/saturnBurger/saturnBurger.yaml")
+add_test(NAME cli_checkConfig_example_burgers
+  COMMAND saturnCFD -checkConfig ${SATURN_BURGERS_EXAMPLE})
+set_tests_properties(cli_checkConfig_example_burgers
+  PROPERTIES LABELS "cli;config;burgers;regression")
+
+add_test(NAME burgers_example
+  COMMAND ${CMAKE_COMMAND}
+          -DCLI=$<TARGET_FILE:saturnCFD>
+          -DCASE=${SATURN_BURGERS_EXAMPLE}
+          -DOUT=${CMAKE_CURRENT_BINARY_DIR}/example_saturnBurger
+          -DPREFIX=results/saturnBurger/traveling
+          -DROWS=257
+          -DL2_MIN=3.0e-5
+          -DL2_MAX=6.0e-5
+          -DLINF_MAX=2.0e-4
+          -P ${CMAKE_CURRENT_SOURCE_DIR}/checkBurgers.cmake)
+set_tests_properties(burgers_example PROPERTIES
+  LABELS "burgers;regression" RUN_SERIAL TRUE
+  ENVIRONMENT "OMP_NUM_THREADS=1")
+
 if(SATURN_ENABLE_MPI)
   foreach(ranks 1 2 4)
     add_test(NAME burgers_traveling64_np${ranks}

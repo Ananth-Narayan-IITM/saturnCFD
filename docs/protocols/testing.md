@@ -114,6 +114,9 @@ because the CUDA toolkit is not installed.
 
 The YAML path is covered by `tests/regression/burgers/traveling64.yaml` and
 `tests/checkBurgers.cmake`; `ctest --preset burgers` runs it on 1/2/4 ranks.
+The standalone user example `examples/saturnBurger/saturnBurger.yaml` is checked
+by `burgers_example` (256 cells, $L^2\approx4.2\times10^{-5}$) and by
+`compareAnalytic.py`, which recomputes the analytic solution independently.
 The 2D/3D extension and shock-speed table are next. See
 [`../validation/burgers.md`](../validation/burgers.md),
 [`../theory/burgers.md`](../theory/burgers.md) and

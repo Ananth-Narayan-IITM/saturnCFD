@@ -119,6 +119,7 @@ Validation (viscous traveling wave, `U=1`, `nu=0.02`, `t=0.5`):
 | periodic inviscid shock, $u_0=-\sin(\pi x)$, N=128, t=0.5 | bounds [-0.9954, 0.9954], integral 1.5e-16 |
 | 1/2/4 ranks at N=256 | bitwise-identical L2 1.236378e-4 |
 | YAML CLI path | `ctest --preset burgers` passes on 1/2/4 ranks |
+| standalone example | `examples/saturnBurger` L2 4.226e-5 with an independent analytic script |
 
 The earlier rank-dependent traveling-wave error was a test-diagnostic bug: the
 test divided by the local owned-cell count. The solver was already rank

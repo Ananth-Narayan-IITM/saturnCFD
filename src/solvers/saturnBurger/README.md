@@ -47,6 +47,20 @@ mpirun -np 4 ./buildCPU/saturnCFD \
   tests/regression/burgers/traveling64.yaml
 ```
 
+A standalone user example with an independent analytic check is in
+`examples/saturnBurger/`:
+
+```bash
+cd examples/saturnBurger
+saturnCFD saturnBurger.yaml
+python3 compareAnalytic.py
+```
+
+It uses 256 cells on $[0,1]$, $x_0=0.25$ and $t=0.5$ s and reports
+$L^2=4.226\times10^{-5}$ against the exact wave. The script recomputes the
+analytic solution from the case parameters rather than trusting the solver's
+`u_exact` column.
+
 The case writes `results/burgers/traveling64.csv` and `.json` when
 `output.csv` and `output.json` are true. The CSV has
 

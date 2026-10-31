@@ -64,6 +64,30 @@ were already rank independent.
 | constant Burgers flux | zero divergence; face flux $-0.5/+0.5$ |
 | YAML CLI path | `saturnCFD case.yaml` writes CSV and JSON; CTest checks the norms |
 
+## Standalone example
+
+A user-facing case lives in `examples/saturnBurger/`:
+
+```bash
+cd examples/saturnBurger
+saturnCFD saturnBurger.yaml
+python3 compareAnalytic.py
+```
+
+It uses 256 cells on $[0,1]$, $x_0=0.25$, $U=1$, $\nu=0.02$ and $t=0.5$ s, so
+the wave is away from both boundaries. `compareAnalytic.py` re-reads the case
+parameters, recomputes the $\tanh$ solution independently and checks:
+
+```text
+L1 error    : 2.421051e-05
+L2 error    : 4.225856e-05
+Linf error  : 1.362376e-04
+PASS: L2 4.225856e-05 <= tolerance 1.0e-04
+```
+
+It also writes `results/saturnBurger/comparison.png`. The CTest slice checks
+this example with `burgers_example`.
+
 ## Reproduce
 
 ```bash

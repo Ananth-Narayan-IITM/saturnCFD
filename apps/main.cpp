@@ -35,10 +35,23 @@ namespace {
 
 using namespace saturn;
 
+/// Give Kokkos a valid OpenMP binding before it initializes. Without this,
+/// `Kokkos::OpenMP::initialize` prints the OMP_PROC_BIND warning on every run.
+/// The user can still override either variable in the environment.
+void configureOpenMPBinding() {
+#if defined(SATURN_USE_KOKKOS) && defined(_OPENMP)
+  if (std::getenv("OMP_PROC_BIND") == nullptr)
+    ::setenv("OMP_PROC_BIND", "spread", 0);
+  if (std::getenv("OMP_PLACES") == nullptr)
+    ::setenv("OMP_PLACES", "threads", 0);
+#endif
+}
+
 /// MPI/Kokkos lifecycle for a case run. Constructed only when a solver runs,
 /// so mesh/config commands stay lightweight.
 struct Runtime {
   Runtime(int& argc, char**& argv) {
+    configureOpenMPBinding();
 #ifdef SATURN_USE_MPI
     int provided = 0;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);

@@ -23,6 +23,14 @@ with observed orders 1.98/2.11/2.10/2.06/2.03, and 1/2/4 ranks give identical no
 See [`docs/validation/burgers.md`](docs/validation/burgers.md) and the figure
 [`docs/validation/figures/burgersValidation.png`](docs/validation/figures/burgersValidation.png).
 
+A standalone user example is in [`examples/saturnBurger/`](examples/saturnBurger/):
+
+```bash
+cd examples/saturnBurger
+saturnCFD saturnBurger.yaml
+python3 compareAnalytic.py     # independent analytic check + plot
+```
+
 MPI and GPU are **first-class from the first FVM layer**, not a later port.
 The decomposition, ghost-cell and one-GPU benchmark plan is in
 [`docs/plan/mpiGpuDesign.md`](docs/plan/mpiGpuDesign.md).

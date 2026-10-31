@@ -302,6 +302,11 @@ The 1D Burgers solver is registered. Run the YAML case directly:
 ./buildCPU/saturnCFD tests/regression/burgers/traveling64.yaml
 mpirun -np 4 ./buildCPU/saturnCFD tests/regression/burgers/traveling64.yaml
 python3 tools/validateBurgers.py     # table + validation figure
+
+# standalone user example + independent analytic comparison
+cd examples/saturnBurger
+saturnCFD saturnBurger.yaml
+python3 compareAnalytic.py
 ```
 
 The same form runs any registered solver:

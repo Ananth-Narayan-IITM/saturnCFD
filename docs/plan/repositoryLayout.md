@@ -96,6 +96,10 @@ saturnCFD/
 
   examples/
     README.md
+    saturnBurger/
+      saturnBurger.yaml          # standalone 1D traveling-wave case
+      compareAnalytic.py         # independent analytic check and plot
+      README.md
 
   tools/
     validateBurgers.py           # convergence table + validation figure
