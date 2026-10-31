@@ -100,6 +100,7 @@ cmake --build --preset cpu -j
 cmake --install buildCPU --prefix "$HOME/.local"
 
 export KOKKOS_ROOT=/path/to/cuda-kokkos
+# export KOKKOS_ROOT="$HOME/.local/kokkos-cuda"
 cmake --preset gpu        # buildGPU, CUDA, system Kokkos + nvcc_wrapper
 cmake --build --preset gpu -j
 cmake --install buildGPU --prefix "$HOME/.local"
@@ -120,6 +121,25 @@ They do not coexist in one build directory. Install puts one `saturnCFD` on
 `PATH`; the installed binary carries the backend it was compiled with. Install
 the CPU or GPU build last to choose which one `saturnCFD` runs. Do not call
 `buildCPU/saturnCFD` or `buildGPU/saturnCFD` directly.
+
+The installed binary is independent of the build tree:
+
+```bash
+cmake --install buildCPU --prefix "$HOME/.local"
+# now ~/.local/bin/saturnCFD exists
+rm -rf buildCPU buildGPU
+saturnCFD case.yaml          # still works
+```
+
+`which saturnCFD` shows the installed path. To remove it, delete that file or
+reinstall over it. Every run prints a `backend` line such as:
+
+```text
+backend : CPU (Kokkos OpenMP, 24 threads)
+backend : GPU (Kokkos CUDA, device 0: Quadro P620)
+```
+
+The same line is stored as `"backend"` in the JSON summary.
 
 Then the run is always:
 

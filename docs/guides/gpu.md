@@ -54,8 +54,16 @@ Use the architecture that matches the card (`Kokkos_ARCH_...`), for example
 ./buildGPU/saturnCFD examples/saturnBurger/saturnBurger2D/saturnBurger2D.yaml
 ```
 
-Both write the same CSV/JSON, and the analytic comparison is identical. The
-GPU `saturnBurger` tests also pass:
+Both write the same CSV/JSON, and the analytic comparison is identical. Each
+run prints the active backend before the time loop:
+
+```text
+backend : CPU (Kokkos OpenMP, 24 threads)
+backend : GPU (Kokkos CUDA, device 0: Quadro P620)
+```
+
+The same string is stored as `"backend"` in the JSON summary. The GPU
+`saturnBurger` tests also pass:
 
 ```bash
 ./buildGPU/testSaturnFV --test-case="saturnBurger:*"

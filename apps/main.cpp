@@ -29,6 +29,9 @@
 #ifdef SATURN_USE_KOKKOS
 #include <Kokkos_Core.hpp>
 #endif
+#ifdef KOKKOS_ENABLE_CUDA
+#include <cuda_runtime.h>
+#endif
 #ifdef SATURN_USE_MPI
 #include <mpi.h>
 #endif
@@ -130,6 +133,29 @@ int worldSize() {
   return size;
 #else
   return 1;
+#endif
+}
+
+/// Human-readable Kokkos backend and device, printed before the time loop.
+std::string backendDescription() {
+#ifdef KOKKOS_ENABLE_CUDA
+  const int device = Kokkos::device_id();
+  cudaDeviceProp properties{};
+  if (cudaGetDeviceProperties(&properties, device) == cudaSuccess) {
+    return "GPU (Kokkos CUDA, device " + std::to_string(device) + ": " +
+           properties.name + ")";
+  }
+  return "GPU (Kokkos CUDA, device " + std::to_string(device) + ")";
+#elif defined(KOKKOS_ENABLE_OPENMP)
+  return "CPU (Kokkos OpenMP, " + std::to_string(Kokkos::num_threads()) +
+         " threads)";
+#elif defined(KOKKOS_ENABLE_THREADS)
+  return "CPU (Kokkos Threads, " + std::to_string(Kokkos::num_threads()) +
+         " threads)";
+#elif defined(KOKKOS_ENABLE_SERIAL)
+  return "CPU (Kokkos Serial)";
+#else
+  return "unknown backend";
 #endif
 }
 
@@ -846,6 +872,9 @@ int runCase(const Cli& cli) {
     throw ConfigError(
         "time.scheme: implicit schemes are not implemented by this solver");
 
+  if (worldRank() == 0)
+    std::cout << "backend : " << backendDescription() << "\n";
+
   Simulation simulation(*solver, control, scheme);
   const auto wallStart = std::chrono::steady_clock::now();
   const SimulationResult result = simulation.run();
@@ -912,6 +941,7 @@ int runCase(const Cli& cli) {
     os << "{\n"
        << "  \"case\": \"" << cli.casePath << "\",\n"
        << "  \"solver\": \"" << solverName << "\",\n"
+       << "  \"backend\": \"" << backendDescription() << "\",\n"
        << "  \"ranks\": " << worldSize() << ",\n"
        << "  \"steps\": " << result.final.step << ",\n"
        << "  \"time\": " << result.final.time << ",\n"
