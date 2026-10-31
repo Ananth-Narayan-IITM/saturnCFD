@@ -27,7 +27,7 @@ saturnCFD/
     linalg/                     # saturnLinAlg: Petsc scope, KSP wrapper,
                                 # Poisson matrix assembly
     io/                         # VTU/PVD, CSV, checkpoint, run manifest
-    simulation/                 # Solver interface, registry, time loop
+    simulation/                 # Solver, registry, TimeControl, SSP-RK loop
     solvers/
       CMakeLists.txt            # addSolver(burgers), addSolver(heat), ...
       burgers/

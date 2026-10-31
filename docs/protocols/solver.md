@@ -1,6 +1,7 @@
 # P6 — Solver lifecycle protocol
 
-**Status:** accepted (ADR `0005`)
+**Status:** accepted (ADR `0005`). The explicit lifecycle and time loop are
+implemented; config registration, output cadence and implicit solves follow.
 
 ## Purpose
 
@@ -13,17 +14,28 @@ time loop, output, checkpointing or configuration machinery.
 class Solver {
 public:
   virtual ~Solver() = default;
-
   virtual std::string name() const = 0;
-  virtual void registerOptions(ConfigSchema& schema) const = 0;
-  virtual void initialize(const StructuredMesh& mesh,
-                          const Config& cfg) = 0;
-  virtual Real maxTimeStep() const = 0;
-  virtual void advance(Real dt) = 0;
-  virtual void writeDiagnostics(Diagnostics& diag) const = 0;
-  virtual void writeCheckpoint(Checkpoint& cp) const = 0;
+  virtual void initialize() = 0;
+  virtual void applyInitialConditions() = 0;
+  virtual void applyBoundaryConditions() = 0;
+  virtual void rhs(const CellField& state, CellField& rate) = 0;
+  virtual Real maxWaveSpeed() const = 0;
+  virtual Real maxDiffusivity() const = 0;
+  virtual Real minCellSize() const = 0;
+  virtual int dimension() const = 0;
+  virtual CellField& state() = 0;
+  virtual const CellField& state() const = 0;
 };
 ```
+
+The solver owns its fields and exposes the explicit rate `du/dt = rhs(u)`.
+`Simulation` owns the stage combination, stability limit and diagnostics.
+Forward Euler, SSPRK2 and SSPRK3 are implemented. Backward Euler,
+Crank–Nicolson and BDF2 are represented in `TimeScheme` and will use
+`saturnLinAlg` for implicit diffusion.
+
+Config registration, output/checkpoint callbacks and solver factories that
+receive `Config` are the next interface extension.
 
 ## Ownership
 
@@ -37,7 +49,8 @@ public:
 ## Registry
 
 ```cpp
-registerSolver("burgers", [] { return std::make_unique<BurgersSolver>(); });
+solverRegistry().add("burgers",
+                     [] { return std::make_unique<BurgersSolver>(); });
 ```
 
 `-listSolvers`, `solver:` in YAML and `-dumpConfig <solver>` all use the
@@ -67,16 +80,21 @@ The full workflow, directory layout and API-version rule are in
 
 ```text
 initialize()
+applyInitialConditions()
+applyBoundaryConditions()
 while (time < end && step < maxSteps) {
-  dt = min(maxTimeStep(), end - time)
-  advance(dt)
+  dt = TimeControl::stableDt(maxWaveSpeed, maxDiffusivity, hMin, dimension)
+  dt = min(dt, end - time)
+  explicitStep(dt)            // FE / SSPRK2 / SSPRK3
+  applyBoundaryConditions()
   time += dt; step += 1
-  diagnostics / output / checkpoint at their cadence
+  diagnostics at the requested cadence
 }
 ```
 
-`maxTimeStep()` is the solver's stability or accuracy limit. `Simulation`
-clips it to the remaining time; it does not invent a smaller step.
+`Simulation` clips the stability limit to the remaining time; it does not
+invent a larger step. A step below `dtMin` is an error. `docs/theory/timeIntegration.md`
+contains the stage formulas and the implicit schemes.
 
 ## Diagnostics
 

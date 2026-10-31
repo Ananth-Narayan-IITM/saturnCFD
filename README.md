@@ -9,11 +9,12 @@ validator, yaml-cpp schema validation, CLI help, VTK mesh export, the MPI
 partition/halo substrate, Kokkos `CellField`/`FaceField`, the device halo
 adapter, structured `LocalMesh`, interpolation/gradient/divergence,
 non-orthogonal Laplacian, Dirichlet/Neumann ghost fill, upwind/Rusanov/MUSCL
-convection, advection–diffusion and divergence-theorem tests, and a simplified
-Rhie–Chow flux are in place. PETSc 3.19.6 is linked through the separate
-`saturnLinAlg` library; the 1D/3D Poisson and all-Neumann tests pass on 1/2/4
-ranks. The FV Poisson matrix assembler, Burgers and heat solvers are next.
-Solver physics starts in Phase 2.
+convection, advection–diffusion and divergence-theorem tests, a simplified
+Rhie–Chow flux, and the explicit solver/time loop (forward Euler, SSPRK2/3,
+diagnostics, registry) are in place. PETSc 3.19.6 is linked through the
+separate `saturnLinAlg` library; the 1D/3D Poisson and all-Neumann tests pass
+on 1/2/4 ranks. The FV Poisson matrix assembler, implicit time schemes,
+Burgers and heat solvers are next. Solver physics starts in Phase 2.
 
 MPI and GPU are **first-class from the first FVM layer**, not a later port.
 The decomposition, ghost-cell and one-GPU benchmark plan is in

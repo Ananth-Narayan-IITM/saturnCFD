@@ -1,9 +1,10 @@
 # Phase 1 status and remaining work
 
 **Status:** mesh, configuration, CLI, the MPI partition/halo substrate, the
-CPU finite-volume operator slice and the Phase 0 PETSc linear-algebra layer are
-implemented. The FV Poisson matrix assembler, Burgers/heat solvers and GPU
-execution verification are next. The parallel design is in
+CPU finite-volume operator slice, the Phase 0 PETSc linear-algebra layer and
+the explicit solver/time-loop layer are implemented. The FV Poisson matrix
+assembler, implicit BE/CN/BDF2, Burgers/heat solvers and GPU execution
+verification are next. The parallel design is in
 [`mpiGpuDesign.md`](mpiGpuDesign.md); the solver sequence is in
 [`solverSequence.md`](solverSequence.md).
 
@@ -46,6 +47,9 @@ execution verification are next. The parallel design is in
 | `saturnLinAlg`, `PetscScope`, `KspSolver` | done |
 | 1D/3D Poisson and all-Neumann PETSc tests | done on 1/2/4 ranks |
 | `ctest --preset petsc` | done |
+| `src/simulation` `Solver`/`SolverRegistry`/`TimeControl` | done |
+| explicit `Simulation` loop (FE, SSPRK2/3) + diagnostics | done |
+| simulation tests in `testSaturnFV` | done on 1/2/4 ranks |
 | GPU-labelled FV regression cases | written; CUDA build not yet verified locally |
 
 ## Pending
@@ -53,7 +57,7 @@ execution verification are next. The parallel design is in
 | area | pending item |
 |---|---|
 | `src/fv` | pressure Poisson/SIMPLE-PISO coupling, persistent face flux, Rhie–Chow coefficient from the momentum diagonal |
-| `src/simulation` | `Solver` interface, registry, time loop, diagnostics |
+| `src/simulation` | output cadence, checkpoint, implicit time schemes |
 | `src/solvers` | `burgers` skeleton, `addSolver(burgers)`, `saturnCFDSolver` tool |
 | `src/config` | `boundary` and `fields` schemas; solver-specific option schemas |
 | `src/linalg` | FV Poisson matrix assembly, block/multi-RHS, fieldsplit/Schur |
@@ -110,9 +114,11 @@ Navier–Stokes. The list below is the repository build-out order.
    - MMS methodology: [`../theory/manufacturedSolutions.md`](../theory/manufacturedSolutions.md).
    - plan: [`fvmKokkosPlan.md`](fvmKokkosPlan.md), ADR `0016`.
 
-3. **Solver lifecycle and skeleton**
-   - `Solver` interface and registry.
-   - `Simulation` time loop.
+3. **Solver lifecycle and skeleton — explicit part done**
+   - Done: `Solver` interface, `SolverRegistry`, `TimeControl`.
+   - Done: `Simulation` with forward Euler, SSPRK2 and SSPRK3.
+   - Done: `src/simulation` diagnostics and stage workspaces.
+   - Next: implicit BE/CN/BDF2 with the PETSc diffusion solve.
    - `src/solvers/burgers` skeleton with options, `createFields`, `equations`,
      diagnostics.
    - `addSolver(burgers)`.
@@ -154,7 +160,10 @@ Then Phase 2: Burgers physics and the `traveling64` analytic regression.
   suppresses a checkerboard pressure.
 - **Done:** PETSc 3.19.6 links through `saturnLinAlg`; 1D/3D Poisson and
   all-Neumann tests pass on 1/2/4 ranks.
-- Pending: FV Poisson matrix assembly and Burgers/heat solvers.
+- **Done:** `Solver`, `SolverRegistry`, `TimeControl` and the explicit
+  `Simulation` loop; constant/cosine/sine cases pass on 1/2/4 ranks.
+- Pending: FV Poisson matrix assembly, implicit BE/CN/BDF2 and
+  Burgers/heat solvers.
 - Pending: pressure Poisson/SIMPLE-PISO with PETSc.
 - 1-rank and 2-rank *cross-run* results agree; a CUDA build reproduces the CPU
   reference within precision.

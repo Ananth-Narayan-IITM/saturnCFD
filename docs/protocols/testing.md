@@ -115,6 +115,20 @@ finite-volume matrix assembler is the next phase. See
 [`../guides/petsc.md`](../guides/petsc.md) and
 [`../theory/poisson.md`](../theory/poisson.md).
 
+## Time-loop tests
+
+`tests/TestSimulation.cpp` checks:
+
+- constant-field preservation with forward Euler, SSPRK2 and SSPRK3;
+- cosine diffusion decay against the analytic L2;
+- bounded sine advection with SSPRK3;
+- `TimeControl` selecting the convective or diffusive stability limit;
+- solver registry add/lookup/duplicate/unknown-name behaviour;
+- a clear error for an implicit scheme without an implicit solver.
+
+These run inside `testSaturnFV` under 1/2/4 ranks. The scheme derivations are
+in [`../theory/timeIntegration.md`](../theory/timeIntegration.md).
+
 ## Regression policy
 
 The stored-expectation format, tolerances and update rules are in

@@ -1,6 +1,8 @@
 # Solver implementation sequence
 
-**Status:** accepted. Phase 0 (PETSc linear algebra) implemented. Burgers is
+**Status:** accepted. Phase 0 (PETSc) and the explicit part of Phase 1
+(solver lifecycle, registry, time loop, SSP-RK) are implemented. Implicit
+BE/CN/BDF2 arrive with the PETSc diffusion solve in Burgers/heat. Burgers is
 next.
 
 This page records the order, decisions and exit criteria for the solver work.
@@ -56,17 +58,32 @@ Exit criteria: `ctest --preset petsc` passes; PETSc version reported.
 
 ## Phase 1 — Solver lifecycle and time loop
 
-- `Solver` interface and registry.
-- `Simulation` loop: initialize, step, diagnose, write.
-- `TimeControl`: dt, CFL, adaptive limits, active-limit diagnostic.
-- Time schemes:
-  - backward Euler;
-  - Crank–Nicolson;
-  - BDF2 (started with BE);
-  - SSP-RK2/RK3 for explicit convection.
-- Diagnostics: L1/L2/Linf, conservation, divergence, CFL, iterations.
+**Status:** explicit part done.
 
-Exit: a trivial advection/diffusion case runs through the loop on 1/2/4 ranks.
+Implemented:
+
+- `Solver` interface: state, `rhs`, boundary refresh, wave speed, diffusivity,
+  minimum cell size, dimension.
+- `SolverRegistry` with factory registration and name lookup.
+- `Simulation` loop: initialize, initial conditions, boundary refresh, stage
+  updates, diagnostics, final state.
+- `TimeControl`: dt, CFL, diffusion safety, adaptive stability limit, max/min
+  dt, max steps.
+- Explicit schemes: forward Euler, SSPRK2, SSPRK3.
+- Diagnostics: L1, L2, Linf, CFL, diffusive number, step, time, dt.
+- Test solver: periodic scalar advection–diffusion, MUSCL + local Laplacian.
+- Tests: constant-field preservation, cosine diffusion decay, bounded sine
+  advection, stability-limit selection, registry, implicit-scheme rejection
+  on 1/2/4 ranks.
+
+Pending:
+
+- backward Euler, Crank–Nicolson and BDF2 need the implicit diffusion solve;
+  add them with `saturnLinAlg` during Burgers/heat.
+- Output cadence/checkpoint and run manifest.
+
+Exit for the explicit slice is met: a periodic advection–diffusion case runs
+through the loop on 1/2/4 ranks.
 
 ## Phase 2 — Burgers
 

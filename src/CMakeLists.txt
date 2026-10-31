@@ -48,4 +48,5 @@ if(SATURN_ENABLE_PETSC)
   add_subdirectory(linalg)
 endif()
 
+add_subdirectory(simulation)
 add_subdirectory(solvers)

@@ -16,6 +16,7 @@ validation results and the observations.
 | [`units.md`](units.md) | SI convention, dynamic pressure, dimensionless groups |
 | [`manufacturedSolutions.md`](manufacturedSolutions.md) | MMS methodology, expected orders, pitfalls |
 | [`poisson.md`](poisson.md) | FV Poisson matrix, Dirichlet/Neumann, nullspace, PETSc tests |
+| [`timeIntegration.md`](timeIntegration.md) | SSP-RK, BE/CN/BDF2, CFL and IMEX |
 
 ## Math rendering
 

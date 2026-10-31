@@ -140,6 +140,7 @@ Direct FVM runs:
 ./buildCPU/testSaturnFV
 mpirun -np 2 buildCPU/testSaturnFV
 mpirun -np 4 buildCPU/testSaturnFV
+./buildCPU/testSaturnFV --test-case="simulation:*"
 ```
 
 Direct PETSc runs:

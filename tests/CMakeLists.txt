@@ -46,10 +46,12 @@ if(SATURN_ENABLE_KOKKOS)
     TestFvMain.cpp
     TestFv.cpp
     TestLocalMesh.cpp
+    TestSimulation.cpp
   )
   set_target_properties(testSaturnFV PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
-  target_link_libraries(testSaturnFV PRIVATE saturn::core doctest::doctest)
+  target_link_libraries(testSaturnFV PRIVATE
+    saturn::core saturn::Simulation doctest::doctest)
 
   set(SATURN_FV_LABELS "fv;regression;parity")
   if(SATURN_BACKEND STREQUAL "cuda")

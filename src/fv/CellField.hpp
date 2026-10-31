@@ -64,6 +64,31 @@ class CellField {
 
   view_type view() const { return mData; }
 
+  /// Allocate a distinct field with the same metadata and values.
+  CellField clone() const {
+    CellField out;
+    out.mNGrow = mNGrow;
+    out.mNcomp = mNcomp;
+    for (int d = 0; d < 3; ++d) {
+      out.mOrigin[d] = mOrigin[d];
+      out.mExtent[d] = mExtent[d];
+    }
+    out.mData = view_type(mData.label(), ghostExtent(0), ghostExtent(1),
+                          ghostExtent(2), mNcomp);
+    Kokkos::deep_copy(out.mData, mData);
+    return out;
+  }
+
+  /// Deep-copy values from another field with the same metadata.
+  void copyFrom(const CellField& other) {
+    if (mNGrow != other.mNGrow || mNcomp != other.mNcomp ||
+        mOrigin[0] != other.mOrigin[0] || mOrigin[1] != other.mOrigin[1] ||
+        mOrigin[2] != other.mOrigin[2] || mExtent[0] != other.mExtent[0] ||
+        mExtent[1] != other.mExtent[1] || mExtent[2] != other.mExtent[2])
+      throw std::invalid_argument("CellField: copyFrom layout mismatch");
+    Kokkos::deep_copy(mData, other.mData);
+  }
+
   /// Copy the whole ghosted field to host memory (synchronous).
   host_view_type hostView() const {
     host_view_type host = Kokkos::create_mirror_view(mData);

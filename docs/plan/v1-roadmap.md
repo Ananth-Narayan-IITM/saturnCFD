@@ -31,10 +31,12 @@ MPI partition/halo, Kokkos `CellField`/`FaceField`, the device halo adapter,
 `LocalMesh`, interpolation/gradient/divergence, non-orthogonal Laplacian,
 Dirichlet/Neumann ghost fill, upwind/Rusanov/MUSCL convection,
 advection–diffusion MMS, a simplified Rhie–Chow flux, PETSc Phase 0
-(`saturnLinAlg`, 1D/3D Poisson tests), Doxygen pipeline and regression tests
-are in place. The FV Poisson assembler, Burgers/heat solvers and pressure
-coupling remain. The detailed checklist is [`phase1Status.md`](phase1Status.md);
-the solver sequence is [`solverSequence.md`](solverSequence.md).
+(`saturnLinAlg`, 1D/3D Poisson tests), the explicit solver lifecycle/time loop
+(forward Euler, SSPRK2/3), Doxygen pipeline and regression tests are in place.
+The FV Poisson assembler, implicit time schemes, Burgers/heat solvers and
+pressure coupling remain. The detailed checklist is
+[`phase1Status.md`](phase1Status.md); the solver sequence is
+[`solverSequence.md`](solverSequence.md).
 
 **Deliverables**
 

@@ -158,6 +158,11 @@ If the change is not understood, it is a bug, not a new baseline.
 | `petsc/poisson1d` | 1D Dirichlet Poisson, second-order | implemented |
 | `petsc/poisson3d` | 3D Poisson with CG + GAMG | implemented |
 | `petsc/neumann` | all-Neumann nullspace and residual | implemented |
+| `simulation/constant` | all explicit schemes preserve a constant field | implemented |
+| `simulation/diffusion` | SSPRK3 cosine decay against analytic L2 | implemented |
+| `simulation/bounded` | SSPRK3 sine advection bounded | implemented |
+| `simulation/timeControl` | convective/diffusive stability limit | implemented |
+| `simulation/registry` | add/lookup/duplicate/unknown solver | implemented |
 
 The FVM entry is a library regression until the Burgers solver exists: the
 stored 32$^3$ `L2=0.13435580757778084` is the smallest scalar that catches a
