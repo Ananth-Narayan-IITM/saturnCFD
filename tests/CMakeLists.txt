@@ -38,7 +38,8 @@ if(SATURN_ENABLE_MPI)
     COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 4
             ${SATURN_MPI_PREFLAGS} $<TARGET_FILE:testSaturnMPI>)
   set_tests_properties(mpi_np1 mpi_np2 mpi_np4 PROPERTIES
-    LABELS "mpi" RUN_SERIAL TRUE)
+    LABELS "mpi" RUN_SERIAL TRUE
+    ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
 endif()
 
 if(SATURN_ENABLE_KOKKOS)
@@ -48,6 +49,7 @@ if(SATURN_ENABLE_KOKKOS)
     TestLocalMesh.cpp
     TestSimulation.cpp
     TestSaturnBurger.cpp
+    TestSaturnBurger2D.cpp
   )
   set_target_properties(testSaturnFV PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
@@ -65,7 +67,8 @@ if(SATURN_ENABLE_KOKKOS)
         COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${ranks}
                 ${SATURN_MPI_PREFLAGS} $<TARGET_FILE:testSaturnFV>)
       set_tests_properties(fv_np${ranks} PROPERTIES
-        LABELS "${SATURN_FV_LABELS};mpi" RUN_SERIAL TRUE)
+        LABELS "${SATURN_FV_LABELS};mpi" RUN_SERIAL TRUE
+        ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
     endforeach()
   else()
     add_test(NAME fv_serial COMMAND testSaturnFV)
@@ -89,7 +92,8 @@ if(SATURN_ENABLE_PETSC)
         COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${ranks}
                 ${SATURN_MPI_PREFLAGS} $<TARGET_FILE:testSaturnPETSc>)
       set_tests_properties(petsc_np${ranks} PROPERTIES
-        LABELS "petsc;linalg;regression;mpi" RUN_SERIAL TRUE)
+        LABELS "petsc;linalg;regression;mpi" RUN_SERIAL TRUE
+        ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
     endforeach()
   else()
     add_test(NAME petsc_serial COMMAND testSaturnPETSc)
@@ -162,20 +166,31 @@ add_test(NAME cli_checkConfig_example_burgers
 set_tests_properties(cli_checkConfig_example_burgers
   PROPERTIES LABELS "cli;config;burgers;regression")
 
-add_test(NAME burgers_example
+# Examples are user-editable demos: only validate their schema in CTest.
+# Numerical regression uses the stable cases in tests/regression/.
+set(SATURN_BURGERS2D_EXAMPLE
+    "${SATURN_SOURCE_DIR}/examples/saturnBurger2D/saturnBurger2D.yaml")
+add_test(NAME cli_checkConfig_example_burgers2d
+  COMMAND saturnCFD -checkConfig ${SATURN_BURGERS2D_EXAMPLE})
+set_tests_properties(cli_checkConfig_example_burgers2d
+  PROPERTIES LABELS "cli;config;burgers;burgers2d;regression")
+
+set(SATURN_BURGERS2D_CASE
+    "${CMAKE_CURRENT_SOURCE_DIR}/regression/burgers2d/traveling64.yaml")
+add_test(NAME burgers_2d_traveling64
   COMMAND ${CMAKE_COMMAND}
           -DCLI=$<TARGET_FILE:saturnCFD>
-          -DCASE=${SATURN_BURGERS_EXAMPLE}
-          -DOUT=${CMAKE_CURRENT_BINARY_DIR}/example_saturnBurger
-          -DPREFIX=results/saturnBurger/traveling
-          -DROWS=257
-          -DL2_MIN=3.0e-5
-          -DL2_MAX=6.0e-5
-          -DLINF_MAX=2.0e-4
+          -DCASE=${SATURN_BURGERS2D_CASE}
+          -DOUT=${CMAKE_CURRENT_BINARY_DIR}/burgers2d_traveling64
+          -DPREFIX=results/burgers2d/traveling64
+          -DROWS=4097
+          -DL2_MIN=2.0e-3
+          -DL2_MAX=3.0e-3
+          -DLINF_MAX=3.0e-2
           -P ${CMAKE_CURRENT_SOURCE_DIR}/checkBurgers.cmake)
-set_tests_properties(burgers_example PROPERTIES
-  LABELS "burgers;regression" RUN_SERIAL TRUE
-  ENVIRONMENT "OMP_NUM_THREADS=1")
+set_tests_properties(burgers_2d_traveling64 PROPERTIES
+  LABELS "burgers;burgers2d;regression" RUN_SERIAL TRUE
+  ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
 
 if(SATURN_ENABLE_MPI)
   foreach(ranks 1 2 4)
@@ -189,7 +204,7 @@ if(SATURN_ENABLE_MPI)
               -P ${CMAKE_CURRENT_SOURCE_DIR}/checkBurgers.cmake)
     set_tests_properties(burgers_traveling64_np${ranks} PROPERTIES
       LABELS "burgers;regression;mpi" RUN_SERIAL TRUE
-      ENVIRONMENT "OMP_NUM_THREADS=1")
+      ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
   endforeach()
 else()
   add_test(NAME burgers_traveling64

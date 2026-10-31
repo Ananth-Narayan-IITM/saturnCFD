@@ -17,6 +17,7 @@ tests/
   TestLocalMesh.cpp
   TestSimulation.cpp
   TestSaturnBurger.cpp
+  TestSaturnBurger2D.cpp
   TestParallel.cpp
   UniformMesh.hpp
   checkBurgers.cmake
@@ -56,7 +57,8 @@ ctest --preset config           # configuration tests only
 ctest --preset cli              # CLI tests only
 ctest --preset mpi              # 1/2/4-rank MPI tests
 ctest --preset fv               # LocalMesh, operators and MMS
-ctest --preset burgers          # YAML Burgers case on 1/2/4 ranks
+ctest --preset burgers          # 1D YAML Burgers case on 1/2/4 ranks
+ctest --preset burgers2d        # 2D YAML Burgers regression
 
 # equivalent fallback
 ctest --test-dir buildCPU --output-on-failure
@@ -67,6 +69,8 @@ ctest --test-dir buildCPU -L fv --output-on-failure
 
 - No test writes into the source tree.
 - No test depends on the current working directory.
+- MPI test targets set `OMP_NUM_THREADS=1`; otherwise several ranks
+  oversubscribe the node and `fv_np4` becomes very slow.
 - A failing regression is fixed or rebaselined with a reason, never deleted.
 - Expected files are text and reviewable.
 - Phase 1 regression policy: `docs/validation/regressionTests.md`.

@@ -32,9 +32,9 @@ MPI partition/halo, Kokkos `CellField`/`FaceField`, the device halo adapter,
 Dirichlet/Neumann ghost fill, upwind/Rusanov/MUSCL convection,
 advection–diffusion MMS, a simplified Rhie–Chow flux, PETSc Phase 0
 (`saturnLinAlg`, 1D/3D Poisson tests), the explicit solver lifecycle/time loop
-(forward Euler, SSPRK2/3), the 1D `saturnBurger` solver, Doxygen pipeline and
-regression tests are in place. The FV Poisson assembler, implicit time schemes,
-2D/3D Burgers, heat and pressure coupling remain. The detailed checklist is
+(forward Euler, SSPRK2/3), the 1D/2D `saturnBurger` solver, Doxygen pipeline
+and regression tests are in place. The FV Poisson assembler, implicit time
+schemes, 3D Burgers, heat and pressure coupling remain. The detailed checklist is
 [`phase1Status.md`](phase1Status.md); the solver sequence is
 [`solverSequence.md`](solverSequence.md).
 
@@ -140,18 +140,21 @@ regression tests are in place. The FV Poisson assembler, implicit time schemes,
 
 ## Phase 2 — Burgers
 
-**Status:** 1D scalar `saturnBurger` done. 2D/3D and implicit diffusion next.
+**Status:** 1D and 2D scalar `saturnBurger` done. 3D and implicit diffusion
+next.
 
 **Deliverables**
 
-- `src/solvers/saturnBurger`: 1D scalar done; 2D/3D and vector next.
+- `src/solvers/saturnBurger`: 1D and 2D scalar done; 3D and vector next.
 - Rusanov flux, MUSCL/TVD, SSP-RK2/3 — done.
 - Explicit diffusion — done; implicit option later.
-- Exact traveling-wave validation and inviscid shock validation — done for 1D.
-- `docs/validation/burgers.md` with the convergence table, rank-independence
+- Exact traveling-wave validation and inviscid shock validation — done for 1D;
+  2D diagonal wave done.
+- `docs/validation/burgers.md` with the convergence tables, rank-independence
   table, validation figure and reproduction commands — done.
-- Registered CLI solver with `tests/regression/burgers/traveling64.yaml` and
-  `ctest --preset burgers` — done.
+- Registered CLI solver with `tests/regression/burgers/traveling64.yaml`,
+  `tests/regression/burgers2d/traveling64.yaml`, `ctest --preset burgers` and
+  `ctest --preset burgers2d` — done.
 
 **Exit criterion**
 

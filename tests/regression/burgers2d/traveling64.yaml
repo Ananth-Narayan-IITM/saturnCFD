@@ -1,0 +1,56 @@
+# 2D scalar Burgers regression case.
+#
+# Conservative form:
+#   u_t + (u^2/2)_x + (u^2/2)_y = nu (u_xx + u_yy)
+#
+# Exact diagonal traveling wave, U=1, nu=0.02, x0=y0=0:
+#   u = U/2 [1 - tanh(U (x+y - U t)/(4 nu))]
+#
+# The stored L2 at N=64, t=0.5 is about 2.55e-3 with observed order ~1.96.
+
+solver: saturnBurger
+
+units:
+  system: SI
+
+mesh:
+  type: box
+  nx: 64
+  ny: 64
+  nz: 1
+  box:
+    xmin: -1.0
+    xmax: 1.0
+    ymin: -1.0
+    ymax: 1.0
+    zmin: 0.0
+    zmax: 1.0
+
+time:
+  start: 0.0
+  end: 0.5
+  scheme: ssprk3
+  adaptive: true
+  cfl: 0.3
+  dtMax: 0.005
+  maxSteps: 100000
+
+burgers:
+  nu: 0.02
+  velocity: 1.0
+  x0: 0.0
+  y0: 0.0
+  source: 0.0
+  periodic: false
+  initial: travelingWave
+
+numerics:
+  convection: muscl
+  limiter: vanLeer
+
+output:
+  prefix: results/burgers2d/traveling64
+  csv: true
+  json: true
+  exact: true
+  vtkEvery: 0

@@ -59,7 +59,10 @@ void convectiveFlux(const FaceField& normalVelocity, const CellField& phi,
                     FaceField& flux, const LocalMesh& mesh,
                     ConvectiveScheme scheme, Limiter limiter = Limiter::Minmod);
 
-/// Inviscid Burgers flux f(u) = u^2/2 through every face.
+/// Inviscid scalar Burgers flux through every active face.
+///
+/// The 1D flux is f(u)=u^2/2. In 2D/3D the conservative flux vector is
+/// F(u)=(f,f,f), so the outward face flux is f(u)(n_x+n_y+n_z).
 ///
 /// - `Rusanov`: local Lax--Friedrichs with the cell values.
 /// - `Muscl`: Rusanov with MUSCL-reconstructed left/right states.

@@ -532,6 +532,7 @@ void printTopic(const std::string& topic) {
            "  ctest --preset mpi           halo/partition + FVM on 1/2/4\n"
            "  ctest --preset fv            LocalMesh, operators, MMS, Burgers\n"
            "  ctest --preset burgers       1D Burgers YAML validation\n"
+           "  ctest --preset burgers2d     2D Burgers YAML validation\n"
            "  ctest --preset petsc         PETSc Poisson/nullspace tests\n"
            "  ctest --preset gpu           GPU-labelled FV tests\n"
            "  ctest --list-presets         list them\n";
@@ -885,12 +886,21 @@ int runCase(const Cli& cli) {
   if (wantCsv) {
     const std::vector<ProfilePoint> points =
         burgers->profile(result.final.time);
+    const int dim = burgers->dimension();
     std::ostringstream os;
     os << std::setprecision(17);
-    os << "x,u_numerical,u_exact,error\n";
-    for (const ProfilePoint& p : points)
-      os << p.x << ',' << p.numerical << ',' << p.exact << ',' << p.error
-         << '\n';
+    if (dim == 1)
+      os << "x,u_numerical,u_exact,error\n";
+    else
+      os << "x,y,u_numerical,u_exact,error\n";
+    for (const ProfilePoint& p : points) {
+      if (dim == 1)
+        os << p.x << ',' << p.numerical << ',' << p.exact << ',' << p.error
+           << '\n';
+      else
+        os << p.x << ',' << p.y << ',' << p.numerical << ',' << p.exact << ','
+           << p.error << '\n';
+    }
     if (worldRank() == 0)
       writeTextFile(prefix + ".csv", os.str());
   }

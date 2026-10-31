@@ -17,21 +17,28 @@ namespace {
 
 constexpr Real kPi = Real(3.14159265358979323846264338327950288);
 
-/// Exact viscous traveling-wave solution of
+/// Exact viscous traveling-wave solution of scalar Burgers.
 ///
-///   u_t + (u^2/2)_x = nu u_xx
+/// 1D:  u_t + (u^2/2)_x = nu u_xx
+///      u = U/2 [1 - tanh(U (x - x0 - U t/2)/(4 nu))]
 ///
-/// on the whole line:
-///
-///   u(x,t) = U/2 [ 1 - tanh( U (x - x0 - U t/2) / (4 nu) ) ].
+/// 2D:  u_t + (u^2/2)_x + (u^2/2)_y = nu (u_xx + u_yy)
+///      u = U/2 [1 - tanh(U (x+y - x0-y0 - U t)/(4 nu))]
 ///
 /// This is a physical case preset, not a test helper: the YAML option
 /// `burgers.initial: travelingWave` uses it for the initial state, the
 /// time-dependent Dirichlet data and the `output.exact` reference.
-Real travelingWave(Real x, Real t, Real speed, Real nu, Real x0) {
+Real travelingWave(const Vec3& p, Real t, int dim, Real speed, Real nu, Real x0,
+                   Real y0) {
+  Real coordinate = p.x - x0;
+  Real waveSpeed = Real(0.5) * speed;
+  if (dim == 2) {
+    coordinate += p.y - y0;
+    waveSpeed = speed;
+  }
   return Real(0.5) * speed *
          (Real(1) -
-          std::tanh(speed * (x - x0 - Real(0.5) * speed * t) / (Real(4) * nu)));
+          std::tanh(speed * (coordinate - waveSpeed * t) / (Real(4) * nu)));
 }
 
 }  // namespace
@@ -42,7 +49,9 @@ ConfigSchema burgersSchema() {
               Dimension::KinematicViscosity, 0.0, 0.0, false);
   s.addDouble("burgers.velocity", 1.0, "traveling-wave speed [m/s]",
               Dimension::Velocity);
-  s.addDouble("burgers.x0", 0.0, "traveling-wave centre at t=0 [m]",
+  s.addDouble("burgers.x0", 0.0, "traveling-wave x centre at t=0 [m]",
+              Dimension::Length);
+  s.addDouble("burgers.y0", 0.0, "traveling-wave y centre at t=0 [m]",
               Dimension::Length);
   s.addDouble("burgers.source", 0.0, "constant source [m/s2]");
   s.addDouble("burgers.value", 1.0, "constant initial value [m/s]",
@@ -59,6 +68,9 @@ ConfigSchema burgersSchema() {
 
 std::unique_ptr<Solver> makeSaturnBurger(const Config& cfg) {
   Mesh mesh = makeMeshFromConfig(cfg);
+  if (mesh.dimension != 1 && mesh.dimension != 2)
+    throw ConfigError(
+        "saturnBurger supports structured 1D and 2D meshes (nz = 1)");
 
   BurgersOptions options;
   options.nu = cfg.getDouble("burgers.nu", 0.02);
@@ -72,26 +84,34 @@ std::unique_ptr<Solver> makeSaturnBurger(const Config& cfg) {
   const std::string initial = cfg.getString("burgers.initial", "travelingWave");
   const Real speed = cfg.getDouble("burgers.velocity", 1.0);
   const Real x0 = cfg.getDouble("burgers.x0", 0.0);
+  const Real y0 = cfg.getDouble("burgers.y0", 0.0);
+  const int dim = mesh.dimension;
 
   if (initial == "travelingWave") {
     if (!(options.nu > 0))
       throw ConfigError(
           "burgers.initial: travelingWave requires burgers.nu > 0");
     const Real nu = options.nu;
-    options.initial = [speed, nu, x0](const Vec3& x) {
-      return travelingWave(x.x, 0, speed, nu, x0);
+    options.initial = [dim, speed, nu, x0, y0](const Vec3& x) {
+      return travelingWave(x, 0, dim, speed, nu, x0, y0);
     };
-    options.dirichlet = [speed, nu, x0](const Vec3& x, Real t, int) {
-      return travelingWave(x.x, t, speed, nu, x0);
+    options.dirichlet = [dim, speed, nu, x0, y0](const Vec3& x, Real t, int) {
+      return travelingWave(x, t, dim, speed, nu, x0, y0);
     };
-    options.exact = [speed, nu, x0](const Vec3& x, Real t) {
-      return travelingWave(x.x, t, speed, nu, x0);
+    options.exact = [dim, speed, nu, x0, y0](const Vec3& x, Real t) {
+      return travelingWave(x, t, dim, speed, nu, x0, y0);
     };
   } else if (initial == "sine") {
     if (!options.periodic)
       throw ConfigError(
           "burgers.initial: sine requires burgers.periodic: true");
-    options.initial = [](const Vec3& x) { return -std::sin(kPi * x.x); };
+    if (dim == 1) {
+      options.initial = [](const Vec3& x) { return -std::sin(kPi * x.x); };
+    } else {
+      options.initial = [](const Vec3& x) {
+        return -std::sin(kPi * x.x) * std::sin(kPi * x.y);
+      };
+    }
   } else if (initial == "constant") {
     const Real value = cfg.getDouble("burgers.value", 1.0);
     options.initial = [value](const Vec3&) { return value; };

@@ -13,13 +13,14 @@ class SolverRegistry;
 /// Complete option list for `saturnBurger`: common keys plus the Burgers block.
 ConfigSchema burgersSchema();
 
-/// Build the 1D scalar Burgers solver described by a validated case.
+/// Build the scalar Burgers solver described by a validated case.
 ///
 /// Supported `burgers.initial` values:
 ///
 /// - `travelingWave`: exact viscous wave; Dirichlet data follow the wave and
-///   the analytic solution is available for validation output;
-/// - `sine`: `u0 = -sin(pi x)`; requires periodic boundaries;
+///   the analytic solution is available for validation output. In 2D this is
+///   the diagonal wave u(x,y,t) = U/2 [1 - tanh(U(x+y-x0-y0-Ut)/(4 nu))].
+/// - `sine`: 1D `-sin(pi x)` or 2D `-sin(pi x) sin(pi y)`; periodic only;
 /// - `constant`: `u0 = burgers.value`; Dirichlet data hold that value.
 std::unique_ptr<Solver> makeSaturnBurger(const Config& cfg);
 

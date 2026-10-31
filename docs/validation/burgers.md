@@ -90,6 +90,36 @@ is `results/saturnBurger/traveling.csv` (`x,u_numerical,u_exact,error`); the
 JSON summary includes `wallSeconds`. The CTest slice checks this example with
 `burgers_example`.
 
+## 2D diagonal wave
+
+The 2D conservative form is
+
+$$
+u_t + (u^2/2)_x + (u^2/2)_y
+= \nu(u_{xx}+u_{yy}),
+$$
+
+with an exact diagonal plane wave
+
+$$
+u(x,y,t)=\frac{U}{2}\left[
+1-\tanh\left(\frac{U(x+y-x_0-y_0-Ut)}{4\nu}\right)\right].
+$$
+
+Measured on $[-1,1]^2$, $U=1$, $\nu=0.02$, $t=0.5$:
+
+| grid | $L^2$ | observed order |
+|---:|---:|---:|
+| 32x32 | 9.909e-3 | — |
+| 64x64 | 2.555e-3 | 1.96 |
+| 128x128 | 5.968e-4 | 2.10 |
+
+The separate user example is `examples/saturnBurger2D/`; the 1D example is
+unchanged. `python3 examples/saturnBurger2D/compareAnalytic.py` recomputes the
+2D tanh solution and writes a four-panel comparison plot.
+
+![2D Burgers validation figure](figures/burgers2DValidation.png)
+
 ## Reproduce
 
 ```bash
@@ -104,8 +134,14 @@ cmake --build buildCPU -j
 # the full table, rank sweep and figure
 python3 tools/validateBurgers.py
 
-# CTest slice
+# 2D example + independent comparison
+cd examples/saturnBurger2D
+saturnCFD saturnBurger2D.yaml
+python3 compareAnalytic.py
+
+# CTest slices
 ctest --preset burgers
+ctest --preset burgers2d
 ```
 
 Outputs:
@@ -118,14 +154,12 @@ docs/validation/figures/burgersValidation.{png,pdf}
 
 ## Verdict
 
-The 1D scalar `saturnBurger` solver is fully validated for this phase:
+The 1D and 2D scalar `saturnBurger` solver is validated:
 
-- it matches the analytic traveling-wave solution with a clean second-order
-  convergence rate;
-- the error is rank independent and, in exact arithmetic terms, identical on
-  1/2/4 ranks;
-- it conserves and bounds the periodic inviscid shock;
-- it is registered and runs through a proper YAML case.
+- 1D matches the analytic traveling wave with second-order convergence; the
+  error is rank independent and identical on 1/2/4 ranks;
+- 2D matches the analytic diagonal plane wave with observed orders 1.96/2.10;
+- the 1D periodic inviscid shock is conservative and bounded;
+- both are registered and run through proper YAML cases.
 
-The remaining loop-related item is to extend the same solver to 2D/3D, which is
-deliberately deferred.
+The next extension is 3D, which needs the third flux component.

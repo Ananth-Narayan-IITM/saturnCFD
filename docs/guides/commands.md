@@ -145,8 +145,18 @@ ctest --preset cli
 ctest --preset mpi           # partition/halo + FVM, 1/2/4 ranks
 ctest --preset fv            # fields, LocalMesh, operators, MMS, Burgers
 ctest --preset burgers       # YAML Burgers validation on 1/2/4 ranks
+ctest --preset burgers2d     # 2D Burgers YAML validation
 ctest --preset petsc         # PETSc Poisson/nullspace on 1/2/4 ranks
 ctest --preset gpu           # GPU-labelled tests in buildGPU
+```
+
+The MPI test targets (`mpi_np*`, `fv_np*`, `petsc_np*`) set
+`OMP_NUM_THREADS=1`. Without this, every rank asks Kokkos for 12 threads and
+four ranks oversubscribe a 24-core node; `fv_np4` took about 370 s instead of
+2-3 s. If you run a test binary by hand, use:
+
+```bash
+OMP_NUM_THREADS=1 mpirun -np 4 ./buildCPU/testSaturnFV
 ```
 
 Direct FVM runs:
@@ -303,9 +313,13 @@ The 1D Burgers solver is registered. Run the YAML case directly:
 mpirun -np 4 ./buildCPU/saturnCFD tests/regression/burgers/traveling64.yaml
 python3 tools/validateBurgers.py     # table + validation figure
 
-# standalone user example + independent analytic comparison
+# standalone user examples + independent analytic comparison
 cd examples/saturnBurger
 saturnCFD saturnBurger.yaml
+python3 compareAnalytic.py
+
+cd ../saturnBurger2D
+saturnCFD saturnBurger2D.yaml
 python3 compareAnalytic.py
 ```
 

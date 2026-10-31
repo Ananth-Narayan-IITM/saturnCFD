@@ -20,7 +20,7 @@ saturnStokes
 saturnIncompressible
 ```
 
-The first implemented solver is `saturnBurger` for 1D scalar Burgers.
+The first implemented solver is `saturnBurger` for 1D and 2D scalar Burgers.
 
 ```text
 src/solvers/
@@ -59,11 +59,12 @@ the manual copy works. See `docs/guides/writingASolver.md`.
 
 ## Tests
 
-- `tests/TestSaturnBurger.cpp` — unit and analytic tests, run by
-  `testSaturnFV` on 1/2/4 ranks.
-- `tests/regression/burgers/traveling64.yaml` — YAML CLI regression.
-- `ctest --preset burgers` — YAML case on 1/2/4 ranks.
-- `python3 tools/validateBurgers.py` — convergence table and validation plot.
+- `tests/TestSaturnBurger.cpp` and `tests/TestSaturnBurger2D.cpp` — unit and
+  analytic tests, run by `testSaturnFV` on 1/2/4 ranks.
+- `tests/regression/burgers/traveling64.yaml` — 1D YAML CLI regression.
+- `tests/regression/burgers2d/traveling64.yaml` — 2D YAML CLI regression.
+- `ctest --preset burgers` / `burgers2d` — the YAML cases.
+- `python3 tools/validateBurgers.py` — 1D convergence table and plot.
 
 ## Docs
 

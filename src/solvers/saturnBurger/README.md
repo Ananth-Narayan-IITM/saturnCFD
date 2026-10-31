@@ -1,4 +1,4 @@
-# saturnBurger — 1D scalar Burgers solver
+# saturnBurger — 1D/2D scalar Burgers solver
 
 **Target:** `saturnBurger`
 
@@ -6,7 +6,7 @@
 
 **Registered name:** `saturnBurger`
 
-**Equation:** 1D scalar Burgers
+**Equation:** 1D/2D scalar Burgers
 
 $$
 \frac{\partial u}{\partial t}
@@ -16,8 +16,9 @@ $$
 
 This is the first production solver and is fully registered in the CLI:
 `saturnCFD -listSolvers` prints `saturnBurger`, and a case file runs with
-`saturnCFD case.yaml`. The 2D/3D extension will keep the `saturnBurger` name
-and add the transverse directions.
+`saturnCFD case.yaml`. The solver supports structured 1D and 2D blocks; the
+2D form uses the conservative flux vector F(u) = (u^2/2, u^2/2). A 3D extension
+would add the third component.
 
 ## Files
 
@@ -99,13 +100,14 @@ when several ranks share a node.
 | key | meaning |
 |---|---|
 | `mesh.type` | `auto`, `gmsh` or `box` |
-| `mesh.nx/ny/nz` | box cell counts; 1D Burgers needs `ny = nz = 1` |
+| `mesh.nx/ny/nz` | box cell counts; 1D needs `ny = nz = 1`, 2D needs `nz = 1` |
 | `mesh.box.*` | box bounds in metres |
 | `time.start/end/dtMax/cfl/maxSteps` | time control |
 | `time.scheme` | `forwardEuler`, `ssprk2`, `ssprk3` |
 | `burgers.nu` | kinematic viscosity |
 | `burgers.velocity` | traveling-wave speed $U$ |
-| `burgers.x0` | traveling-wave centre at $t=0$ |
+| `burgers.x0` | traveling-wave x centre at $t=0$ |
+| `burgers.y0` | traveling-wave y centre at $t=0$ (2D) |
 | `burgers.source` | constant source |
 | `burgers.periodic` | periodic x boundaries |
 | `burgers.initial` | `travelingWave`, `sine` or `constant` |
@@ -118,7 +120,7 @@ when several ranks share a node.
 
 Requirements:
 
-- a structured 1D block: `mesh.dimension == 1`, `ny = nz = 1`;
+- a structured 1D block (`ny = nz = 1`) or 2D block (`nz = 1`);
 - `computeGeometry()` and `detectStructured()` already called;
 - at least two cells per rank when `nGrow = 2`.
 
@@ -147,10 +149,11 @@ f(u) = \frac{u^2}{2}, \qquad f'(u)=u.
 $$
 
 `burgersFlux` in `src/fv/Convection.cpp` computes the **outward normal flux**.
-The canonical face orientation is "lower-coordinate cell on the left,
-higher-coordinate cell on the right", independent of which cell owns the face.
-That makes the flux antisymmetric across a shared face, which is required for
-conservation.
+In 1D that is f(u)n_x. In 2D the flux vector is F(u)=(f(u),f(u)), so the face
+flux is f(u)(n_x+n_y). The canonical face orientation is "lower-coordinate cell
+on the left, higher-coordinate cell on the right", independent of which cell
+owns the face. That makes the flux antisymmetric across a shared face, which is
+required for conservation.
 
 Schemes:
 
@@ -172,8 +175,9 @@ $$
 \frac{(\phi_N-\phi_P)-\mathbf{d}\cdot\nabla_t\phi_f}{d_\perp}.
 $$
 
-For the 1D block this reduces to the three-point stencil. `nu = 0` is allowed
-for the inviscid equation.
+For the 1D block this reduces to the three-point stencil; in 2D it is the
+five-point stencil on an orthogonal mesh. `nu = 0` is allowed for the inviscid
+equation.
 
 ### Source
 
@@ -209,8 +213,8 @@ exact boundary is refreshed after every RK stage.
 - **Neumann:** not exposed in the first solver; add it by extending
   `BurgersOptions` and `fillBoundaryGhosts`.
 
-The 1D mesh may still carry `ymin`/`ymax`/`zmin`/`zmax` patches. The solver
-loops only the active direction, so those patches are ignored.
+A 1D mesh may still carry `ymin`/`ymax`/`zmin`/`zmax` patches; the solver loops
+only the active directions. In 2D all four side patches are used.
 
 ## Initial condition
 
@@ -221,9 +225,9 @@ The YAML factory provides three initial states:
 
 | `burgers.initial` | initial state | boundaries | exact reference | use |
 |---|---|---|---|---|
-| `travelingWave` | $u_0(x)=\frac{U}{2}[1-\tanh(\frac{U(x-x_0)}{4\nu})]$ | time-dependent Dirichlet from the exact solution | yes | quantitative validation |
-| `sine` | $u_0(x)=-\sin(\pi x)$ | periodic only | no | inviscid shock, TVD/boundedness |
-| `constant` | $u_0(x)=v$ (`burgers.value`) | constant Dirichlet (or periodic) | no | flux/conservation sanity |
+| `travelingWave` | 1D: $\frac{U}{2}[1-\tanh(\frac{U(x-x_0)}{4\nu})]$; 2D diagonal: $\frac{U}{2}[1-\tanh(\frac{U(x+y-x_0-y_0)}{4\nu})]$ | time-dependent Dirichlet from the exact solution | yes | quantitative validation |
+| `sine` | 1D $u_0=-\sin(\pi x)$; 2D $u_0=-\sin(\pi x)\sin(\pi y)$ | periodic only | no | shock, TVD/boundedness |
+| `constant` | $u_0=v$ (`burgers.value`) | constant Dirichlet (or periodic) | no | flux/conservation sanity |
 
 `travelingWave` is the default because it is the only preset with a known
 analytic solution at every time. The other two test qualitative behavior, not
@@ -237,13 +241,21 @@ data and the error norm reference.
 
 ## Validation against the analytic solution
 
-The exact viscous traveling wave is
+The exact viscous traveling waves are
 
 $$
 u(x,t)=\frac{U}{2}\left[
-1-\tanh\left(\frac{U(x-x_0-Ut/2)}{4\nu}\right)\right],
-\qquad U=1,\ \nu=0.02.
+1-\tanh\left(\frac{U(x-x_0-Ut/2)}{4\nu}\right)\right]
 $$
+
+in 1D, and
+
+$$
+u(x,y,t)=\frac{U}{2}\left[
+1-\tanh\left(\frac{U(x+y-x_0-y_0-Ut)}{4\nu}\right)\right]
+$$
+
+in 2D. The 2D front is the line $x+y=x_0+y_0+Ut$.
 
 `tools/validateBurgers.py` runs the real YAML case at several resolutions and
 rank counts, writes `convergence.csv` and `rankIndependence.csv`, and produces
@@ -291,7 +303,8 @@ count; the solver itself was already rank independent.
 
 | case | result |
 |---|---|
-| viscous traveling wave, $N=32/64/128/256$, $\nu=0.02$, $t=0.5$ | monotone convergence, orders 1.98/2.11/2.10 |
+| 1D viscous traveling wave, $N=32/64/128/256$, $\nu=0.02$, $t=0.5$ | monotone convergence, orders 1.98/2.11/2.10 |
+| 2D diagonal wave, $N=32/64$, $\nu=0.02$, $t=0.5$ | $L^2$ 9.909e-3 -> 2.555e-3, order 1.96 |
 | constant field, periodic, inviscid | stays exactly 1 |
 | periodic inviscid shock, $u_0=-\sin(\pi x)$, $t=0.5$ | bounds $[-0.9954, 0.9954]$, integral $1.5\times10^{-16}$ |
 | Burgers constant flux | zero divergence, face flux $-0.5/+0.5$ |
@@ -310,15 +323,15 @@ actual CLI path, including the CSV and JSON output.
 
 ## Limitations and next steps
 
-- 1D only; `ny` and `nz` must be 1.
+- 1D and 2D only; 2D requires `nz = 1`.
 - Constant source only.
 - Explicit diffusion; implicit/IMEX BE/CN/BDF2 waits for the FV Poisson matrix
   assembler and `saturnLinAlg`.
 - The shock test is conservative and bounded but does not yet report a
   pointwise shock-speed order.
 - Neumann boundaries and a spatially varying source are not exposed yet.
-- 2D/3D extensions will add transverse flux components and a vector or
-  direction-dependent Burgers flux (the user asked to keep this phase 1D).
+- A 3D extension would add the third flux component. The 2D example is in
+  `examples/saturnBurger2D/`; the 1D example is unchanged.
 
 ## Using the solver as a library
 

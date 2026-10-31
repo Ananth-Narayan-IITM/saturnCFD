@@ -272,8 +272,10 @@ void burgersFlux(const CellField& u, FaceField& flux, const LocalMesh& mesh,
             value = Real(0.5) * (fLeft + fRight) -
                     Real(0.5) * speed * (right - left);
           }
-          // f(u) points along +x; store the outward normal flux.
-          f(i, j, k, dir, 0) = normal.x * value;
+          // Multi-D scalar Burgers uses the flux vector F(u) = (f,f,f)
+          // with f(u)=u^2/2, so the outward normal flux is f * (nx+ny+nz).
+          // In 1D this is the original normal.x * f(u).
+          f(i, j, k, dir, 0) = (normal.x + normal.y + normal.z) * value;
         }
       });
 }

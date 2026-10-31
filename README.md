@@ -13,22 +13,28 @@ convection, advection–diffusion and divergence-theorem tests, a simplified
 Rhie–Chow flux, the explicit solver/time loop (forward Euler, SSPRK2/3,
 diagnostics, registry), and the registered 1D `saturnBurger` solver are in
 place. PETSc 3.19.6 is linked through the separate `saturnLinAlg` library; the
-1D/3D Poisson and all-Neumann tests pass on 1/2/4 ranks. The 2D/3D Burgers
-extension, implicit time schemes, heat solver and FV Poisson matrix assembler
-are next.
+1D/3D Poisson and all-Neumann tests pass on 1/2/4 ranks. The 2D Burgers
+extension is done; the 3D extension, implicit time schemes, heat solver and FV
+Poisson matrix assembler are next.
 
-The 1D Burgers solver is validated against the exact viscous traveling wave:
+The 1D and 2D Burgers solver is validated against the exact viscous traveling
+wave:
 $L^2$ falls from $9.0\times10^{-3}$ at $N=32$ to $7.3\times10^{-6}$ at $N=1024$
 with observed orders 1.98/2.11/2.10/2.06/2.03, and 1/2/4 ranks give identical norms.
 See [`docs/validation/burgers.md`](docs/validation/burgers.md) and the figure
 [`docs/validation/figures/burgersValidation.png`](docs/validation/figures/burgersValidation.png).
 
-A standalone user example is in [`examples/saturnBurger/`](examples/saturnBurger/):
+Standalone user examples are in [`examples/saturnBurger/`](examples/saturnBurger/)
+and [`examples/saturnBurger2D/`](examples/saturnBurger2D/):
 
 ```bash
 cd examples/saturnBurger
 saturnCFD saturnBurger.yaml
 python3 compareAnalytic.py     # independent analytic check + plot
+
+cd ../saturnBurger2D
+saturnCFD saturnBurger2D.yaml
+python3 compareAnalytic.py
 ```
 
 MPI and GPU are **first-class from the first FVM layer**, not a later port.

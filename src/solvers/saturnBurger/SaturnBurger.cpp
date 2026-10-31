@@ -43,7 +43,8 @@ double globalMax(double value) {
 SaturnBurger::SaturnBurger(Mesh mesh, BurgersOptions options)
     : mMesh(std::move(mesh)),
       mOptions(std::move(options)),
-      mPart(mMesh.nx, mMesh.ny, mMesh.nz, mOptions.periodic, false, false),
+      mPart(mMesh.nx, mMesh.ny, mMesh.nz, mOptions.periodic && mMesh.nx > 1,
+            mOptions.periodic && mMesh.dimension >= 2 && mMesh.ny > 1, false),
       mLocal(mMesh, mPart, 2),
       mHalo(mPart, 2, 1),
       mFieldHalo(mHalo, 1),
@@ -53,11 +54,12 @@ SaturnBurger::SaturnBurger(Mesh mesh, BurgersOptions options)
       mDiv(mPart, 2, 1, "saturnBurger::div"),
       mLap(mPart, 2, 1, "saturnBurger::lap"),
       mGrad(mPart, 2, 3, "saturnBurger::grad") {
-  if (!mMesh.structured || mMesh.dimension != 1 || mMesh.ny != 1 ||
-      mMesh.nz != 1)
+  if (!mMesh.structured || (mMesh.dimension != 1 && mMesh.dimension != 2) ||
+      (mMesh.dimension == 1 && (mMesh.ny != 1 || mMesh.nz != 1)) ||
+      (mMesh.dimension == 2 && mMesh.nz != 1))
     throw std::invalid_argument(
-        "saturnBurger: expected a structured 1D mesh (ny = nz = 1)");
-  if (mMesh.nx < 1)
+        "saturnBurger: expected a structured 1D or 2D mesh (nz = 1)");
+  if (mMesh.nx < 1 || mMesh.ny < 1 || mMesh.nz < 1)
     throw std::invalid_argument("saturnBurger: empty mesh");
   if (mOptions.nu < 0)
     throw std::invalid_argument("saturnBurger: negative diffusivity");
@@ -72,8 +74,9 @@ SaturnBurger::SaturnBurger(Mesh mesh, BurgersOptions options)
         "saturnBurger: computeGeometry() must run before the solver");
 
   Real minH = std::numeric_limits<Real>::max();
+  const Real exponent = Real(1) / static_cast<Real>(mMesh.dimension);
   for (Real volume : mMesh.cellVolume)
-    minH = std::min(minH, volume);
+    minH = std::min(minH, std::pow(volume, exponent));
   if (!(minH > 0))
     throw std::invalid_argument("saturnBurger: non-positive cell size");
   mMinCellSize = minH;
@@ -145,34 +148,41 @@ std::vector<ProfilePoint> SaturnBurger::profile(Real time) const {
     throw std::runtime_error(
         "saturnBurger: profile comparison needs an exact solution");
 
-  const int i0 = mPart.localOrigin(0);
-  const int j0 = mPart.localOrigin(1);
-  const int k0 = mPart.localOrigin(2);
-  const int n = mPart.localExtent(0);
+  const int nx = mU.extent(0);
+  const int ny = mU.extent(1);
+  const int nz = mU.extent(2);
+  const int i0 = mU.origin(0);
+  const int j0 = mU.origin(1);
+  const int k0 = mU.origin(2);
+  const int n = nx * ny * nz;
 
-  std::vector<double> x(static_cast<std::size_t>(n));
-  std::vector<double> numerical(static_cast<std::size_t>(n));
-  std::vector<double> exact(static_cast<std::size_t>(n));
-
+  // Pack x,y,z,u_numerical,u_exact per cell into one flat buffer so the
+  // global profile needs a single MPI_Allgatherv.
+  std::vector<double> local(static_cast<std::size_t>(5) * n);
   auto host = mU.hostView();
   const int gi0 = mU.origin(0) - mU.nGrow();
   const int gj0 = mU.origin(1) - mU.nGrow();
   const int gk0 = mU.origin(2) - mU.nGrow();
-  for (int a = 0; a < n; ++a) {
-    const int i = i0 + a;
-    const int cell = mMesh.cellAt(i, j0, k0);
-    if (cell < 0)
-      throw std::runtime_error("saturnBurger: missing owned cell");
-    const Vec3& centre = mMesh.cellCentroid[cell];
-    x[static_cast<std::size_t>(a)] = centre.x;
-    numerical[static_cast<std::size_t>(a)] =
-        host(i - gi0, j0 - gj0, k0 - gk0, 0);
-    exact[static_cast<std::size_t>(a)] = mOptions.exact(centre, time);
+  int a = 0;
+  for (int k = k0; k < k0 + nz; ++k) {
+    for (int j = j0; j < j0 + ny; ++j) {
+      for (int i = i0; i < i0 + nx; ++i) {
+        const int cell = mMesh.cellAt(i, j, k);
+        if (cell < 0)
+          throw std::runtime_error("saturnBurger: missing owned cell");
+        const Vec3& centre = mMesh.cellCentroid[cell];
+        const std::size_t base = static_cast<std::size_t>(5) * a;
+        local[base + 0] = centre.x;
+        local[base + 1] = centre.y;
+        local[base + 2] = centre.z;
+        local[base + 3] = host(i - gi0, j - gj0, k - gk0, 0);
+        local[base + 4] = mOptions.exact(centre, time);
+        ++a;
+      }
+    }
   }
 
-  std::vector<double> globalX;
-  std::vector<double> globalNumerical;
-  std::vector<double> globalExact;
+  std::vector<double> global;
 #ifdef SATURN_USE_MPI
   int localCount = n;
   int worldSize = 1;
@@ -187,32 +197,42 @@ std::vector<ProfilePoint> SaturnBurger::profile(Real time) const {
         offsets[static_cast<std::size_t>(r - 1)] +
         counts[static_cast<std::size_t>(r - 1)];
   const int total = offsets.back() + counts.back();
-  globalX.resize(static_cast<std::size_t>(total));
-  globalNumerical.resize(static_cast<std::size_t>(total));
-  globalExact.resize(static_cast<std::size_t>(total));
-  MPI_Allgatherv(x.data(), localCount, MPI_DOUBLE, globalX.data(),
-                 counts.data(), offsets.data(), MPI_DOUBLE, MPI_COMM_WORLD);
-  MPI_Allgatherv(numerical.data(), localCount, MPI_DOUBLE,
-                 globalNumerical.data(), counts.data(), offsets.data(),
-                 MPI_DOUBLE, MPI_COMM_WORLD);
-  MPI_Allgatherv(exact.data(), localCount, MPI_DOUBLE, globalExact.data(),
-                 counts.data(), offsets.data(), MPI_DOUBLE, MPI_COMM_WORLD);
+  const int localDoubles = 5 * n;
+  std::vector<int> doubleCounts(static_cast<std::size_t>(worldSize));
+  std::vector<int> doubleOffsets(static_cast<std::size_t>(worldSize));
+  for (int r = 0; r < worldSize; ++r) {
+    doubleCounts[static_cast<std::size_t>(r)] =
+        5 * counts[static_cast<std::size_t>(r)];
+    doubleOffsets[static_cast<std::size_t>(r)] =
+        5 * offsets[static_cast<std::size_t>(r)];
+  }
+  global.resize(static_cast<std::size_t>(5) * total);
+  MPI_Allgatherv(local.data(), localDoubles, MPI_DOUBLE, global.data(),
+                 doubleCounts.data(), doubleOffsets.data(), MPI_DOUBLE,
+                 MPI_COMM_WORLD);
 #else
-  globalX = std::move(x);
-  globalNumerical = std::move(numerical);
-  globalExact = std::move(exact);
+  global = std::move(local);
 #endif
 
-  std::vector<ProfilePoint> points(globalX.size());
-  for (std::size_t a = 0; a < globalX.size(); ++a) {
-    points[a].x = globalX[a];
-    points[a].numerical = globalNumerical[a];
-    points[a].exact = globalExact[a];
-    points[a].error = points[a].numerical - points[a].exact;
+  const std::size_t pointCount = global.size() / 5;
+  std::vector<ProfilePoint> points(pointCount);
+  for (std::size_t p = 0; p < pointCount; ++p) {
+    const std::size_t base = 5 * p;
+    points[p].x = global[base + 0];
+    points[p].y = global[base + 1];
+    points[p].z = global[base + 2];
+    points[p].numerical = global[base + 3];
+    points[p].exact = global[base + 4];
+    points[p].error = points[p].numerical - points[p].exact;
   }
-  std::sort(
-      points.begin(), points.end(),
-      [](const ProfilePoint& a, const ProfilePoint& b) { return a.x < b.x; });
+  std::sort(points.begin(), points.end(),
+            [](const ProfilePoint& a, const ProfilePoint& b) {
+              if (a.x != b.x)
+                return a.x < b.x;
+              if (a.y != b.y)
+                return a.y < b.y;
+              return a.z < b.z;
+            });
   return points;
 }
 

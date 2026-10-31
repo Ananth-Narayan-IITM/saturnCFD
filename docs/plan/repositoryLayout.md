@@ -75,6 +75,8 @@ saturnCFD/
         unknownKey.yaml
       burgers/
         traveling64.yaml
+      burgers2d/
+        traveling64.yaml
     checkBurgers.cmake           # CLI + analytic-norm regression
 
   docs/
@@ -101,6 +103,10 @@ saturnCFD/
     saturnBurger/
       saturnBurger.yaml          # standalone 1D traveling-wave case
       compareAnalytic.py         # independent analytic check and plot
+      README.md
+    saturnBurger2D/
+      saturnBurger2D.yaml        # standalone 2D diagonal-wave case
+      compareAnalytic.py
       README.md
 
   tools/
@@ -164,9 +170,11 @@ then the manual copy works.
 
 ## Tests
 
-- `tests/regression/burgers/traveling64.yaml` — case.
+- `tests/regression/burgers/traveling64.yaml` — 1D case.
+- `tests/regression/burgers2d/traveling64.yaml` — 2D case.
 - `tests/checkBurgers.cmake` — runs the CLI and checks the analytic norms,
   CSV rows and JSON summary.
+- MPI test targets set `OMP_NUM_THREADS=1` to avoid oversubscription.
 - Unit tests live beside the category they test, not in one giant file.
 - CTest labels: `[unit]`, `[mesh]`, `[config]`, `[mms]`, `[regression]`,
   `[parity]`, `[performance]`.

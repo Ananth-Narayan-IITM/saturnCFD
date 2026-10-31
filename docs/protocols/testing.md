@@ -112,12 +112,22 @@ because the CUDA toolkit is not installed.
 - `fv: Burgers constant flux` separately checks the $-0.5/+0.5$ face sign
   and zero divergence.
 
-The YAML path is covered by `tests/regression/burgers/traveling64.yaml` and
-`tests/checkBurgers.cmake`; `ctest --preset burgers` runs it on 1/2/4 ranks.
-The standalone user example `examples/saturnBurger/saturnBurger.yaml` is checked
-by `burgers_example` (256 cells, $L^2\approx4.2\times10^{-5}$) and by
-`compareAnalytic.py`, which recomputes the analytic solution independently.
-The 2D/3D extension and shock-speed table are next. See
+`tests/TestSaturnBurger2D.cpp` checks the 2D diagonal plane wave on
+$[-1,1]^2$: $L^2=9.909\times10^{-3}$ at $32^2$ and
+$2.555\times10^{-3}$ at $64^2$, observed order 1.96.
+
+The stable YAML regressions are `tests/regression/burgers/traveling64.yaml`
+and `tests/regression/burgers2d/traveling64.yaml`; they use
+`tests/checkBurgers.cmake`. `ctest --preset burgers` covers the 1D cases on
+1/2/4 ranks and `ctest --preset burgers2d` covers 2D. The user-facing examples
+`examples/saturnBurger/` and `examples/saturnBurger2D/` are schema-checked by
+CTest and have their own independent `compareAnalytic.py` scripts.
+
+MPI test targets set `OMP_NUM_THREADS=1`. Without it, four ranks each request
+the Kokkos default 12 threads on a 24-core node, and `fv_np4` took about 370 s
+instead of 2-3 s.
+
+The 3D extension and shock-speed table are next. See
 [`../validation/burgers.md`](../validation/burgers.md),
 [`../theory/burgers.md`](../theory/burgers.md) and
 [`../../src/solvers/saturnBurger/README.md`](../../src/solvers/saturnBurger/README.md).

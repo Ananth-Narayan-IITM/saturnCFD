@@ -55,7 +55,7 @@ verification are next. The parallel design is in
 | simulation tests in `testSaturnFV` | done on 1/2/4 ranks |
 | `saturnBurger` 1D scalar Burgers | done |
 | Burgers traveling wave and periodic shock | done on 1/2/4 ranks |
-| 2D/3D Burgers and implicit diffusion | next |
+| 3D Burgers and implicit diffusion | next |
 | GPU-labelled FV regression cases | written; CUDA build not yet verified locally |
 
 ## Pending
@@ -64,7 +64,7 @@ verification are next. The parallel design is in
 |---|---|
 | `src/fv` | pressure Poisson/SIMPLE-PISO coupling, persistent face flux, Rhie–Chow coefficient from the momentum diagonal |
 | `src/simulation` | output cadence, checkpoint, implicit time schemes |
-| `src/solvers` | 2D/3D `saturnBurger`, `saturnCFDSolver` tool, Neumann BC; 1D CLI/YAML wiring is done |
+| `src/solvers` | 3D `saturnBurger`, `saturnCFDSolver` tool, Neumann BC; 1D/2D CLI/YAML wiring is done |
 | `src/config` | `boundary` and `fields` schemas; `saturnBurger` supplies its own schema |
 | `src/linalg` | FV Poisson matrix assembly, block/multi-RHS, fieldsplit/Schur |
 | `src/io` | CSV diagnostics, run manifest, checkpoint |
@@ -129,7 +129,8 @@ Navier–Stokes. The list below is the repository build-out order.
    - `addSolver(saturnBurger)` and registry entry — done.
    - `-listSolvers`, `-dumpConfig saturnBurger`, `-checkConfig` and
      `saturnCFD case.yaml` — done.
-   - 2D/3D extension, options, `createFields`, `equations`, diagnostics.
+   - 2D implemented; 3D extension, options, `createFields`, `equations`,
+     diagnostics remain.
    - `saturnCFDSolver saturnBurger saturnMyBurger` (C++ tool).
    - `boundary`/`fields` YAML schema and validation.
 
@@ -169,12 +170,13 @@ Then Phase 2: Burgers physics and the `traveling64` analytic regression.
   all-Neumann tests pass on 1/2/4 ranks.
 - **Done:** `Solver`, `SolverRegistry`, `TimeControl` and the explicit
   `Simulation` loop; constant/cosine/sine cases pass on 1/2/4 ranks.
-- **Done:** `saturnBurger` 1D scalar; traveling wave N=32->1024 with orders
-  1.98/2.11/2.10/2.06/2.03, periodic shock bounded/conservative, and bitwise
-  identical results on 1/2/4 ranks at N=256.
+- **Done:** `saturnBurger` 1D/2D scalar; 1D traveling wave N=32->1024 with
+  orders 1.98/2.11/2.10/2.06/2.03, periodic shock bounded/conservative,
+  bitwise identical 1/2/4-rank results at N=256, and a 2D diagonal wave with
+  orders 1.96/2.10.
 - **Done:** YAML CLI path (`saturnCFD case.yaml`), CSV profile and JSON
   summary; `ctest --preset burgers` passes on 1/2/4 ranks.
-- Pending: FV Poisson matrix assembly, implicit BE/CN/BDF2, 2D/3D Burgers and
+- Pending: FV Poisson matrix assembly, implicit BE/CN/BDF2, 3D Burgers and
   heat solvers.
 - Pending: pressure Poisson/SIMPLE-PISO with PETSc.
 - 1/2/4-rank *cross-run* results agree; a CUDA build reproduces the CPU

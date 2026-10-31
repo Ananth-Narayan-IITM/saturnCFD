@@ -166,13 +166,17 @@ If the change is not understood, it is a bug, not a new baseline.
 | `burgers/traveling64` | YAML CLI run, $N=64/128$ convergence, CSV/JSON output | implemented (`tests/regression/burgers/traveling64.yaml`, `checkBurgers.cmake`) |
 | `burgers/convergence` | $N=32\ldots1024$ order and $N=256$ rank independence | implemented in `tools/validateBurgers.py` |
 | `burgers/shock128` | periodic inviscid shock bounded and conservative | implemented in `TestSaturnBurger` |
+| `burgers2d/traveling64` | 2D diagonal wave, $L^2\approx2.555e-3$ | implemented (`tests/regression/burgers2d/traveling64.yaml`) |
 
 The FVM entry is a library regression: the stored 32$^3$
 `L2=0.13435580757778084` is the smallest scalar that catches a stencil, halo or
 geometry regression. It is checked on every rank and in a CUDA build. The
 Burgers YAML case is run by CTest on 1/2/4 ranks and checks the analytic norms,
-the CSV rows and the JSON summary. `ctest --preset burgers` selects that slice;
-`tools/validateBurgers.py` regenerates the full table and figure.
+the CSV rows and the JSON summary. `ctest --preset burgers` selects the 1D
+slice and `ctest --preset burgers2d` the 2D slice;
+`tools/validateBurgers.py` regenerates the full table and figure. MPI tests set
+`OMP_NUM_THREADS=1`: without it, 4 ranks oversubscribe a 24-core node and the
+FV suite becomes roughly 100x slower.
 
 ## Why not only unit tests
 

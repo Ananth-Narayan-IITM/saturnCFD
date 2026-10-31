@@ -11,7 +11,7 @@ expected files are maintained.
 
 | page | solver | status |
 |---|---|---|
-| [`burgers.md`](burgers.md) | 1D scalar `saturnBurger` | implemented; order 2.06, rank independent |
+| [`burgers.md`](burgers.md) | 1D/2D scalar `saturnBurger` | implemented; 1D order 2.03 rank independent, 2D order 2.10 |
 | `heat.md` | heat / convection–diffusion | waiting for Phase 3 |
 | `stokes.md` | Stokes | waiting for Phase 4 |
 | `incompressible.md` | incompressible Navier–Stokes | waiting for Phase 5 |

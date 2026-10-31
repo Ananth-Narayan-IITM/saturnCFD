@@ -18,13 +18,13 @@
 
 namespace saturn {
 
-/// Options for the 1D scalar Burgers solver.
+/// Options for the scalar Burgers solver (1D or 2D).
 ///
 /// The solver advances
 ///
 ///   du/dt + d/dx(u^2/2) = nu d2u/dx2 + source
 ///
-/// on a structured 1D block. The initial and Dirichlet callbacks receive the
+/// on a structured 1D/2D block. The initial and Dirichlet callbacks receive the
 /// physical point; Dirichlet also receives time so a moving exact solution can
 /// be imposed.
 struct BurgersOptions {
@@ -45,6 +45,8 @@ struct BurgersOptions {
 /// One cell-centre sample of the numerical and analytic profiles.
 struct ProfilePoint {
   Real x = 0;
+  Real y = 0;
+  Real z = 0;
   Real numerical = 0;
   Real exact = 0;
   Real error = 0;
@@ -58,11 +60,11 @@ struct ExactError {
   BigIndex samples = 0;
 };
 
-/// 1D scalar Burgers solver.
+/// Scalar Burgers solver for 1D and 2D structured blocks.
 ///
 /// This is the first production solver. The spatial operators are the shared
-/// FVM layer; the time loop is `Simulation`. The 2D/3D extension will keep the
-/// same class name and add the transverse directions.
+/// FVM layer; the time loop is `Simulation`. The 2D case uses the conservative
+/// flux vector F(u) = (u^2/2, u^2/2).
 class SaturnBurger : public Solver {
  public:
   SaturnBurger(Mesh mesh, BurgersOptions options);
@@ -78,7 +80,7 @@ class SaturnBurger : public Solver {
   Real maxWaveSpeed() const override;
   Real maxDiffusivity() const override { return mOptions.nu; }
   Real minCellSize() const override { return mMinCellSize; }
-  int dimension() const override { return 1; }
+  int dimension() const override { return mMesh.dimension; }
 
   CellField& state() override { return mU; }
   const CellField& state() const override { return mU; }

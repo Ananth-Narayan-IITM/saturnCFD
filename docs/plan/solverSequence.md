@@ -87,7 +87,7 @@ through the loop on 1/2/4 ranks.
 
 ## Phase 2 — Burgers
 
-**Status:** 1D scalar solver `saturnBurger` implemented and tested. 2D/3D and
+**Status:** 1D and 2D scalar `saturnBurger` implemented and tested. 3D and
 implicit diffusion are next.
 
 **Start with 1D scalar conservative Burgers:**
@@ -99,7 +99,8 @@ $$
 
 Implemented:
 
-- `src/solvers/saturnBurger/` target `saturnBurger`;
+- `src/solvers/saturnBurger/` target `saturnBurger` for 1D and 2D;
+- 2D conservative form with flux vector $\mathbf{F}(u)=(u^2/2,u^2/2)$;
 - `burgersFlux` with canonical face orientation and Rusanov/local
   Lax–Friedrichs;
 - MUSCL/TVD reconstruction with minmod, van Leer and superbee;
@@ -119,7 +120,9 @@ Validation (viscous traveling wave, `U=1`, `nu=0.02`, `t=0.5`):
 | periodic inviscid shock, $u_0=-\sin(\pi x)$, N=128, t=0.5 | bounds [-0.9954, 0.9954], integral 1.5e-16 |
 | 1/2/4 ranks at N=256 | bitwise-identical L2 1.236378e-4 |
 | YAML CLI path | `ctest --preset burgers` passes on 1/2/4 ranks |
-| standalone example | `examples/saturnBurger` L2 4.226e-5 with an independent analytic script |
+| 1D standalone example | `examples/saturnBurger` L2 4.226e-5 with an independent analytic script |
+| 2D diagonal wave, N=32/64/128 | L2 9.909e-3 -> 2.555e-3 -> 5.968e-4, orders 1.96/2.10 |
+| 2D example | `examples/saturnBurger2D` L2 5.968e-4 with an independent analytic script |
 
 The earlier rank-dependent traveling-wave error was a test-diagnostic bug: the
 test divided by the local owned-cell count. The solver was already rank
@@ -131,13 +134,13 @@ Still to add:
 - limiter comparison table (upwind/minmod/MC/van Leer/superbee);
 - shock-speed error in cells;
 - Neumann boundary condition;
-- 2D and 3D scalar Burgers;
+- 3D scalar Burgers;
 - vector Burgers before Navier–Stokes;
 - IMEX BE/CN with implicit diffusion through `saturnLinAlg`.
 
-Exit for the 1D slice is met: traveling wave and shock tests pass on 1/2/4
-ranks, the YAML regression runs, and the analytic comparison is plotted. The
-full Phase 2 exit waits for 2D/3D.
+Exit for the 1D/2D slice is met: traveling waves and the 1D shock pass on
+1/2/4 ranks, the YAML regressions run, and the analytic comparisons are
+plotted. The full Phase 2 exit waits for 3D.
 
 ## Phase 3 — Heat equation
 

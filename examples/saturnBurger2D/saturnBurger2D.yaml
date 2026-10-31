@@ -1,0 +1,65 @@
+# saturnBurger 2D standalone example
+#
+# 2D scalar Burgers in conservative form:
+#   du/dt + d/dx(u^2/2) + d/dy(u^2/2)
+#         = nu (d2u/dx2 + d2u/dy2)
+#
+# The exact diagonal traveling wave is
+#   u(x,y,t) = U/2 * (1 - tanh(U*(x+y-x0-y0-U*t)/(4*nu)))
+# with U = 1, nu = 0.02, x0 = y0 = 0.
+#
+# At t = 0.5 the front line is x+y = 0.5, well inside [-1,1]^2.
+#
+# Run and compare:
+#   saturnCFD saturnBurger2D.yaml
+#   python3 compareAnalytic.py
+#
+# This is a separate example; the 1D example in examples/saturnBurger is
+# unchanged.
+
+solver: saturnBurger
+
+units:
+  system: SI
+
+mesh:
+  type: box
+  nx: 128          # cells in x
+  ny: 128          # cells in y
+  nz: 1            # 2D: must stay 1
+  box:
+    xmin: -1.0
+    xmax: 1.0
+    ymin: -1.0
+    ymax: 1.0
+    zmin: 0.0
+    zmax: 1.0
+
+time:
+  start: 0.0
+  end: 0.5
+  scheme: ssprk3
+  adaptive: true
+  cfl: 0.3
+  dtMax: 0.005
+  maxSteps: 100000
+
+burgers:
+  nu: 0.02
+  velocity: 1.0
+  x0: 0.0
+  y0: 0.0
+  source: 0.0
+  periodic: false
+  initial: travelingWave
+
+numerics:
+  convection: muscl
+  limiter: vanLeer
+
+output:
+  prefix: results/saturnBurger2D/traveling
+  csv: true       # x, y, u_numerical, u_exact, error
+  json: true      # L1, L2, Linf and exact norms
+  exact: true     # compare against the analytic diagonal wave
+  vtkEvery: 0

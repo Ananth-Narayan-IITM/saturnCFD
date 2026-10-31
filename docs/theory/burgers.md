@@ -1,7 +1,7 @@
 # Burgers equation
 
-**Status:** 1D scalar solver `saturnBurger` implemented and validated
-(ADR `0001`). The 2D/3D extension and implicit diffusion are next.
+**Status:** 1D and 2D scalar `saturnBurger` implemented and validated
+(ADR `0001`). The 3D extension and implicit diffusion are next.
 
 ## 1. Governing equations
 
@@ -24,6 +24,18 @@ $$
 
 The inviscid form is the simplest nonlinear hyperbolic conservation law; it
 steepens smooth data into a shock in finite time.
+
+In 2D the solver uses the conservative extension
+
+$$
+\frac{\partial u}{\partial t}
++ \frac{\partial}{\partial x}\left(\frac{u^2}{2}\right)
++ \frac{\partial}{\partial y}\left(\frac{u^2}{2}\right)
+= \nu\left(\frac{\partial^2 u}{\partial x^2}
+        + \frac{\partial^2 u}{\partial y^2}\right),
+$$
+
+i.e. the flux vector $\mathbf{F}(u)=(u^2/2,\,u^2/2)$.
 
 ### Vector Burgers
 
@@ -52,6 +64,17 @@ $U/2$, tends to $U$ as $x\to-\infty$ and to $0$ as $x\to+\infty$, and
 has a transition thickness of order $\nu/U$. This is the primary code
 verification case: it exercises convection, diffusion and the boundary data
 simultaneously.
+
+For the 2D conservative form, the diagonal plane wave
+
+$$
+u(x,y,t) = \frac{U}{2}\left[
+1 - \tanh\left(\frac{U(x+y-x_0-y_0-Ut)}{4\nu}\right)
+\right]
+$$
+
+is exact. The front is the line $x+y=x_0+y_0+Ut$; this tests the x and y
+flux components together.
 
 For the inviscid equation, use a smooth periodic initial condition such as
 
@@ -120,7 +143,7 @@ validation.
 | inviscid shock | shock position/speed | within one cell; conservation error small |
 | limiter comparison | oscillation and smearing | upwind vs minmod vs MC documented |
 
-## 6. Implemented 1D solver
+## 6. Implemented 1D/2D solver
 
 **Library target:** `saturnBurger`
 
@@ -135,9 +158,10 @@ $$
 = \nu\partial_{xx}u + s
 $$
 
-on a structured 1D block. It uses:
+on a structured 1D or 2D block. It uses:
 
-- `burgersFlux` with Rusanov/local Lax–Friedrichs;
+- `burgersFlux` with Rusanov/local Lax–Friedrichs and the 2D flux vector
+  $\mathbf{F}(u)=(u^2/2,u^2/2)$;
 - MUSCL reconstruction with minmod, van Leer or superbee;
 - the shared non-orthogonal `laplacian` for diffusion;
 - `Simulation` with forward Euler, SSPRK2 or SSPRK3;
@@ -145,9 +169,10 @@ on a structured 1D block. It uses:
   every RK stage.
 
 The face flux is stored with a **canonical orientation** (lower-coordinate
-cell on the left), then multiplied by the outward normal component. This makes
-the flux antisymmetric across shared faces and preserves the discrete
-conservation law.
+cell on the left), then multiplied by the outward normal component. In 2D the
+normal factor is $n_x+n_y$ because both flux components are $f(u)=u^2/2$.
+This makes the flux antisymmetric across shared faces and preserves the
+discrete conservation law.
 
 ## 7. Observations from the validation runs
 
@@ -168,6 +193,14 @@ regenerates the table and the plot.
 The error decreases by a factor of about four per refinement, as expected for a
 second-order method. The small non-zero value at a finite grid is the
 discretisation error, not a solver defect; it tends to zero as $h^2$.
+
+For the 2D diagonal wave on $[-1,1]^2$:
+
+| grid | $L^2$ | observed order |
+|---:|---:|---:|
+| 32x32 | 9.909e-3 | — |
+| 64x64 | 2.555e-3 | 1.96 |
+| 128x128 | 5.968e-4 | 2.10 |
 
 At $N=256$, 1, 2 and 4 MPI ranks give **bitwise-identical** norms:
 
@@ -202,12 +235,12 @@ Still to measure:
 
 ## 8. Limitations
 
-- 1D only; `ny = nz = 1`.
+- 1D and 2D only; 2D requires `nz = 1`.
 - Constant source only.
 - Explicit diffusion; IMEX/implicit BE/CN/BDF2 waits for the FV Poisson
   matrix assembler and `saturnLinAlg`.
-- The 2D/3D extension will add transverse directions and a vector or
-  direction-dependent Burgers flux.
+- A 3D extension will add the third flux component; the 2D example lives in
+  `examples/saturnBurger2D/`.
 - The CLI is wired: `saturnCFD case.yaml`, `-listSolvers`,
   `-dumpConfig saturnBurger` and `-checkConfig` all use the registered solver.
 - Neumann boundaries and a spatially varying source are not exposed yet.
