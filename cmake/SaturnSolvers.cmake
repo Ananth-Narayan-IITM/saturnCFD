@@ -20,7 +20,7 @@ function(addSolver name)
       "saturn_solver_${name}")
   endif()
 
-  target_link_libraries(saturn_solver_${name} PUBLIC saturn::core)
+  target_link_libraries(saturn_solver_${name} PUBLIC saturn::Core)
   set_property(GLOBAL APPEND PROPERTY SATURN_SOLVER_TARGETS
                saturn_solver_${name})
 endfunction()

@@ -97,6 +97,7 @@ void printGeneralHelp() {
          "  saturnCFD -help checkMesh\n"
          "  saturnCFD -help mpi\n"
          "  saturnCFD -help petsc\n"
+         "  saturnCFD -help clangd\n"
          "  saturnCFD -help build\n"
          "  saturnCFD -help gpu\n"
          "  saturnCFD -help clean\n"
@@ -136,7 +137,7 @@ _saturnCFD_complete() {
   # Complete the value of the option immediately before the cursor.
   case "${prev}" in
     -help)
-      COMPREPLY=( $(compgen -W "checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion mpi petsc build gpu clean test" -- "${cur}") )
+      COMPREPLY=( $(compgen -W "checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion mpi petsc clangd build gpu clean test" -- "${cur}") )
       ;;
     -completion)
       COMPREPLY=( $(compgen -W "bash zsh fish" -- "${cur}") )
@@ -161,7 +162,7 @@ _saturnCFD() {
   local -a opts
   opts=(-help -version -listSolvers -checkMesh -report -writeVTK -checkConfig -dumpConfig -writeTemplate -mesh -threads -completion)
   _arguments \
-    '-help[show help]::topic:(checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion mpi petsc build gpu clean test)' \
+    '-help[show help]::topic:(checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion mpi petsc clangd build gpu clean test)' \
     '-version[show version]' \
     '-listSolvers[list solvers]' \
     '-checkMesh[validate a Gmsh mesh]:mesh:_files' \
@@ -179,7 +180,7 @@ _saturnCFD "$@"
   } else if (shell == "fish") {
     std::cout << R"FISH(# saturnCFD fish completion
 # install: saturnCFD -completion fish | source
-complete -c saturnCFD -l help -r -a 'checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion mpi petsc build gpu clean test' -d 'Show help'
+complete -c saturnCFD -l help -r -a 'checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion mpi petsc clangd build gpu clean test' -d 'Show help'
 complete -c saturnCFD -l version -d 'Show version'
 complete -c saturnCFD -l listSolvers -d 'List registered solvers'
 complete -c saturnCFD -l checkMesh -r -F -d 'Validate a Gmsh mesh'
@@ -331,7 +332,7 @@ void printTopic(const std::string& topic) {
            "  SATURN_BACKEND=openmp|serial|cuda|hip\n"
            "  SATURN_USE_SYSTEM_KOKKOS=ON + Kokkos_ROOT  # installed Kokkos\n\n"
            "SATURN_ENABLE_PETSC=ON (default) links PETSc through the\n"
-           "separate saturnLinAlg library; saturn_core does not depend on\n"
+           "separate saturnLinAlg library; saturnCore does not depend on\n"
            "PETSc. Debian PETSc is found with pkg-config when\n"
            "find_package(PETSc) fails.\n"
            "  cmake -S . -B buildCPU -DSATURN_ENABLE_PETSC=OFF  # minimal\n"
@@ -418,7 +419,7 @@ void printTopic(const std::string& topic) {
     std::cout
         << "petsc\n\n"
            "PETSc 3.19.6 is linked through the separate saturnLinAlg\n"
-           "library. It is not part of saturn_core, so the mesh/config/CLI\n"
+           "library. It is not part of saturnCore, so the mesh/config/CLI\n"
            "front end does not depend on PETSc.\n\n"
            "Configure and build:\n\n"
            "  cmake --preset default    # SATURN_ENABLE_PETSC=ON\n"
@@ -434,11 +435,31 @@ void printTopic(const std::string& topic) {
            "nullspace on 1/2/4 ranks. The finite-volume matrix assembler\n"
            "and Burgers/heat solvers are the next phase.\n\n"
            "See docs/guides/petsc.md and docs/theory/poisson.md.\n";
+  } else if (topic == "clangd") {
+    std::cout
+        << "clangd\n\n"
+           "CMake writes buildCPU/compile_commands.json (or\n"
+           "buildGPU/compile_commands.json). Link the current database at the\n"
+           "repository root so clangd finds it automatically:\n\n"
+           "  cmake --build buildCPU --target compileDb\n\n"
+           "Or point clangd at a build directory explicitly:\n\n"
+           "  clangd --compile-commands-dir=buildCPU\n"
+           "  clangd --compile-commands-dir=buildGPU\n\n"
+           "VS Code clangd extension setting:\n"
+           "  \"clangd.arguments\": [\n"
+           "    \"--compile-commands-dir=${workspaceFolder}/buildCPU\"\n"
+           "  ]\n\n"
+           "Check a file and format the tree:\n\n"
+           "  clangd --check=src/fv/CellField.hpp\n"
+           "  cmake --build buildCPU --target formatCode\n\n"
+           "Use buildGPU when editing the CUDA build. There is no\n"
+           "compileCommands.json; the standard name is compile_commands.json.\n"
+           "See docs/guides/commands.md for the full command sheet.\n";
   } else {
     throw UsageError("unknown help topic '" + topic +
                      "'; topics: checkMesh, report, writeVTK, checkConfig, "
                      "dumpConfig, writeTemplate, mesh, units, config, solvers, "
-                     "completion, mpi, petsc, build, gpu, clean, test");
+                     "completion, mpi, petsc, clangd, build, gpu, clean, test");
   }
 }
 

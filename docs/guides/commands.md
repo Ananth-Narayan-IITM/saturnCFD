@@ -4,6 +4,20 @@
 understanding the code; it is a memory aid. `saturnCFD -help` remains the
 authoritative CLI reference.
 
+## Host requirements
+
+```bash
+python3 tools/checkRequirements.py
+python3 tools/checkRequirements.py --install
+python3 tools/checkRequirements.py --install --core-only
+cmake --build buildCPU --target doctor
+```
+
+`requirements.toml` lists the tools and minimum versions. Missing optional
+tools (docs/editor/GPU) do not fail the check; missing core tools do. Kokkos,
+yaml-cpp and doctest are fetched by CMake. See
+[`requirements.md`](requirements.md).
+
 ## First configure
 
 ```bash
@@ -44,7 +58,7 @@ writes `buildCPU/`, and `cmake --build --preset default -j` compiles it.
 `cmake --build --preset default -j` compiles:
 
 ```text
-src/**            -> buildCPU/src/libsaturn_core.a
+src/**            -> buildCPU/src/libsaturnCore.a
 src/linalg/**     -> buildCPU/src/libsaturnLinAlg.a
 apps/main.cpp     -> buildCPU/saturnCFD
 tests/*           -> buildCPU/testSaturn
@@ -54,7 +68,7 @@ tests/TestLocalMesh* -> buildCPU/testSaturnFV
 tests/TestPetsc*  -> buildCPU/testSaturnPETSc
 ```
 
-MPI and Kokkos are linked into `saturn_core`. Kokkos is pinned by default;
+MPI and Kokkos are linked into `saturnCore`. Kokkos is pinned by default;
 `SATURN_USE_SYSTEM_KOKKOS=ON` plus `Kokkos_ROOT` uses an installed Kokkos.
 PETSc is linked through the separate `saturnLinAlg` target. Debian PETSc is
 found with `pkg-config` when `find_package(PETSc)` fails. Use
@@ -202,6 +216,8 @@ saturnCFD -help checkMesh
 saturnCFD -help units
 saturnCFD -help config
 saturnCFD -help completion
+saturnCFD -help petsc
+saturnCFD -help clangd
 
 source <(saturnCFD -completion bash)     # bash
 source <(saturnCFD -completion zsh)      # zsh
@@ -229,7 +245,20 @@ buildCPU/doxygen/html/index.html
 buildCPU/doxygen/latex/refman.pdf
 ```
 
-The hosted site is built by the `docs` workflow.
+The hosted site is built by the `docs` workflow. `TIMESTAMP = YES` in
+`docs/Doxyfile` makes the HTML footer show the generation date.
+
+## clangd
+
+```bash
+cmake --build buildCPU --target compileDb   # root symlink
+clangd --compile-commands-dir=buildCPU
+clangd --check=src/fv/CellField.hpp
+```
+
+The database is `buildCPU/compile_commands.json` (or
+`buildGPU/compile_commands.json`). There is no `compileCommands.json`.
+See `saturnCFD -help clangd`.
 
 ## Format
 

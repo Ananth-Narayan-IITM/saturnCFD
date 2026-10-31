@@ -25,9 +25,32 @@ endif()
 
 include(cmake/SaturnDocs.cmake)
 
+# ---------------------------------------------------------- host tooling --
+find_package(Python3 COMPONENTS Interpreter QUIET)
+if(Python3_Interpreter_FOUND)
+  add_custom_target(doctor
+    COMMAND ${Python3_EXECUTABLE}
+            ${SATURN_SOURCE_DIR}/tools/checkRequirements.py
+            --toml ${SATURN_SOURCE_DIR}/requirements.toml
+    WORKING_DIRECTORY ${SATURN_SOURCE_DIR}
+    COMMENT "Checking host requirements from requirements.toml"
+    USES_TERMINAL)
+endif()
+
+if(CMAKE_EXPORT_COMPILE_COMMANDS)
+  add_custom_target(compileDb
+    COMMAND ${CMAKE_COMMAND} -E rm -f
+            ${SATURN_SOURCE_DIR}/compile_commands.json
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+            ${CMAKE_BINARY_DIR}/compile_commands.json
+            ${SATURN_SOURCE_DIR}/compile_commands.json
+    COMMENT "Linking compile_commands.json at the repository root for clangd"
+    VERBATIM)
+endif()
+
 message(STATUS "")
 message(STATUS "saturnCFD ${PROJECT_VERSION}")
-message(STATUS "  phase      : 1 (mesh + config + comm + FVM slice)")
+message(STATUS "  phase      : 1 (mesh + config + comm + FVM + simulation + PETSc)")
 message(STATUS "  build      : ${CMAKE_BUILD_TYPE}")
 message(STATUS "  tests      : ${SATURN_BUILD_TESTS}")
 message(STATUS "  docs       : ${SATURN_BUILD_DOCS}")

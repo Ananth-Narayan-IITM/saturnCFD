@@ -35,7 +35,7 @@ finite-volume matrix assembler is the next slice.
 - No PETSc calls in Kokkos kernels.
 - No home-grown Krylov solver.
 - A failed solve is an error in validation runs, not a warning.
-- `saturn_core` does not link PETSc; only `saturnLinAlg` and solvers do.
+- `saturnCore` does not link PETSc; only `saturnLinAlg` and solvers do.
 
 ## Tests
 

@@ -13,7 +13,7 @@ PETSc 3.19.6 is installed through Debian (`petsc-dev`). It is a real-scalar
 build using Open MPI. Debian does not install a CMake config in a location that
 a plain `find_package(PETSc)` finds; `pkg-config --cflags --libs petsc` works.
 
-`saturn_core` contains the mesh, configuration, communication and FVM layers.
+`saturnCore` contains the mesh, configuration, communication and FVM layers.
 Linking PETSc into it would force every CLI and mesh test to load PETSc and
 would make the dependency compulsory for the front end.
 
@@ -25,7 +25,7 @@ Burgers → heat → Stokes → Navier–Stokes.
 1. PETSc is found by `find_package(PETSc QUIET)` first, with a
    `pkg_check_modules(PETSC REQUIRED IMPORTED_TARGET petsc)` fallback.
 2. PETSc is wrapped in a separate static library target **`saturnLinAlg`**
-   (alias `saturn::LinAlg`). `saturn_core` does not link PETSc.
+   (alias `saturn::LinAlg`). `saturnCore` does not link PETSc.
 3. The first library contents are `PetscScope`, `petscCheck` and
    `KspSolver`; matrix assembly and Poisson systems follow.
 4. `SATURN_ENABLE_PETSC=ON` is the default and is set in the CPU/default
@@ -40,7 +40,7 @@ Burgers → heat → Stokes → Navier–Stokes.
 
 | alternative | why not chosen |
 |---|---|
-| Link PETSc into `saturn_core` | forces PETSc on every CLI/mesh test and binary |
+| Link PETSc into `saturnCore` | forces PETSc on every CLI/mesh test and binary |
 | Home-grown Krylov solver | duplicates a solved problem; violates ADR `0003` |
 | `find_package(PETSc)` only | fails on Debian's packaging layout |
 | Require `PETSC_DIR`/`PETSC_ARCH` manually | fragile on Debian; pkg-config is standard |

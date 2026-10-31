@@ -8,7 +8,7 @@ add_executable(testSaturn
 set_target_properties(testSaturn PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
-target_link_libraries(testSaturn PRIVATE saturn::core doctest::doctest)
+target_link_libraries(testSaturn PRIVATE saturn::Core doctest::doctest)
 target_compile_definitions(testSaturn PRIVATE
   SATURN_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data/meshes"
   SATURN_REGRESSION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/regression"
@@ -26,7 +26,7 @@ if(SATURN_ENABLE_MPI)
   set_target_properties(testSaturnMPI PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
   target_link_libraries(testSaturnMPI PRIVATE
-    saturn::core doctest::doctest MPI::MPI_CXX)
+    saturn::Core doctest::doctest MPI::MPI_CXX)
 
   add_test(NAME mpi_np1
     COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 1
@@ -51,7 +51,7 @@ if(SATURN_ENABLE_KOKKOS)
   set_target_properties(testSaturnFV PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
   target_link_libraries(testSaturnFV PRIVATE
-    saturn::core saturn::Simulation doctest::doctest)
+    saturn::Core saturn::Simulation doctest::doctest)
 
   set(SATURN_FV_LABELS "fv;regression;parity")
   if(SATURN_BACKEND STREQUAL "cuda")

@@ -23,6 +23,20 @@ The decomposition, ghost-cell and one-GPU benchmark plan is in
 The validated v0 implementation is preserved on `v0-archive` (tag `v0.3.0`)
 and is a reference for validation data and algorithms, not a tree to copy.
 
+## Host requirements
+
+Check the host before a clean build:
+
+```bash
+python3 tools/checkRequirements.py
+python3 tools/checkRequirements.py --install   # apt packages when missing
+cmake --build buildCPU --target doctor         # same check through CMake
+```
+
+`requirements.toml` lists core, docs, editor and GPU tools with minimum
+versions. Kokkos, yaml-cpp and doctest are fetched and compiled by CMake.
+Details: [`docs/guides/requirements.md`](docs/guides/requirements.md).
+
 ## Build and test
 
 ```bash
@@ -62,6 +76,24 @@ PETSc 3.19.6 is enabled in the CPU/default preset and linked through
 `find_package(PETSc)` fails. Use `-DSATURN_ENABLE_PETSC=OFF` for a minimal
 mesh/config build. Setup and solver choices are in
 [`docs/guides/petsc.md`](docs/guides/petsc.md).
+
+Library targets are uniformly camelCase:
+
+```text
+saturnCore         mesh, config, comm, FVM
+saturnLinAlg       PETSc wrappers and matrix assembly
+saturnSimulation   Solver, registry, TimeControl, explicit time loop
+```
+
+For clangd, the standard database is `buildCPU/compile_commands.json` (or
+`buildGPU/compile_commands.json`). Link it at the repository root with:
+
+```bash
+cmake --build buildCPU --target compileDb
+```
+
+See `saturnCFD -help clangd` and
+[`docs/guides/commands.md`](docs/guides/commands.md).
 
 CPU and GPU are separate build directories. The GPU build needs an installed,
 CUDA-enabled Kokkos because Kokkos' `nvcc_wrapper` must be the C++ compiler at

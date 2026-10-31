@@ -21,9 +21,11 @@ starts in Phase 2.
 - [ADR log](decisions/README.md)
 - [Protocols](protocols/README.md)
 - [Theory pages](theory/README.md)
+- [Host requirements](guides/requirements.md)
 - [PETSc setup and saturnLinAlg](guides/petsc.md)
 - [Solver implementation sequence](plan/solverSequence.md)
 - [Poisson matrix and nullspace](theory/poisson.md)
+- [Time integration](theory/timeIntegration.md)
 - [Writing a solver](guides/writingASolver.md)
 - [Validation record](validation/README.md)
 

@@ -38,10 +38,10 @@ PETSc build is configured.
 ## Library
 
 The target is **`saturnLinAlg`** (alias `saturn::LinAlg`). It is separate from
-`saturn_core`:
+`saturnCore`:
 
 ```text
-saturn_core      mesh, config, comm, FVM
+saturnCore      mesh, config, comm, FVM
 saturnLinAlg     PETSc wrappers, matrix assembly, solvers
 solvers          link both
 ```

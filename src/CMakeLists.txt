@@ -22,25 +22,25 @@ if(SATURN_ENABLE_KOKKOS)
   )
 endif()
 
-add_library(saturn_core STATIC ${SATURN_CORE_SOURCES})
-add_library(saturn::core ALIAS saturn_core)
+add_library(saturnCore STATIC ${SATURN_CORE_SOURCES})
+add_library(saturn::Core ALIAS saturnCore)
 
-target_include_directories(saturn_core PUBLIC
+target_include_directories(saturnCore PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(saturn_core PUBLIC ${SATURN_YAML_TARGET})
+target_link_libraries(saturnCore PUBLIC ${SATURN_YAML_TARGET})
 
 if(SATURN_ENABLE_MPI)
-  target_link_libraries(saturn_core PUBLIC MPI::MPI_CXX)
-  target_compile_definitions(saturn_core PUBLIC SATURN_USE_MPI)
+  target_link_libraries(saturnCore PUBLIC MPI::MPI_CXX)
+  target_compile_definitions(saturnCore PUBLIC SATURN_USE_MPI)
 endif()
 
 if(SATURN_ENABLE_KOKKOS)
-  target_link_libraries(saturn_core PUBLIC Kokkos::kokkos)
-  target_compile_definitions(saturn_core PUBLIC SATURN_USE_KOKKOS)
+  target_link_libraries(saturnCore PUBLIC Kokkos::kokkos)
+  target_compile_definitions(saturnCore PUBLIC SATURN_USE_KOKKOS)
   string(TOUPPER "${SATURN_BACKEND}" SATURN_BACKEND_UPPER)
-  target_compile_definitions(saturn_core PUBLIC
+  target_compile_definitions(saturnCore PUBLIC
     SATURN_BACKEND_${SATURN_BACKEND_UPPER})
 endif()
 

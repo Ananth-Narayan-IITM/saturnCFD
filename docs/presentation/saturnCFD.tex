@@ -461,6 +461,41 @@ ctest --preset gpu
   \texttt{testSaturnPETSc}.
 \end{frame}
 
+\begin{frame}[fragile]{Host requirements}
+  \begin{columns}[T]
+    \begin{column}{0.52\textwidth}
+\begin{lstlisting}
+# pre-flight check
+python3 tools/checkRequirements.py
+
+# install missing apt packages
+python3 tools/checkRequirements.py \
+  --install
+
+# same check through CMake
+cmake --build buildCPU --target doctor
+\end{lstlisting}
+    \end{column}
+    \begin{column}{0.44\textwidth}
+      \begin{itemize}
+        \item \texttt{requirements.toml} lists core, docs, editor and GPU
+              tools with minimum versions.
+        \item Kokkos 4.7.04, yaml-cpp 0.8 and doctest 2.4.11 are fetched and
+              compiled by CMake.
+        \item Missing optional tools are reported, not fatal.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+
+  \vspace{0.5em}
+  \begin{block}{Uniform names}
+    \texttt{saturnCore}, \texttt{saturnLinAlg}, \texttt{saturnSimulation};
+    \texttt{testSaturn}, \texttt{testSaturnMPI}, \texttt{testSaturnFV},
+    \texttt{testSaturnPETSc}. Doxygen HTML shows its build date
+    (\texttt{TIMESTAMP = YES}).
+  \end{block}
+\end{frame}
+
 \begin{frame}[fragile]{Help, clean and completion}
 \begin{lstlisting}
 saturnCFD -help
@@ -468,10 +503,14 @@ saturnCFD -help build
 saturnCFD -help gpu
 saturnCFD -help mpi
 saturnCFD -help petsc
+saturnCFD -help clangd
 saturnCFD -help test
 saturnCFD -help clean
 
 source <(saturnCFD -completion bash)
+
+cmake --build buildCPU --target compileDb
+clangd --compile-commands-dir=buildCPU
 
 cmake --build buildCPU --target clean
 rm -rf buildCPU buildGPU
@@ -479,7 +518,8 @@ rm -rf buildCPU buildGPU
 
   \begin{block}{No memorisation}
     Test labels: \texttt{ctest --list-presets}. CLI: \texttt{saturnCFD -help}.
-    Build: \texttt{-help build}. Clean: \texttt{-help clean}.
+    Build: \texttt{-help build}. clangd: \texttt{-help clangd} and
+    \texttt{compileDb}. Clean: \texttt{-help clean}.
   \end{block}
 \end{frame}
 

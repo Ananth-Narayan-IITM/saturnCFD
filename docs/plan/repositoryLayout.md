@@ -1,9 +1,9 @@
 # Repository layout
 
-**Status:** planning. No solver code is written yet.
+**Status:** implemented for the current slice.
 
-This page fixes the folder structure before Phase 1 starts. The goal is that a
-new contributor can tell where a file belongs without reading the build.
+This page fixes the folder structure. The goal is that a new contributor can
+tell where a file belongs without reading the build.
 
 ## Tree
 
@@ -11,6 +11,10 @@ new contributor can tell where a file belongs without reading the build.
 saturnCFD/
   CMakeLists.txt
   CMakePresets.json             # configure/buildCPU/test presets
+  requirements.toml             # host tools, versions, install packages
+  tools/
+    checkRequirements.py        # pre-flight host check
+    doxygenMathFilter.py
   cmake/
     SaturnDependencies.cmake    # Kokkos, PETSc, yaml-cpp, doctest
     SaturnOptions.cmake         # backend, precision, warnings

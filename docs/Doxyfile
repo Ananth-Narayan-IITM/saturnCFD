@@ -35,6 +35,9 @@ REFERENCES_RELATION    = YES
 GENERATE_HTML          = YES
 HTML_OUTPUT            = html
 HTML_COLORSTYLE        = LIGHT
+# Show the generation date in the HTML footer, so a reader can see how fresh
+# the published documentation is.
+TIMESTAMP              = YES
 GENERATE_TREEVIEW      = YES
 SEARCHENGINE           = YES
 USE_MATHJAX            = YES

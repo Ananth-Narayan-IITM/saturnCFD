@@ -19,7 +19,12 @@ elseif(SATURN_FETCH_DEPS)
     GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
     GIT_TAG 0.8.0
     GIT_SHALLOW TRUE)
+  # Upstream yaml-cpp still declares a pre-3.5 CMake minimum. Suppress only
+  # the dependency's deprecation warning during its configure step.
+  set(_saturn_warn_deprecated "${CMAKE_WARN_DEPRECATED}")
+  set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
   FetchContent_MakeAvailable(yaml-cpp)
+  set(CMAKE_WARN_DEPRECATED "${_saturn_warn_deprecated}" CACHE BOOL "" FORCE)
   if(TARGET yaml-cpp::yaml-cpp)
     set(SATURN_YAML_TARGET yaml-cpp::yaml-cpp)
   else()
@@ -44,7 +49,11 @@ if(SATURN_BUILD_TESTS)
       GIT_REPOSITORY https://github.com/doctest/doctest.git
       GIT_TAG v2.4.11
       GIT_SHALLOW TRUE)
+    # Same for doctest's pre-3.5 minimum.
+    set(_saturn_warn_deprecated "${CMAKE_WARN_DEPRECATED}")
+    set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(doctest)
+    set(CMAKE_WARN_DEPRECATED "${_saturn_warn_deprecated}" CACHE BOOL "" FORCE)
     set(SATURN_DOCTEST_ORIGIN "fetched v2.4.11")
   else()
     message(FATAL_ERROR

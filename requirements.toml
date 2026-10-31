@@ -1,0 +1,210 @@
+# Host requirements for saturnCFD.
+# Check with: python3 tools/checkRequirements.py
+# Install missing apt packages with: python3 tools/checkRequirements.py --install
+
+[project]
+name = "saturnCFD"
+version = "1.0.0"
+cxx_standard = 20
+
+[defaults]
+version_regex = '(\d+(?:\.\d+){1,3})'
+
+[[requirements]]
+id = "cmake"
+command = "cmake"
+args = ["--version"]
+min_version = "3.24"
+required = true
+group = "core"
+apt = "cmake"
+purpose = "Configure and build"
+
+[[requirements]]
+id = "compiler"
+command = "c++"
+args = ["--version"]
+min_version = "11.0"
+required = true
+group = "core"
+apt = "build-essential"
+purpose = "C++20 compiler"
+
+[[requirements]]
+id = "make"
+command = "make"
+args = ["--version"]
+min_version = "4.0"
+required = true
+group = "core"
+apt = "make"
+purpose = "Default CMake generator"
+
+[[requirements]]
+id = "git"
+command = "git"
+args = ["--version"]
+min_version = "2.30"
+required = true
+group = "core"
+apt = "git"
+purpose = "FetchContent dependencies"
+
+[[requirements]]
+id = "python3"
+command = "python3"
+args = ["--version"]
+min_version = "3.11"
+required = true
+group = "core"
+apt = "python3"
+purpose = "Requirements checker and documentation filter"
+
+[[requirements]]
+id = "mpi"
+command = "mpirun"
+args = ["--version"]
+min_version = "4.0"
+required = true
+group = "core"
+apt = "openmpi-bin libopenmpi-dev"
+purpose = "MPI partition/halo and parallel tests"
+
+[[requirements]]
+id = "mpicxx"
+command = "mpicxx"
+args = ["--version"]
+min_version = "11.0"
+required = true
+group = "core"
+apt = "libopenmpi-dev"
+purpose = "MPI C++ compiler wrapper"
+
+[[requirements]]
+id = "pkg-config"
+command = "pkg-config"
+args = ["--version"]
+min_version = "0.29"
+required = true
+group = "core"
+apt = "pkg-config"
+purpose = "PETSc discovery fallback"
+
+[[requirements]]
+id = "petsc"
+command = "pkg-config"
+args = ["--modversion", "petsc"]
+min_version = "3.19"
+required = true
+group = "core"
+apt = "petsc-dev"
+purpose = "Linear algebra and implicit diffusion"
+
+[[requirements]]
+id = "doxygen"
+command = "doxygen"
+args = ["--version"]
+min_version = "1.9"
+required = false
+group = "docs"
+apt = "doxygen graphviz"
+purpose = "HTML/PDF API documentation"
+
+[[requirements]]
+id = "graphviz"
+command = "dot"
+args = ["-V"]
+min_version = "2.43"
+version_regex = 'graphviz version (\d+\.\d+\.\d+)'
+required = false
+group = "docs"
+apt = "graphviz"
+purpose = "Doxygen class diagrams"
+
+[[requirements]]
+id = "latexmk"
+command = "latexmk"
+args = ["--version"]
+min_version = "4.70"
+required = false
+group = "docs"
+apt = "latexmk"
+purpose = "Doxygen PDF and Beamer"
+
+[[requirements]]
+id = "pdflatex"
+command = "pdflatex"
+args = ["--version"]
+min_version = "2020"
+version_regex = 'TeX Live (\d{4})'
+required = false
+group = "docs"
+apt = "texlive-latex-base texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended"
+purpose = "LaTeX PDF output"
+
+[[requirements]]
+id = "bibtex"
+command = "bibtex"
+args = ["--version"]
+min_version = "0.99"
+required = false
+group = "docs"
+apt = "texlive-bibtex-extra"
+purpose = "Bibliography for Doxygen/Beamer"
+
+[[requirements]]
+id = "clang-format"
+command = "clang-format"
+args = ["--version"]
+min_version = "14.0"
+required = false
+group = "editor"
+apt = "clang-format"
+purpose = "formatCode target and CI check"
+
+[[requirements]]
+id = "clangd"
+command = "clangd"
+args = ["--version"]
+min_version = "14.0"
+required = false
+group = "editor"
+apt = "clangd"
+purpose = "C++ language server using compile_commands.json"
+
+[[requirements]]
+id = "nvcc"
+command = "nvcc"
+args = ["--version"]
+min_version = "11.0"
+version_regex = 'release (\d+\.\d+)'
+required = false
+group = "gpu"
+apt = ""
+purpose = "Optional CUDA backend (buildGPU)"
+
+[[fetched]]
+id = "kokkos"
+version = "4.7.04"
+source = "FetchContent"
+purpose = "CPU/GPU fields and kernels"
+
+[[fetched]]
+id = "yaml-cpp"
+version = "0.8.0"
+source = "FetchContent or system"
+purpose = "Case configuration"
+
+[[fetched]]
+id = "doctest"
+version = "2.4.11"
+source = "FetchContent or system"
+purpose = "Test framework"
+
+notes = [
+  "Kokkos, yaml-cpp and doctest are fetched and compiled by CMake; network access is required on a clean build.",
+  "The CPU preset uses OpenMP; the GPU preset needs a CUDA-enabled Kokkos and nvcc.",
+  "PETSc is required for saturnLinAlg and the implicit diffusion solve.",
+  "docs and editor tools are optional for a minimal build but needed for the default docs/format workflow.",
+  "Run python3 tools/checkRequirements.py --install to install missing apt packages."
+]

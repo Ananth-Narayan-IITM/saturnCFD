@@ -13,6 +13,9 @@ verification are next. The parallel design is in
 | area | status |
 |---|---|
 | CMake build, presets, install target | done |
+| `requirements.toml`, `checkRequirements.py`, `doctor` target | done |
+| `compileDb` target and clangd help | done |
+| Doxygen HTML timestamp | done |
 | `core/` types and SI-only units | done |
 | yaml-cpp parsing and typed schema | done |
 | SI-only validation; non-SI rejected | done |

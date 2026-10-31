@@ -48,6 +48,9 @@ Every public class and function has a Doxygen comment:
 
 - `docs/Doxyfile` builds HTML and LaTeX.
 - HTML uses MathJax; PDF uses Doxygen's LaTeX output.
+- `TIMESTAMP = YES` adds the generation date to the HTML footer.
+- `python3 tools/checkRequirements.py` or the `doctor` target checks the
+  documented host requirements before a build.
 - `tools/doxygenMathFilter.py` converts Markdown `$...$` / `$$...$$` to
   Doxygen `\f$...\f$` / `\f[...\f]` and `[@key]` to `\cite{key}`.
 - `.github/workflows/docs.yml` publishes `buildCPU/doxygen/html` to the

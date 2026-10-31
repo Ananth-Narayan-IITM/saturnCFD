@@ -33,7 +33,7 @@ PETSc as a `Mat` (AIJ/MPIAIJ). `Vector` wraps a `Vec`.
 
 Phase 0 provides `saturn::KspSolver` as the first concrete wrapper. The
 `LinearSolver` interface above is the target for the FV assembler. PETSc lives
-in `saturnLinAlg`, not `saturn_core`.
+in `saturnLinAlg`, not `saturnCore`.
 
 Discovery note: Debian PETSc 3.19.6 is found through `pkg-config petsc` when
 `find_package(PETSc)` fails. See [`../guides/petsc.md`](../guides/petsc.md).
