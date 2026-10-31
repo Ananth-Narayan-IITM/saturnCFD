@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <chrono>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -7,6 +8,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "config/CommonSchema.hpp"
@@ -35,6 +37,29 @@ namespace {
 
 using namespace saturn;
 
+/// Keep one rank per core set when running under MPI. Kokkos otherwise asks
+/// for its default thread count in every rank, which oversubscribes the node:
+/// 4 ranks x 12 threads on a 24-core machine. The user can still override
+/// OMP_NUM_THREADS explicitly.
+///
+/// Returns 0 when Kokkos should keep its default (one rank, env unset).
+int configureThreadCount(int ranks) {
+#if defined(SATURN_USE_KOKKOS) && defined(_OPENMP)
+  if (ranks > 1) {
+    if (const char* env = std::getenv("OMP_NUM_THREADS"))
+      return std::max(1, std::atoi(env));
+    const unsigned hardware = std::thread::hardware_concurrency();
+    const unsigned threads =
+        std::max(1u, hardware / static_cast<unsigned>(ranks));
+    ::setenv("OMP_NUM_THREADS", std::to_string(threads).c_str(), 0);
+    return static_cast<int>(threads);
+  }
+#else
+  (void)ranks;
+#endif
+  return 0;
+}
+
 /// Give Kokkos a valid OpenMP binding before it initializes. Without this,
 /// `Kokkos::OpenMP::initialize` prints the OMP_PROC_BIND warning on every run.
 /// The user can still override either variable in the environment.
@@ -51,13 +76,27 @@ void configureOpenMPBinding() {
 /// so mesh/config commands stay lightweight.
 struct Runtime {
   Runtime(int& argc, char**& argv) {
-    configureOpenMPBinding();
+    int threads = 0;
 #ifdef SATURN_USE_MPI
     int provided = 0;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
+    int ranks = 1;
+    MPI_Comm_size(MPI_COMM_WORLD, &ranks);
+    threads = configureThreadCount(ranks);
+#else
+    threads = configureThreadCount(1);
 #endif
+    configureOpenMPBinding();
 #ifdef SATURN_USE_KOKKOS
-    Kokkos::initialize(argc, argv);
+    if (threads > 0) {
+      // Set the count explicitly; Kokkos reads OMP_NUM_THREADS too early for
+      // a runtime setenv to take effect.
+      Kokkos::InitializationSettings settings;
+      settings.set_num_threads(threads);
+      Kokkos::initialize(settings);
+    } else {
+      Kokkos::initialize(argc, argv);
+    }
 #endif
   }
 
@@ -806,7 +845,16 @@ int runCase(const Cli& cli) {
         "time.scheme: implicit schemes are not implemented by this solver");
 
   Simulation simulation(*solver, control, scheme);
+  const auto wallStart = std::chrono::steady_clock::now();
   const SimulationResult result = simulation.run();
+  const auto wallEnd = std::chrono::steady_clock::now();
+  const double wallSeconds =
+      std::chrono::duration<double>(wallEnd - wallStart).count();
+  double wallMaximum = wallSeconds;
+#ifdef SATURN_USE_MPI
+  MPI_Reduce(&wallSeconds, &wallMaximum, 1, MPI_DOUBLE, MPI_MAX, 0,
+             MPI_COMM_WORLD);
+#endif
   if (!result.reachedEnd)
     throw SaturnError("case '" + cli.casePath +
                       "' did not reach time.end within time.maxSteps");
@@ -823,6 +871,7 @@ int runCase(const Cli& cli) {
     std::cout << "steps  : " << result.final.step << "\n";
     std::cout << "time   : " << result.final.time << " s\n";
     std::cout << "dt     : " << result.final.dt << " s\n";
+    std::cout << "wall   : " << wallMaximum << " s\n";
     std::cout << "l1     : " << result.final.l1 << "\n";
     std::cout << "l2     : " << result.final.l2 << "\n";
     std::cout << "linf   : " << result.final.linf << "\n";
@@ -856,6 +905,7 @@ int runCase(const Cli& cli) {
        << "  \"steps\": " << result.final.step << ",\n"
        << "  \"time\": " << result.final.time << ",\n"
        << "  \"dt\": " << result.final.dt << ",\n"
+       << "  \"wallSeconds\": " << wallMaximum << ",\n"
        << "  \"l1\": " << result.final.l1 << ",\n"
        << "  \"l2\": " << result.final.l2 << ",\n"
        << "  \"linf\": " << result.final.linf;

@@ -68,18 +68,81 @@ PASS: L2 4.225856e-05 <= tolerance 1.0e-04
 The zero in the fourth line means the solver's `u_exact` column and the
 script's independently recomputed $\tanh$ solution are identical.
 
-The script writes:
+## Where the results are stored
+
+Running from this directory writes:
+
+```text
+results/saturnBurger/traveling.csv
+results/saturnBurger/traveling.json
+```
+
+The CSV is the raw field data at the final time, one row per cell:
+
+```text
+x,u_numerical,u_exact,error
+0.001953125,0.9999961033,0.9999960869,1.6459e-08
+...
+```
+
+The JSON stores the run summary:
+
+```json
+{
+  "solver": "saturnBurger",
+  "ranks": 4,
+  "steps": 2622,
+  "time": 0.5,
+  "dt": 8.392e-05,
+  "wallSeconds": 0.841,
+  "exact": {"l1": 2.421e-05, "l2": 4.226e-05, "linf": 1.362e-04}
+}
+```
+
+`compareAnalytic.py` reads the same `output.prefix` from the YAML, resolves it
+relative to this directory, reads the CSV and plots it. If `output.csv` is
+false, no raw field values are written and the script stops with a missing-CSV
+message. If `output.exact` is false, the CSV still has the numerical values but
+the exact column/norms are not meaningful.
+
+Only the final time is stored. `output.vtkEvery` is a reserved key and does
+not write VTK fields yet; use the CSV for comparison.
+
+The script also writes:
 
 ```text
 results/saturnBurger/comparison.png
 results/saturnBurger/comparison.pdf
 ```
 
-and also reads:
+## Wall-clock time
+
+Every case prints a `wall` line and stores `wallSeconds` in the JSON:
 
 ```text
-results/saturnBurger/traveling.csv
-results/saturnBurger/traveling.json
+wall   : 1.711704155 s
+```
+
+For several MPI ranks it is the maximum of the per-rank times. It measures
+`Simulation::run()` (initialization plus the time loop), not file writing or
+process startup.
+
+## MPI threads and the oversubscription warning
+
+With 4 ranks on a 24-core node, Kokkos used to request its default 12 threads
+per rank, so 48 threads competed for 24 cores. The CLI now chooses
+
+```text
+OMP_NUM_THREADS = max(1, cores / ranks)
+```
+
+when the variable is not already set, and passes that count explicitly to
+Kokkos. On 24 cores and 4 ranks this is 6 threads per rank, so the warning is
+gone. To override it:
+
+```bash
+OMP_NUM_THREADS=1 mpirun -np 4 saturnCFD saturnBurger.yaml
+OMP_NUM_THREADS=6 mpirun -np 4 saturnCFD saturnBurger.yaml
 ```
 
 ## What was wrong with the first run

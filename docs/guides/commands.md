@@ -316,6 +316,17 @@ mpirun -np 4 saturnCFD case.yaml
 mpirun -np 1 saturnCFD case.yaml      # one GPU, one rank
 ```
 
+With MPI, the CLI sets `OMP_NUM_THREADS = max(1, cores/ranks)` when it is not
+already set, so 4 ranks on a 24-core node use 6 OpenMP threads each instead of
+oversubscribing. Override it explicitly for hybrid runs:
+
+```bash
+OMP_NUM_THREADS=1 mpirun -np 4 saturnCFD case.yaml
+```
+
+Every run prints its simulation wall-clock time and stores it as
+`wallSeconds` in the JSON summary.
+
 Kokkos/GPU execution and the one-GPU benchmark land with the FVM layer. The
 decomposition, ghost-cell and benchmark plan is in
 [`../plan/mpiGpuDesign.md`](../plan/mpiGpuDesign.md). The benchmark and

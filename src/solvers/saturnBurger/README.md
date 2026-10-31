@@ -80,13 +80,19 @@ analytic solution from the case parameters rather than trusting the solver's
 `u_exact` column.
 
 The case writes `results/burgers/traveling64.csv` and `.json` when
-`output.csv` and `output.json` are true. The CSV has
+`output.csv` and `output.json` are true. The CSV is the raw field at the final
+time, one row per cell:
 
 ```text
 x,u_numerical,u_exact,error
 ```
 
-and the JSON stores `l1/l2/linf` of the state and of the analytic error.
+The JSON stores `wallSeconds`, `l1/l2/linf` of the state and the analytic
+error. The prefix is relative to the current working directory.
+
+With MPI, the CLI chooses `OMP_NUM_THREADS = max(1, cores/ranks)` unless it is
+already set, and passes it explicitly to Kokkos; this avoids oversubscription
+when several ranks share a node.
 
 ### YAML keys
 

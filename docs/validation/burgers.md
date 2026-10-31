@@ -85,8 +85,10 @@ Linf error  : 1.362376e-04
 PASS: L2 4.225856e-05 <= tolerance 1.0e-04
 ```
 
-It also writes `results/saturnBurger/comparison.png`. The CTest slice checks
-this example with `burgers_example`.
+It also writes `results/saturnBurger/comparison.png`. The raw final-time field
+is `results/saturnBurger/traveling.csv` (`x,u_numerical,u_exact,error`); the
+JSON summary includes `wallSeconds`. The CTest slice checks this example with
+`burgers_example`.
 
 ## Reproduce
 
