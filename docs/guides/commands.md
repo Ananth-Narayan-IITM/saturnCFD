@@ -124,7 +124,7 @@ ctest --preset mesh
 ctest --preset config
 ctest --preset cli
 ctest --preset mpi           # partition/halo + FVM, 1/2/4 ranks
-ctest --preset fv            # fields, halo, LocalMesh, gradient/divergence MMS
+ctest --preset fv            # fields, halo, LocalMesh, operators, MMS
 ctest --preset gpu           # GPU-labelled tests in build-gpu
 ```
 

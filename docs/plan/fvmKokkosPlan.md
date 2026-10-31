@@ -2,8 +2,9 @@
 
 **Status:** CPU operator slice implemented with ADR `0016` (Kokkos
 `CellField`/`FaceField`, halo adapter, structured `LocalMesh`, interpolation,
-gradient, divergence, Dirichlet/Neumann ghosts, periodic MMS). Non-orthogonal
-correction and convective fluxes are next.
+gradient, divergence, non-orthogonal Laplacian, Dirichlet/Neumann ghosts,
+upwind convection and advection–diffusion MMS). MUSCL/TVD and the pressure
+coupling are next.
 
 This is the plan for the first Kokkos field/FVM increment. It builds directly
 on the MPI partition/halo layer already implemented.
@@ -24,10 +25,14 @@ on the MPI partition/halo layer already implemented.
   periodic/partition halo.
 - `interpolate`, `gradient` and `divergence` are implemented for the
   cell-local face representation.
-- `CartesianGeometry` and `laplacian` remain the uniform-block seven-point
-  operator used by the periodic Laplacian MMS.
+- `laplacian` on `LocalMesh` includes the non-orthogonal correction and is
+  exact for a linear field on a sheared mesh; `CartesianGeometry` remains the
+  simpler uniform-block operator.
+- `faceNormalVelocity` and `convectiveFlux` implement upwind and Rusanov face
+  fluxes. For scalar advection the Rusanov flux is algebraically upwind.
 - Periodic 2D and 3D manufactured Laplacian tests pass on 1, 2 and 4 ranks
   with observed order 2.00 (within 0.03 at the finest level).
+- Upwind convection and steady advection–diffusion MMS are first order in 3D.
 - Periodic gradient/divergence MMS on `LocalMesh` passes on 1, 2 and 4 ranks
   with observed order about 1.97 and 1.99 for the two refinement pairs.
 - GPU-labelled tests are compiled and run in a CUDA build; the local machine
@@ -207,11 +212,13 @@ Rules:
 
 1. **Done.** `interpolate` — linear cell to face.
 2. **Done.** `gradient` — Gauss gradient from face values.
-3. **Done.** `divergence` — sum face fluxes / cell volume.
+3. **Done.** `divergence` — sum face fluxes / cell volume; scalar normal flux
+   or vector dotted with the normal.
 4. **Done.** `fillBoundaryGhosts` — Dirichlet/Neumann physical ghosts.
-5. **Done (uniform).** `laplacian` — orthogonal seven-point stencil.
-6. Next: non-orthogonal Laplacian correction on general hexahedra.
-7. Next: `convectiveFlux` — upwind/Rusanov, then MUSCL/TVD.
+5. **Done.** `laplacian` on `LocalMesh` — orthogonal plus non-orthogonal
+   correction; exact for a linear field on a sheared mesh.
+6. **Done.** `faceNormalVelocity` + `convectiveFlux` — upwind and Rusanov.
+7. Next: MUSCL/TVD reconstruction and limiters.
 
 Boundary conditions are applied to ghost cells before an operator reads them:
 periodic/partition through `FieldHalo`, physical through
@@ -223,9 +230,11 @@ The first validation set:
   uniform hex block with Dirichlet ghosts;
 - **done:** Neumann ghosts give the exact linear gradient;
 - **done:** 2D LocalMesh ignores the empty direction;
+- **done:** sheared-mesh non-orthogonal Laplacian is exact for a linear field;
 - **done:** periodic gradient and divergence MMS, second-order in 3D;
 - **done:** periodic divergence integrates to zero over the domain;
 - **done:** manufactured Laplacian: second-order convergence in 2D/3D;
+- **done:** upwind convection and steady advection–diffusion MMS, first order;
 - next: divergence theorem on a non-uniform mesh;
 - next: advection of a smooth pulse with a limiter.
 
@@ -249,10 +258,12 @@ The first MMS cases are:
    ghosts. Next.
 3. **Neumann Laplacian** with $\phi=\cos(\pi x)\cos(\pi y)[\cos(\pi z)]$;
    verifies zero-normal-gradient ghosts. Next.
-4. **Steady advection–diffusion** with a smooth manufactured field; verifies
-   the convection sign, interpolation and limiter branch.
+4. **Steady advection–diffusion** with a smooth manufactured field —
+   **implemented and passing**. Upwind order about 0.96 and 0.99 for the two
+   refinement pairs; the residual uses the LocalMesh Laplacian and the
+   convective flux divergence.
 5. **One-step transient advection–diffusion**; refines $h$ and $\Delta t$
-   separately to separate spatial and temporal order.
+   separately to separate spatial and temporal order. Next.
 6. **CPU/GPU parity** and **1-rank/2-rank parity** on the same MMS case.
 
 For every case record $L^1$, $L^2$, $L^\infty$, observed order, rank count,
@@ -272,7 +283,9 @@ Implemented:
   ghost layers, 2D/3D Laplacian MMS order, and a stored CPU reference norm;
 - `tests/TestLocalMesh.cpp` — LocalMesh geometry, linear interpolation,
   Dirichlet/Neumann ghost fill, linear gradient/divergence exactness, a 2D
-  empty-direction check, and periodic gradient/divergence MMS;
+  empty-direction check, sheared-mesh non-orthogonal Laplacian exactness,
+  upwind convection and steady advection–diffusion MMS, and periodic
+  gradient/divergence MMS;
 - `tests/TestFvMain.cpp` — MPI then Kokkos initialization, global failure
   reduction;
 - `saturn_fv_tests` runs under `mpirun -np 1/2/4` and as a serial binary when
@@ -288,7 +301,7 @@ CTest labels: `fv`, `mpi`, `gpu`, `parity`, `regression`.
 Still to add: 1-rank vs 2-rank *cross-run* equality (the current MMS/order and
 reference checks run identically on 1/2/4 ranks), Dirichlet/Neumann
 *Laplacian* MMS order (the linear ghost tests already verify the ghost
-values), advection-diffusion MMS, and the halo/stencil benchmark.
+values), MUSCL/TVD limiter tests, and the halo/stencil benchmark.
 
 ## 9. Performance
 
@@ -312,8 +325,10 @@ Do not claim multi-GPU scaling from one GPU.
 6. **Done.** `FaceField`, `interpolate`, `gradient`, `divergence`.
 7. **Done.** Dirichlet/Neumann boundary ghost fill.
 8. **Done.** Linear exactness and periodic gradient/divergence MMS.
-9. **Next.** Non-orthogonal correction, convective fluxes, advection MMS.
-10. **Pending.** GPU execution verification and the halo/stencil benchmark.
+9. **Done.** Non-orthogonal Laplacian, upwind convection, advection–diffusion
+   MMS.
+10. **Next.** MUSCL/TVD reconstruction and limiters.
+11. **Pending.** GPU execution verification and the halo/stencil benchmark.
 
 ## 11. Open decisions
 
@@ -329,9 +344,15 @@ Resolved:
 
 Open:
 
-1. Non-orthogonal face-gradient correction on general hexahedra.
-2. Cross-run rank-parity comparison (1 vs 2 vs 4) versus the current
+1. MUSCL/TVD limiter and reconstruction on the cell-local face layout.
+2. Ghost-cell gradients for a fully corrected non-orthogonal Laplacian on
+   partitioned, strongly skewed meshes. The current ghost-face correction uses
+   the owner gradient and is exact only for a linear field.
+3. Per-image period vectors for non-uniform periodic meshes. The current ghost
+   centroid uses the first-cell lattice vector, exact for uniform/sheared
+   periodic meshes.
+4. Cross-run rank-parity comparison (1 vs 2 vs 4) versus the current
    per-run norm check.
-3. GPU-aware MPI versus host staging once the CUDA build is available.
-4. General non-uniform interpolation weight at partition faces (equal weights
+5. GPU-aware MPI versus host staging once the CUDA build is available.
+6. General non-uniform interpolation weight at partition faces (equal weights
    are used for ghost-touching faces now).

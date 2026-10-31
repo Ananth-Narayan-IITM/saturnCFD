@@ -77,6 +77,11 @@ expected orders, rank/backend matrix and pitfalls are in
 - Neumann ghosts reproduce the exact linear gradient;
 - 2D `LocalMesh` ignores the empty direction;
 - periodic divergence integrates to zero over the domain;
+- sheared-mesh non-orthogonal Laplacian is exact for a linear field;
+- constant-field upwind/Rusanov convection has zero divergence;
+- upwind convection MMS: observed order 0.960 and 0.990;
+- Rusanov equals upwind for scalar advection (algebraic identity);
+- steady advection–diffusion MMS: observed order 0.847 and 0.936;
 - periodic 3D gradient MMS: observed order 1.967 and 1.992;
 - periodic 3D divergence MMS: observed order 1.967 and 1.992;
 - all cases run on 1, 2 and 4 ranks.

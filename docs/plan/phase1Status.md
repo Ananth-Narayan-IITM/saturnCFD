@@ -31,8 +31,11 @@ in [`mpiGpuDesign.md`](mpiGpuDesign.md).
 | `FieldHalo` device pack / MPI / unpack | done |
 | `fillBoundaryGhosts` Dirichlet/Neumann | done |
 | `interpolate`, `gradient`, `divergence` | done |
+| non-orthogonal `laplacian` on `LocalMesh` | done, exact for a sheared linear field |
+| `faceNormalVelocity`, upwind/Rusanov convection | done |
 | linear exactness and periodic gradient/divergence MMS | done on 1/2/4 ranks |
 | orthogonal `laplacian` + periodic 2D/3D MMS | done, order 2 on 1/2/4 ranks |
+| upwind convection and steady advection–diffusion MMS | done, order ~1 |
 | `ctest --preset fv` | done |
 | GPU-labelled FV regression cases | written; CUDA build not yet verified locally |
 
@@ -40,7 +43,7 @@ in [`mpiGpuDesign.md`](mpiGpuDesign.md).
 
 | area | pending item |
 |---|---|
-| `src/fv` | non-orthogonal Laplacian correction, convective fluxes, divergence theorem on non-uniform meshes, persistent face flux |
+| `src/fv` | MUSCL/TVD limiter, divergence theorem on non-uniform meshes, persistent face flux |
 | `src/simulation` | `Solver` interface, registry, time loop, diagnostics |
 | `src/solvers` | `burgers` skeleton, `addSolver(burgers)`, `saturnCFDSolver` tool |
 | `src/config` | `boundary` and `fields` schemas; solver-specific option schemas |
@@ -78,12 +81,15 @@ two-phase flow, compressible flow.
      the CPU reference, halo roundoff).
    - Done: `LocalMesh` structured geometry, `FaceField`, `interpolate`,
      `gradient`, `divergence`, Dirichlet/Neumann ghost fill.
-   - Done: linear exactness and periodic gradient/divergence MMS on 1/2/4
-     ranks; 2D empty-direction check.
-   - Next: non-orthogonal Laplacian correction, divergence theorem on a
+   - Done: non-orthogonal Laplacian correction; exact for a sheared linear
+     field.
+   - Done: `faceNormalVelocity` and upwind/Rusanov convection.
+   - Done: linear exactness, periodic gradient/divergence MMS, upwind
+     convection and steady advection–diffusion MMS on 1/2/4 ranks; 2D
+     empty-direction check.
+   - Next: MUSCL/TVD limiter and reconstruction; divergence theorem on a
      non-uniform mesh.
-   - Next: persistent face flux for pressure; upwind/Rusanov/MUSCL
-     convection; advection–diffusion MMS; limiter behaviour.
+   - Next: persistent face flux for pressure.
    - Remaining: CUDA execution on a host with the toolkit.
    - MMS methodology: [`../theory/manufacturedSolutions.md`](../theory/manufacturedSolutions.md).
    - plan: [`fvmKokkosPlan.md`](fvmKokkosPlan.md), ADR `0016`.
@@ -119,6 +125,10 @@ Then Phase 2: Burgers physics and the `traveling64` analytic regression.
   linear field with Dirichlet ghosts, and periodic gradient/divergence MMS is
   second-order on 1/2/4 ranks.
 - **Done:** Neumann ghosts reproduce the exact linear gradient.
+- **Done:** non-orthogonal Laplacian is exact for a linear field on a sheared
+  mesh.
+- **Done:** upwind convection and steady advection–diffusion MMS are first
+  order on 1/2/4 ranks.
 - 1-rank and 2-rank *cross-run* results agree; a CUDA build reproduces the CPU
   reference within precision.
 - `mpirun -np 1` GPU runs the halo/stencil benchmark.

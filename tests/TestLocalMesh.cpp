@@ -14,8 +14,10 @@
 #include "comm/Partition.hpp"
 #include "fv/BoundaryFill.hpp"
 #include "fv/CellField.hpp"
+#include "fv/Convection.hpp"
 #include "fv/FaceField.hpp"
 #include "fv/FieldHalo.hpp"
+#include "fv/Laplacian.hpp"
 #include "fv/LocalMesh.hpp"
 #include "fv/Operators.hpp"
 
@@ -265,6 +267,169 @@ double observedOrder(double coarse, double fine) {
   return std::log(coarse / fine) / std::log(2.0);
 }
 
+KOKKOS_INLINE_FUNCTION double mms3(double x, double y, double z) {
+  return Kokkos::sin(2 * pi() * x) * Kokkos::sin(2 * pi() * y) *
+         Kokkos::sin(2 * pi() * z);
+}
+
+KOKKOS_INLINE_FUNCTION Vec3 mmsGrad3(double x, double y, double z) {
+  const double k = 2 * pi();
+  const double sx = Kokkos::sin(k * x), sy = Kokkos::sin(k * y),
+               sz = Kokkos::sin(k * z);
+  const double cx = Kokkos::cos(k * x), cy = Kokkos::cos(k * y),
+               cz = Kokkos::cos(k * z);
+  return {k * cx * sy * sz, k * sx * cy * sz, k * sx * sy * cz};
+}
+
+double maxAbsCell(const CellField& field) {
+  CellField f = field;
+  double local = 0;
+  Kokkos::parallel_reduce(
+      "fv::max_abs_cell", ownedPolicy(field),
+      KOKKOS_LAMBDA(int i, int j, int k, double& acc) {
+        acc = Kokkos::max(acc, Kokkos::abs(f(i, j, k, 0)));
+      },
+      Kokkos::Max<double>(local));
+  return globalMax(local);
+}
+
+void fillConstantVector(CellField& field, const Vec3& value) {
+  CellField f = field;
+  Kokkos::parallel_for(
+      "fv::fill_constant_vector", ownedPolicy(field),
+      KOKKOS_LAMBDA(int i, int j, int k) {
+        for (int c = 0; c < 3; ++c)
+          f(i, j, k, c) = value[c];
+      });
+}
+
+std::vector<BoundaryCondition> dirichletConstantVector(const LocalMesh& mesh,
+                                                       const Vec3& value) {
+  BoundaryCondition bc;
+  bc.type = BCType::Dirichlet;
+  bc.value = [value](const Vec3&, const Vec3&, int c) { return value[c]; };
+  return std::vector<BoundaryCondition>(mesh.numPatches(), bc);
+}
+
+double mmsConvectionL2(int n, ConvectiveScheme scheme) {
+  Mesh mesh = test::makeUniformBoxMesh(n, n, n);
+  MeshPartition part(n, n, n, true, true, true);
+  LocalMesh lm(mesh, part, 1);
+  CellField phi(part, 1, 1, "fv::conv_phi");
+  CellField vel(part, 1, 3, "fv::conv_vel");
+  CellField div(part, 1, 1, "fv::conv_div");
+  FaceField velFaces(part, 1, 3, "fv::conv_vel_face");
+  FaceField un(part, 1, 1, "fv::conv_un");
+  FaceField flux(part, 1, 1, "fv::conv_flux");
+  const LocalMesh::DeviceData m = lm.device();
+  const Vec3 a{1, 0.5, 0.25};
+  CellField p = phi;
+  CellField v = vel;
+  Kokkos::parallel_for(
+      "fv::fill_conv_phi", ownedPolicy(phi),
+      KOKKOS_LAMBDA(int i, int j, int k) {
+        const Vec3 x = m.cellCentroid(i, j, k);
+        p(i, j, k, 0) = mms3(x.x, x.y, x.z);
+      });
+  Kokkos::parallel_for(
+      "fv::fill_conv_vel", ownedPolicy(vel),
+      KOKKOS_LAMBDA(int i, int j, int k) {
+        for (int c = 0; c < 3; ++c)
+          v(i, j, k, c) = a[c];
+      });
+
+  {
+    HaloExchange halo(part, 1, 1);
+    FieldHalo fieldHalo(halo, 1);
+    fieldHalo.execute(phi);
+  }
+  {
+    HaloExchange halo(part, 1, 3);
+    FieldHalo fieldHalo(halo, 3);
+    fieldHalo.execute(vel);
+  }
+
+  faceNormalVelocity(vel, velFaces, un, lm);
+  convectiveFlux(un, phi, flux, lm, scheme);
+  divergence(flux, div, lm);
+
+  CellField d = div;
+  double local = 0;
+  Kokkos::parallel_reduce(
+      "fv::conv_mms_l2", ownedPolicy(div),
+      KOKKOS_LAMBDA(int i, int j, int k, double& acc) {
+        const Vec3 x = m.cellCentroid(i, j, k);
+        const double exact = dot(a, mmsGrad3(x.x, x.y, x.z));
+        const double e = d(i, j, k, 0) - exact;
+        acc += e * e;
+      },
+      local);
+  return std::sqrt(globalSum(local) / (static_cast<double>(n) * n * n));
+}
+
+double mmsAdvectionDiffusionL2(int n, ConvectiveScheme scheme) {
+  const double nu = 0.1;
+  Mesh mesh = test::makeUniformBoxMesh(n, n, n);
+  MeshPartition part(n, n, n, true, true, true);
+  LocalMesh lm(mesh, part, 1);
+  CellField phi(part, 1, 1, "fv::ad_phi");
+  CellField vel(part, 1, 3, "fv::ad_vel");
+  CellField div(part, 1, 1, "fv::ad_div");
+  CellField lap(part, 1, 1, "fv::ad_lap");
+  CellField grad(part, 1, 3, "fv::ad_grad");
+  FaceField velFaces(part, 1, 3, "fv::ad_vel_face");
+  FaceField un(part, 1, 1, "fv::ad_un");
+  FaceField flux(part, 1, 1, "fv::ad_flux");
+  FaceField lapFace(part, 1, 1, "fv::ad_lap_face");
+  const LocalMesh::DeviceData m = lm.device();
+  const Vec3 a{1, 0.5, 0.25};
+  CellField p = phi;
+  CellField v = vel;
+  Kokkos::parallel_for(
+      "fv::fill_ad_phi", ownedPolicy(phi), KOKKOS_LAMBDA(int i, int j, int k) {
+        const Vec3 x = m.cellCentroid(i, j, k);
+        p(i, j, k, 0) = mms3(x.x, x.y, x.z);
+      });
+  Kokkos::parallel_for(
+      "fv::fill_ad_vel", ownedPolicy(vel), KOKKOS_LAMBDA(int i, int j, int k) {
+        for (int c = 0; c < 3; ++c)
+          v(i, j, k, c) = a[c];
+      });
+
+  {
+    HaloExchange halo(part, 1, 1);
+    FieldHalo fieldHalo(halo, 1);
+    fieldHalo.execute(phi);
+  }
+  {
+    HaloExchange halo(part, 1, 3);
+    FieldHalo fieldHalo(halo, 3);
+    fieldHalo.execute(vel);
+  }
+
+  faceNormalVelocity(vel, velFaces, un, lm);
+  convectiveFlux(un, phi, flux, lm, scheme);
+  divergence(flux, div, lm);
+  laplacian(phi, lapFace, grad, lap, lm);
+
+  CellField d = div;
+  CellField l = lap;
+  double local = 0;
+  Kokkos::parallel_reduce(
+      "fv::ad_mms_l2", ownedPolicy(div),
+      KOKKOS_LAMBDA(int i, int j, int k, double& acc) {
+        const Vec3 x = m.cellCentroid(i, j, k);
+        const double kk = 2 * pi();
+        const double conv = dot(a, mmsGrad3(x.x, x.y, x.z));
+        const double lapExact = -3 * kk * kk * mms3(x.x, x.y, x.z);
+        const double source = conv - nu * lapExact;
+        const double residual = d(i, j, k, 0) - nu * l(i, j, k, 0) - source;
+        acc += residual * residual;
+      },
+      local);
+  return std::sqrt(globalSum(local) / (static_cast<double>(n) * n * n));
+}
+
 }  // namespace
 
 TEST_CASE("fv: LocalMesh extracts uniform hex geometry") {
@@ -468,4 +633,92 @@ TEST_CASE("fv: divergence MMS on LocalMesh is second order") {
   CHECK(e1 < e0);
   CHECK(std::abs(p1 - 2.0) < 0.2);
   CHECK(std::abs(p2 - 2.0) < 0.2);
+}
+
+TEST_CASE("fv: non-orthogonal Laplacian is exact for a linear field") {
+  const int n = 6;
+  Mesh mesh = test::makeShearedBoxMesh(n, n, n, 0.5);
+  MeshPartition part(n, n, n, false, false, false);
+  LocalMesh lm(mesh, part, 1);
+  CellField phi(part, 1, 1, "fv::skew_phi");
+  CellField grad(part, 1, 3, "fv::skew_grad");
+  CellField lap(part, 1, 1, "fv::skew_lap");
+  FaceField face(part, 1, 1, "fv::skew_face");
+  const Vec3 a{2, -3, 0.5};
+  const Real b = 1;
+
+  fillLinearScalar(phi, lm, a, b);
+  fillGhosts(phi, part, lm, dirichletScalar(lm, a, b));
+  laplacian(phi, face, grad, lap, lm);
+  const double error = maxAbsCell(lap);
+  MESSAGE("sheared-mesh linear Laplacian max |L phi| = " << error);
+  CHECK(error < 1e-11);
+}
+
+TEST_CASE("fv: constant-field convection has zero divergence") {
+  const int n = 8;
+  Mesh mesh = test::makeUniformBoxMesh(n, n, n);
+  MeshPartition part(n, n, n, false, false, false);
+  LocalMesh lm(mesh, part, 1);
+  CellField phi(part, 1, 1, "fv::const_phi");
+  CellField vel(part, 1, 3, "fv::const_vel");
+  CellField div(part, 1, 1, "fv::const_div");
+  FaceField velFaces(part, 1, 3, "fv::const_vel_face");
+  FaceField un(part, 1, 1, "fv::const_un");
+  FaceField flux(part, 1, 1, "fv::const_flux");
+  const Vec3 a{1, 0.5, 0.25};
+
+  phi.fill(1.0);
+  fillConstantVector(vel, a);
+  fillGhosts(phi, part, lm, dirichletScalar(lm, {0, 0, 0}, 1.0));
+  fillGhosts(vel, part, lm, dirichletConstantVector(lm, a));
+  faceNormalVelocity(vel, velFaces, un, lm);
+
+  for (ConvectiveScheme scheme :
+       {ConvectiveScheme::Upwind, ConvectiveScheme::Rusanov}) {
+    convectiveFlux(un, phi, flux, lm, scheme);
+    divergence(flux, div, lm);
+    CHECK(maxAbsCell(div) < 1e-12);
+  }
+}
+
+TEST_CASE("fv: upwind convection MMS is first order") {
+  const double e0 = mmsConvectionL2(8, ConvectiveScheme::Upwind);
+  const double e1 = mmsConvectionL2(16, ConvectiveScheme::Upwind);
+  const double e2 = mmsConvectionL2(32, ConvectiveScheme::Upwind);
+  const double p1 = observedOrder(e0, e1);
+  const double p2 = observedOrder(e1, e2);
+  MESSAGE("upwind convection MMS L2: " << std::setprecision(17) << e0 << " "
+                                       << e1 << " " << e2);
+  MESSAGE("upwind convection orders: " << p1 << " " << p2);
+  CHECK(e2 < e1);
+  CHECK(e1 < e0);
+  CHECK(std::abs(p1 - 1.0) < 0.3);
+  CHECK(std::abs(p2 - 1.0) < 0.3);
+}
+
+TEST_CASE("fv: Rusanov reduces to upwind for scalar advection") {
+  // For a scalar with one wave speed, the Rusanov flux is algebraically the
+  // upwind flux. Keep the branch tested; the values may differ only by
+  // roundoff from the different expression order.
+  for (int n : {8, 16, 32}) {
+    const double upwind = mmsConvectionL2(n, ConvectiveScheme::Upwind);
+    const double rusanov = mmsConvectionL2(n, ConvectiveScheme::Rusanov);
+    CHECK(std::abs(upwind - rusanov) < 1e-12);
+  }
+}
+
+TEST_CASE("fv: steady advection-diffusion MMS is first order") {
+  const double e0 = mmsAdvectionDiffusionL2(8, ConvectiveScheme::Upwind);
+  const double e1 = mmsAdvectionDiffusionL2(16, ConvectiveScheme::Upwind);
+  const double e2 = mmsAdvectionDiffusionL2(32, ConvectiveScheme::Upwind);
+  const double p1 = observedOrder(e0, e1);
+  const double p2 = observedOrder(e1, e2);
+  MESSAGE("advection-diffusion MMS L2: " << std::setprecision(17) << e0 << " "
+                                         << e1 << " " << e2);
+  MESSAGE("advection-diffusion orders: " << p1 << " " << p2);
+  CHECK(e2 < e1);
+  CHECK(e1 < e0);
+  CHECK(std::abs(p1 - 1.0) < 0.3);
+  CHECK(std::abs(p2 - 1.0) < 0.3);
 }

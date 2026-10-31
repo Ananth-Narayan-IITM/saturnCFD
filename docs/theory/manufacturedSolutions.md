@@ -151,6 +151,8 @@ assembles the same operator.
 | 2D periodic Laplacian | $16^2,32^2,64^2$ | 1.994, 1.999 | — |
 | 3D periodic gradient (LocalMesh) | $8^3,16^3,32^3$ | 1.967, 1.992 | — |
 | 3D periodic divergence (LocalMesh) | $8^3,16^3,32^3$ | 1.967, 1.992 | — |
+| 3D periodic upwind convection | $8^3,16^3,32^3$ | 0.960, 0.990 | — |
+| 3D steady advection–diffusion | $8^3,16^3,32^3$ | 0.847, 0.936 | — |
 
 The 32$^3$ value is stored in `tests/TestFv.cpp` and checked to `1e-10` on
 every run. The CUDA build carries the same reference with a `1e-9` window for
@@ -161,6 +163,13 @@ The LocalMesh gradient/divergence cases use the Gauss face sum and linear
 interpolation. Their observed order is slightly below 2 at the coarsest pair,
 as expected for a centred face interpolation on a smooth trigonometric field.
 The linear-field tests separately show exactness with Dirichlet/Neumann ghosts.
+
+Upwind convection is first order, as expected. For a scalar with one wave
+speed the Rusanov flux is algebraically identical to upwind, so it is tested
+as an identity rather than as a separate order. The steady advection–diffusion
+residual combines the upwind flux divergence with the non-orthogonal
+Laplacian; its observed order is approaching 1 from below, consistent with the
+convective error dominating.
 
 ## 6. Test matrix
 
@@ -176,10 +185,12 @@ and execution on a CUDA host.
 | 3D periodic gradient/divergence | 1, 2, 4 | CPU | periodic |
 | linear gradient/divergence | 1, 2, 4 | CPU | Dirichlet |
 | linear gradient | 1, 2, 4 | CPU | Neumann |
+| sheared linear Laplacian | 1, 2, 4 | CPU | Dirichlet |
+| 3D periodic upwind convection | 1, 2, 4 | CPU | periodic |
+| 3D steady advection–diffusion | 1, 2, 4 | CPU | periodic |
 | 3D Dirichlet Laplacian | 1, 2 | CPU | Dirichlet |
 | 3D Neumann Laplacian | 1, 2 | CPU | Neumann |
 | 2D/3D periodic Laplacian | 1 | GPU | periodic |
-| advection–diffusion steady | 1, 2 | CPU | periodic/Dirichlet |
 | advection–diffusion one-step | 1, 2 | CPU | periodic |
 
 GPU parity is a separate check: same case, CPU vs GPU, within the precision

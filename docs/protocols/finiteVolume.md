@@ -54,10 +54,11 @@ $$
 | operator | input | output | notes |
 |---|---|---|---|
 | `gradient` | `CellField` | `CellField` with 3 components | Gauss; implemented |
-| `divergence` | `FaceField` (3 components) | `CellField` | sum of face fluxes / $V_P$; implemented |
-| `laplacian` | `CellField` | `CellField` | orthogonal uniform stencil implemented; non-orthogonal correction next |
+| `divergence` | `FaceField` (1 or 3 components) | `CellField` | scalar normal flux or vector dotted with the normal; implemented |
+| `laplacian` | `CellField` | `CellField` | orthogonal + non-orthogonal correction on `LocalMesh`; implemented |
 | `interpolate` | `CellField` | `FaceField` | linear with face weight; implemented |
-| `convectiveFlux` | face velocity + face value | `FaceField` | Rusanov/upwind/MUSCL |
+| `faceNormalVelocity` | `CellField` velocity | `FaceField` | interpolate then dot with the face normal; implemented |
+| `convectiveFlux` | normal velocity + cell scalar | `FaceField` | upwind and Rusanov; MUSCL/TVD next |
 | `rhieChowFlux` | velocity, pressure | `FaceField` | collocated pressure correction |
 
 ## Face interpolation
@@ -69,16 +70,26 @@ $$
 w_P = \frac{d_{fN}}{d_{PN}},\quad w_N = 1-w_P.
 $$
 
-For non-orthogonal meshes the face-normal gradient is split into an
-orthogonal part and a correction:
+For non-orthogonal meshes let
+$\mathbf{d}=\mathbf{x}_N-\mathbf{x}_P$, $d_\perp=\mathbf{d}\cdot\mathbf{n}_f$
+and $\overline{\nabla\phi}_f$ the interpolated cell gradient. The normal
+gradient used by `laplacian` is
 
 $$
 \nabla\phi_f\cdot\mathbf{n}_f
-= \frac{\phi_N-\phi_P}{d_{PN}}
-+ \underbrace{\left(\overline{\nabla\phi}_f - \frac{\phi_N-\phi_P}{d_{PN}}\mathbf{n}_f\right)\cdot\mathbf{n}_f}_{\mathrm{correction}}.
+= \frac{(\phi_N-\phi_P) - \mathbf{d}\cdot\nabla\phi_f^{\,t}}{d_\perp},
+\qquad
+\nabla\phi_f^{\,t}
+= \overline{\nabla\phi}_f
+  - \left(\overline{\nabla\phi}_f\cdot\mathbf{n}_f\right)\mathbf{n}_f .
 $$
 
-The correction is deferred or iterated; document which.
+The implemented correction uses one gradient pass; deferred/iterated
+correction is a later refinement. On a physical boundary face the
+interpolated face value and the owner gradient provide the same correction,
+with $d_\perp$ taken from the owner centroid to the face centroid. On a
+partition or periodic ghost face the owner gradient is used; that is exact
+for a linear field and a documented approximation for a general smooth field.
 
 ## Rhie–Chow face flux
 

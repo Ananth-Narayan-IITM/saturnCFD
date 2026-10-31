@@ -1,8 +1,8 @@
 # 0016 — Kokkos-backed field and FVM layer
 
 - **Status:** accepted (CellField/FaceField, FieldHalo, structured LocalMesh,
-  interpolation, gradient, divergence, boundary ghosts, and periodic MMS;
-  non-orthogonal correction and convective fluxes follow)
+  interpolation, gradient, divergence, non-orthogonal Laplacian, boundary
+  ghosts, upwind/Rusanov convection and MMS; MUSCL/TVD follows)
 - **Date:** 2026-10-31
 - **Owner:** saturnCFD v1
 - **Supersedes:** none
@@ -63,7 +63,11 @@ and GPU. This is where the field layout and kernel policy are fixed.
   ranks, including two ghost layers and all 26 directions.
 - **Done:** `LocalMesh` geometry, linear interpolation, linear
   gradient/divergence exactness, and Dirichlet/Neumann ghost fill.
+- **Done:** non-orthogonal Laplacian is exact for a linear field on a sheared
+  mesh.
 - **Done:** periodic Laplacian, gradient and divergence MMS show the expected
+  order on 1/2/4 ranks.
+- **Done:** upwind convection and steady advection–diffusion MMS are first
   order on 1/2/4 ranks.
 - **Pending:** CPU/GPU parity on a CUDA host.
 - **Pending:** `mpirun -np 1` GPU runs the field/halo test.

@@ -20,8 +20,12 @@ void interpolate(const CellField& phi, FaceField& face, const LocalMesh& mesh);
 void gradient(const CellField& phi, FaceField& face, CellField& grad,
               const LocalMesh& mesh);
 
-/// Divergence of a vector face field: (1/V) sum_f u_f . n_f A_f.
-/// `face` must have three components; `div` has one.
+/// Divergence of a face field: (1/V) sum_f F_f A_f.
+///
+/// A three-component `face` is a vector, and the flux is `u_f . n_f`. A
+/// one-component `face` is already the outward normal flux. `div` has one
+/// component. This lets the scalar output of `convectiveFlux` feed directly
+/// into the divergence.
 void divergence(const FaceField& face, CellField& div, const LocalMesh& mesh);
 
 /// Interpolate a three-component cell vector to `face`, then take divergence.

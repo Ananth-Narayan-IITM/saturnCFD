@@ -11,12 +11,11 @@
 
 namespace saturn::test {
 
-/// Build a uniform structured hex box for tests. The mesh is not read from
-/// disk: this keeps convergence tests independent of fixture files.
-inline Mesh makeUniformBoxMesh(int nx, int ny, int nz, Vec3 lo = {0, 0, 0},
-                               Vec3 hi = {1, 1, 1}) {
+/// Build a structured hex box for tests. `shear` shifts x by
+/// shear*(y - lo.y), producing a non-orthogonal parallelepiped.
+inline Mesh makeBoxMesh(int nx, int ny, int nz, Vec3 lo, Vec3 hi, Real shear) {
   if (nx < 1 || ny < 1 || nz < 1)
-    throw std::invalid_argument("makeUniformBoxMesh: extents must be positive");
+    throw std::invalid_argument("makeBoxMesh: extents must be positive");
 
   Mesh mesh;
   const int pnx = nx + 1;
@@ -29,7 +28,8 @@ inline Mesh makeUniformBoxMesh(int nx, int ny, int nz, Vec3 lo = {0, 0, 0},
     for (int j = 0; j < pny; ++j)
       for (int i = 0; i < pnx; ++i)
         mesh.points[pointId(i, j, k)] = {
-            lo.x + (hi.x - lo.x) * static_cast<Real>(i) / nx,
+            lo.x + (hi.x - lo.x) * static_cast<Real>(i) / nx +
+                shear * (hi.y - lo.y) * static_cast<Real>(j) / ny,
             lo.y + (hi.y - lo.y) * static_cast<Real>(j) / ny,
             lo.z + (hi.z - lo.z) * static_cast<Real>(k) / nz};
 
@@ -136,8 +136,18 @@ inline Mesh makeUniformBoxMesh(int nx, int ny, int nz, Vec3 lo = {0, 0, 0},
   }
 
   if (!detectStructured(mesh))
-    throw std::runtime_error("makeUniformBoxMesh: structured detection failed");
+    throw std::runtime_error("makeBoxMesh: structured detection failed");
   return mesh;
+}
+
+inline Mesh makeUniformBoxMesh(int nx, int ny, int nz, Vec3 lo = {0, 0, 0},
+                               Vec3 hi = {1, 1, 1}) {
+  return makeBoxMesh(nx, ny, nz, lo, hi, 0);
+}
+
+inline Mesh makeShearedBoxMesh(int nx, int ny, int nz, Real shear,
+                               Vec3 lo = {0, 0, 0}, Vec3 hi = {1, 1, 1}) {
+  return makeBoxMesh(nx, ny, nz, lo, hi, shear);
 }
 
 }  // namespace saturn::test

@@ -56,7 +56,10 @@ void interpolate(const CellField& phi, FaceField& face, const LocalMesh& mesh) {
 
           Real wP = Real(0.5);
           Real wN = Real(0.5);
-          if (m.boundaryPatch(i, j, k, dir) < 0 && m.owned(ni, nj, nk)) {
+          const bool periodicFace = m.periodic[dir / 2];
+          const bool internalFace =
+              (m.boundaryPatch(i, j, k, dir) < 0) || periodicFace;
+          if (internalFace) {
             const Vec3 xf = m.faceCentroid(i, j, k, dir);
             const Vec3 xP = m.cellCentroid(i, j, k);
             const Vec3 xN = m.cellCentroid(ni, nj, nk);
@@ -122,9 +125,9 @@ void gradient(const CellField& phi, FaceField& face, CellField& grad,
 void divergence(const FaceField& face, CellField& div, const LocalMesh& mesh) {
   requireOwnedLayout(face, mesh);
   requireOwnedLayout(div, mesh);
-  if (face.ncomp() != 3)
+  if (face.ncomp() != 1 && face.ncomp() != 3)
     throw std::invalid_argument(
-        "divergence: face field must have 3 components");
+        "divergence: face field must have 1 or 3 components");
   if (div.ncomp() != 1)
     throw std::invalid_argument("divergence: output must have one component");
 
@@ -137,6 +140,7 @@ void divergence(const FaceField& face, CellField& div, const LocalMesh& mesh) {
   const int nz = mesh.extent(2);
   FaceField f = face;
   CellField d = div;
+  const int ncomp = face.ncomp();
 
   Kokkos::parallel_for(
       "saturn::divergence",
@@ -147,9 +151,13 @@ void divergence(const FaceField& face, CellField& div, const LocalMesh& mesh) {
         for (int dir = 0; dir < 2 * m.dimension; ++dir) {
           const Vec3 n = m.faceNormal(i, j, k, dir);
           const Real area = m.faceArea(i, j, k, dir);
-          const Vec3 u = {f(i, j, k, dir, 0), f(i, j, k, dir, 1),
-                          f(i, j, k, dir, 2)};
-          sum += area * dot(u, n);
+          if (ncomp == 1) {
+            sum += area * f(i, j, k, dir, 0);
+          } else {
+            const Vec3 u = {f(i, j, k, dir, 0), f(i, j, k, dir, 1),
+                            f(i, j, k, dir, 2)};
+            sum += area * dot(u, n);
+          }
         }
         d(i, j, k, 0) = sum / m.cellVolume(i, j, k);
       });

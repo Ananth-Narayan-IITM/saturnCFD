@@ -157,6 +157,71 @@ void LocalMesh::build(const Mesh& mesh, const MeshPartition& part) {
       }
     }
   }
+
+  // Ghost-cell centroids are needed by the non-orthogonal Laplacian on faces
+  // that touch a partition or periodic ghost. A physical-boundary ghost is
+  // handled by the mirror formula and does not need a centroid.
+  Vec3 period[3]{};
+  for (int d = 0; d < 3; ++d) {
+    if (!mHost.periodic[d] || mGlobal[d] <= 1)
+      continue;
+    int i1 = 0, j1 = 0, k1 = 0;
+    if (d == 0)
+      i1 = 1;
+    else if (d == 1)
+      j1 = 1;
+    else
+      k1 = 1;
+    const int c0 = mesh.cellAt(0, 0, 0);
+    const int c1 = mesh.cellAt(i1, j1, k1);
+    if (c0 < 0 || c1 < 0)
+      throw MeshError("LocalMesh: cannot determine the periodic lattice");
+    period[d] =
+        (mesh.cellCentroid[c1] - mesh.cellCentroid[c0]) * Real(mGlobal[d]);
+  }
+
+  const int ng = mHost.nGrow;
+  for (int k = mHost.origin[2] - ng; k < mHost.origin[2] + mHost.extent[2] + ng;
+       ++k) {
+    for (int j = mHost.origin[1] - ng;
+         j < mHost.origin[1] + mHost.extent[1] + ng; ++j) {
+      for (int i = mHost.origin[0] - ng;
+           i < mHost.origin[0] + mHost.extent[0] + ng; ++i) {
+        if (mHost.owned(i, j, k))
+          continue;
+        int wrapped[3] = {i, j, k};
+        Vec3 shift{};
+        bool valid = true;
+        for (int d = 0; d < 3; ++d) {
+          const int index = (d == 0) ? i : ((d == 1) ? j : k);
+          const int n = mGlobal[d];
+          if (index >= 0 && index < n)
+            continue;
+          if (!mHost.periodic[d]) {
+            valid = false;
+            break;
+          }
+          int q = index / n;
+          if (index < 0 && index % n != 0)
+            --q;
+          wrapped[d] = index - q * n;
+          shift += period[d] * Real(q);
+        }
+        if (!valid)
+          continue;
+        const int cell = mesh.cellAt(wrapped[0], wrapped[1], wrapped[2]);
+        if (cell < 0)
+          throw MeshError("LocalMesh: wrapped ghost cell is not in the mesh");
+        const Vec3 x = mesh.cellCentroid[cell] + shift;
+        const int ii = mHost.localIndex(i, 0);
+        const int jj = mHost.localIndex(j, 1);
+        const int kk = mHost.localIndex(k, 2);
+        mHost.mCentroid(ii, jj, kk, 0) = x.x;
+        mHost.mCentroid(ii, jj, kk, 1) = x.y;
+        mHost.mCentroid(ii, jj, kk, 2) = x.z;
+      }
+    }
+  }
 }
 
 int LocalMesh::patchIndex(const std::string& name) const {

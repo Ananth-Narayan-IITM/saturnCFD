@@ -18,6 +18,7 @@ if(SATURN_ENABLE_KOKKOS)
     fv/LocalMesh.cpp
     fv/Operators.cpp
     fv/BoundaryFill.cpp
+    fv/Convection.cpp
   )
 endif()
 

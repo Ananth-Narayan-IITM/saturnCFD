@@ -80,19 +80,27 @@ The discrete continuity equation is exactly this expression set to zero.
 
 ## 6. Laplacian and non-orthogonal correction
 
-The face-normal gradient is split into an orthogonal and a correction part:
+Let $\mathbf{d}=\mathbf{x}_N-\mathbf{x}_P$, $d_\perp=\mathbf{d}\cdot\mathbf{n}_f$
+and $\overline{\nabla\phi}_f$ the interpolated cell gradient. The implemented
+normal gradient is
 
 $$
-\nabla\phi_f\cdot\mathbf{S}_f
-= \underbrace{\Gamma_f\frac{\phi_N-\phi_P}{d_{PN}}A_f}_{\mathrm{orthogonal}}
-+ \underbrace{\Gamma_f\left(\overline{\nabla\phi}_f
-- \frac{\phi_N-\phi_P}{d_{PN}}\mathbf{n}_f\right)\cdot\mathbf{S}_f}_{\mathrm{correction}}.
+\nabla\phi_f\cdot\mathbf{n}_f
+= \frac{(\phi_N-\phi_P)
+- \mathbf{d}\cdot\left(\overline{\nabla\phi}_f
+- (\overline{\nabla\phi}_f\cdot\mathbf{n}_f)\mathbf{n}_f\right)}
+{d_\perp}.
 $$
 
-The correction is either deferred to the next iteration or included in the
-matrix assembly. For a structured but stretched mesh, the correction is small;
-for a strongly non-orthogonal mesh it dominates. `checkMesh` reports the
+The correction is included in one gradient pass; deferred/iterated correction
+is a later refinement. For a structured but stretched mesh, the correction is
+small; for a strongly non-orthogonal mesh it dominates. `checkMesh` reports the
 maximum non-orthogonality so the choice is explicit.
+
+On a physical boundary face the same expression uses the interpolated face
+value and the owner gradient, with $d_\perp$ from the owner centroid to the
+face centroid. On a partition/periodic ghost face the owner gradient is used;
+that is exact for a linear field.
 
 ## 7. Convection
 
@@ -109,7 +117,15 @@ $$
 \right.
 $$
 
-Higher order uses a TVD reconstruction:
+The Rusanov flux is implemented as
+
+$$
+F_f = \frac12 u_n(\phi_P+\phi_N)
+    - \frac12 |u_n|(\phi_N-\phi_P).
+$$
+
+For a scalar with one wave speed this is algebraically the upwind flux, so it
+is tested as an identity. Higher order uses a TVD reconstruction:
 
 $$
 \phi_f = \phi_U + \frac{1}{2}\psi(r)(\phi_D-\phi_U),

@@ -146,6 +146,9 @@ If the change is not understood, it is a bug, not a new baseline.
 | `fv/linearDivergence` | linear divergence exact with Dirichlet ghosts | implemented |
 | `fv/neumann` | Neumann ghosts reproduce the exact linear gradient | implemented |
 | `fv/divergenceIntegral` | periodic divergence integrates to zero | implemented |
+| `fv/skewLaplacian` | sheared-mesh non-orthogonal Laplacian exact for a linear field | implemented |
+| `fv/upwindConvection` | upwind convection and constant-field divergence | implemented |
+| `fv/advectionDiffusion` | steady advection–diffusion MMS order | implemented |
 | `fv/gradientMms` | periodic gradient order on 1/2/4 ranks | implemented |
 | `fv/divergenceMms` | periodic divergence order on 1/2/4 ranks | implemented |
 | `fv/gpu` | device space, 32^3 MMS against the CPU reference, halo roundoff | implemented in code; needs a CUDA host to run |
