@@ -46,6 +46,17 @@ Use the architecture that matches the card (`Kokkos_ARCH_...`), for example
 
 ## Running the same case
 
+The recommended path-independent commands are created by installing the two
+backends into separate prefixes and symlinking them:
+
+```bash
+saturnCFD-cpu /path/to/case.yaml
+saturnCFD-gpu /path/to/case.yaml
+```
+
+See [`commands.md`](commands.md) for the install/symlink setup. The raw
+build-tree commands also work:
+
 ```bash
 # CPU
 ./buildCPU/saturnCFD examples/saturnBurger/saturnBurger2D/saturnBurger2D.yaml
@@ -72,13 +83,13 @@ The same string is stored as `"backend"` in the JSON summary. The GPU
 For one GPU, use one MPI rank:
 
 ```bash
-mpirun -np 1 ./buildGPU/saturnCFD case.yaml
+mpirun -np 1 saturnCFD-gpu case.yaml
 ```
 
 For four GPUs, one rank per GPU:
 
 ```bash
-mpirun -np 4 ./buildGPU/saturnCFD case.yaml
+mpirun -np 4 saturnCFD-gpu case.yaml
 ```
 
 `mpirun` is not CPU-only; each rank's compiled Kokkos backend decides whether

@@ -94,21 +94,21 @@ buildCPU/compile_commands.json    # CMake/clangd standard
 CPU/GPU builds are separate build directories because CMake fixes the compiler
 and backend at configure time:
 
-```bash
-cmake --preset cpu        # buildCPU, Kokkos OpenMP
-cmake --build --preset cpu -j
-cmake --install buildCPU --prefix "$HOME/.local"
+Build both backends and install them into **separate prefixes**, so one does
+not overwrite the other:
 
+```bash
+# CPU
+cmake --preset cpu
+cmake --build --preset cpu -j
+cmake --install buildCPU --prefix "$HOME/.local/saturn-cpu"
+
+# GPU
 export KOKKOS_ROOT=/path/to/cuda-kokkos
 # export KOKKOS_ROOT="$HOME/.local/kokkos-cuda"
-cmake --preset gpu        # buildGPU, CUDA, system Kokkos + nvcc_wrapper
+cmake --preset gpu
 cmake --build --preset gpu -j
-cmake --install buildGPU --prefix "$HOME/.local"
-
-# same case, CPU vs GPU wall time
-python3 tools/benchmarkBurgers.py \
-  --cpu buildCPU/saturnCFD --gpu buildGPU/saturnCFD \
-  --nx 256 --ny 256 --t-end 0.2
+cmake --install buildGPU --prefix "$HOME/.local/saturn-gpu"
 ```
 
 The GPU preset needs an installed CUDA-enabled Kokkos because the compiler must
@@ -117,26 +117,63 @@ for the target architecture (for example `PASCAL61` for the Quadro P620). The
 exact commands, the GPU benchmark and the thread/pinning guidance are in
 [`gpu.md`](gpu.md).
 
-They do not coexist in one build directory. Install puts one `saturnCFD` on
-`PATH`; the installed binary carries the backend it was compiled with. Install
-the CPU or GPU build last to choose which one `saturnCFD` runs. Do not call
-`buildCPU/saturnCFD` or `buildGPU/saturnCFD` directly.
+## Call saturnCFD from any directory
 
-The installed binary is independent of the build tree:
+Create stable command names in a directory that is already on `PATH`:
 
 ```bash
-cmake --install buildCPU --prefix "$HOME/.local"
-# now ~/.local/bin/saturnCFD exists
-rm -rf buildCPU buildGPU
-saturnCFD case.yaml          # still works
+mkdir -p "$HOME/.local/bin"
+
+ln -sf "$HOME/.local/saturn-cpu/bin/saturnCFD" \
+       "$HOME/.local/bin/saturnCFD-cpu"
+ln -sf "$HOME/.local/saturn-gpu/bin/saturnCFD" \
+       "$HOME/.local/bin/saturnCFD-gpu"
+
+# if ~/.local/bin is not already on PATH, add it once:
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+source "$HOME/.bashrc"
+
+which saturnCFD-cpu
+which saturnCFD-gpu
 ```
 
-`which saturnCFD` shows the installed path. To remove it, delete that file or
-reinstall over it. Every run prints a `backend` line such as:
+Now the case can be anywhere and the backend is explicit:
+
+```bash
+saturnCFD-cpu /path/to/case.yaml
+saturnCFD-gpu /path/to/case.yaml
+```
+
+Each run prints the backend before the time loop:
 
 ```text
 backend : CPU (Kokkos OpenMP, 24 threads)
 backend : GPU (Kokkos CUDA, device 0: Quadro P620)
+```
+
+If you want a plain `saturnCFD` command as the default, link it to one backend:
+
+```bash
+ln -sf "$HOME/.local/saturn-cpu/bin/saturnCFD" \
+       "$HOME/.local/bin/saturnCFD"
+saturnCFD case.yaml          # CPU
+```
+
+The installed binaries are independent of the build trees:
+
+```bash
+rm -rf buildCPU buildGPU
+saturnCFD-cpu case.yaml      # still works
+saturnCFD-gpu case.yaml      # still works
+```
+
+`which saturnCFD-cpu` / `which saturnCFD-gpu` show the symlinks. The
+build-tree binaries (`buildCPU/saturnCFD`, `buildGPU/saturnCFD`) also work, but
+they disappear when the build tree is cleaned, so they are not the recommended
+command-line interface. If you really want them on `PATH`:
+
+```bash
+export PATH="$PWD/buildCPU:$PATH"   # temporary; buildCPU must exist
 ```
 
 The same line is stored as `"backend"` in the JSON summary.
@@ -214,14 +251,31 @@ List the available presets instead of memorising them:
 ctest --list-presets
 ```
 
-## Install the command
+## Install one default command
+
+If you only need one backend, install it into `$HOME/.local`:
 
 ```bash
 cmake --install buildCPU --prefix "$HOME/.local"
+# creates $HOME/.local/bin/saturnCFD
 ```
 
-`~/.local/bin` must be on `PATH`. After that, use `saturnCFD`, not
-`./buildCPU/saturnCFD`.
+Make sure the directory is on `PATH`:
+
+```bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+source "$HOME/.bashrc"
+which saturnCFD
+```
+
+Then run from anywhere:
+
+```bash
+saturnCFD /path/to/case.yaml
+```
+
+For both CPU and GPU commands without relative paths, use the separate prefixes
+and `saturnCFD-cpu` / `saturnCFD-gpu` symlinks in the section above.
 
 ## Run
 
