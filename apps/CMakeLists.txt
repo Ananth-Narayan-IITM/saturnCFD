@@ -8,4 +8,8 @@ if(SATURN_SOLVER_TARGETS)
   target_link_libraries(saturnCFD PRIVATE ${SATURN_SOLVER_TARGETS})
 endif()
 
+if(TARGET saturn::BuiltinSolvers)
+  target_link_libraries(saturnCFD PRIVATE saturn::BuiltinSolvers)
+endif()
+
 install(TARGETS saturnCFD RUNTIME DESTINATION bin)

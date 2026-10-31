@@ -5,6 +5,8 @@ set(SATURN_CORE_SOURCES
   config/CommonSchema.cpp
   mesh/GmshReader.cpp
   mesh/Mesh.cpp
+  mesh/BoxMesh.cpp
+  mesh/MeshFactory.cpp
   mesh/CheckMesh.cpp
   mesh/VtuWriter.cpp
   comm/Partition.cpp

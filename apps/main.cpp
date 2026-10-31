@@ -2,7 +2,9 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -14,11 +16,70 @@
 #include "core/Units.hpp"
 #include "mesh/CheckMesh.hpp"
 #include "mesh/Mesh.hpp"
+#include "mesh/MeshFactory.hpp"
 #include "mesh/VtuWriter.hpp"
+#include "simulation/Registry.hpp"
+#include "simulation/Simulation.hpp"
+#include "simulation/TimeControl.hpp"
+#include "solvers/BuiltinSolvers.hpp"
+#include "solvers/saturnBurger/SaturnBurger.hpp"
+
+#ifdef SATURN_USE_KOKKOS
+#include <Kokkos_Core.hpp>
+#endif
+#ifdef SATURN_USE_MPI
+#include <mpi.h>
+#endif
 
 namespace {
 
 using namespace saturn;
+
+/// MPI/Kokkos lifecycle for a case run. Constructed only when a solver runs,
+/// so mesh/config commands stay lightweight.
+struct Runtime {
+  Runtime(int& argc, char**& argv) {
+#ifdef SATURN_USE_MPI
+    int provided = 0;
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
+#endif
+#ifdef SATURN_USE_KOKKOS
+    Kokkos::initialize(argc, argv);
+#endif
+  }
+
+  Runtime(const Runtime&) = delete;
+  Runtime& operator=(const Runtime&) = delete;
+
+  ~Runtime() {
+#ifdef SATURN_USE_KOKKOS
+    Kokkos::finalize();
+#endif
+#ifdef SATURN_USE_MPI
+    MPI_Finalize();
+#endif
+  }
+};
+
+int worldRank() {
+#ifdef SATURN_USE_MPI
+  int rank = 0;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  return rank;
+#else
+  return 0;
+#endif
+}
+
+int worldSize() {
+#ifdef SATURN_USE_MPI
+  int size = 1;
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+  return size;
+#else
+  return 1;
+#endif
+}
 
 struct Cli {
   std::string casePath;
@@ -93,6 +154,8 @@ void printGeneralHelp() {
          "  saturnCFD -checkMesh meshes/box2x2x2.msh -writeVTK results/mesh\n"
          "  saturnCFD -dumpConfig common -writeTemplate common.yaml\n"
          "  saturnCFD -checkConfig common.yaml\n"
+         "  saturnCFD -dumpConfig saturnBurger\n"
+         "  saturnCFD tests/regression/burgers/traveling64.yaml\n"
          "  saturnCFD -completion bash\n"
          "  saturnCFD -help checkMesh\n"
          "  saturnCFD -help mpi\n"
@@ -143,7 +206,7 @@ _saturnCFD_complete() {
       COMPREPLY=( $(compgen -W "bash zsh fish" -- "${cur}") )
       ;;
     -dumpConfig)
-      COMPREPLY=( $(compgen -W "common" -- "${cur}") )
+      COMPREPLY=( $(compgen -W "common saturnBurger" -- "${cur}") )
       ;;
     -checkMesh|-report|-writeVTK|-checkConfig|-writeTemplate|-mesh)
       _saturnCFD_paths "${cur}"
@@ -169,7 +232,7 @@ _saturnCFD() {
     '-report[write JSON report]:path:_files' \
     '-writeVTK[write patches and PVD]:prefix:_files' \
     '-checkConfig[validate a case]:case:_files' \
-    '-dumpConfig[print a YAML template]:solver:(common burgers heat stokes incompressible)' \
+    '-dumpConfig[print a YAML template]:solver:(common saturnBurger)' \
     '-writeTemplate[write a template]:file:_files' \
     '-mesh[mesh for patch names]:mesh:_files' \
     '-threads[Kokkos thread count]:threads:' \
@@ -187,7 +250,7 @@ complete -c saturnCFD -l checkMesh -r -F -d 'Validate a Gmsh mesh'
 complete -c saturnCFD -l report -r -F -d 'Write JSON report'
 complete -c saturnCFD -l writeVTK -r -F -d 'Write patches and PVD'
 complete -c saturnCFD -l checkConfig -r -F -d 'Validate a case'
-complete -c saturnCFD -l dumpConfig -r -a 'common burgers heat stokes incompressible' -d 'Print a YAML template'
+complete -c saturnCFD -l dumpConfig -r -a 'common saturnBurger' -d 'Print a YAML template'
 complete -c saturnCFD -l writeTemplate -r -F -d 'Write a template'
 complete -c saturnCFD -l mesh -r -F -d 'Mesh for patch names'
 complete -c saturnCFD -l threads -r -d 'Kokkos thread count'
@@ -238,13 +301,16 @@ void printTopic(const std::string& topic) {
            "Parse and validate a case without running it. yaml-cpp reports\n"
            "syntax errors with line/column; the schema rejects unknown keys,\n"
            "wrong types and bad ranges; units are SI only in v1.0.\n\n"
-           "If mesh.file is present, the mesh is read and checked.\n";
+           "If the mesh block is present, a box or Gmsh mesh is built and\n"
+           "checked.\n";
   } else if (topic == "dumpConfig") {
     std::cout
         << "saturnCFD -dumpConfig <solver|common>\n\n"
            "Print the YAML template generated from the registered options.\n"
-           "In Phase 1 only 'common' is available; solver schemas arrive with\n"
-           "the solvers. Use -writeTemplate to write the same content.\n\n"
+           "'common' and 'saturnBurger' are registered; a new solver supplies\n"
+           "its schema when it registers. Use -writeTemplate to write the "
+           "same\n"
+           "content.\n\n"
            "optional:\n"
            "  -mesh <file>          append the mesh patch names\n"
            "  -writeTemplate <f>    write to a file\n";
@@ -286,10 +352,10 @@ void printTopic(const std::string& topic) {
   } else if (topic == "solvers") {
     std::cout
         << "solvers\n\n"
-           "Phase 2 implements saturnBurger for 1D scalar Burgers; 2D/3D,\n"
-           "then heat, stokes and incompressible follow. A user solver is a\n"
-           "copy under src/solvers/saturn<Name> with a saturn<Name> target.\n"
-           "Use saturnCFD -help test for the solver test command.\n";
+           "Registered: saturnBurger (1D scalar Burgers). The 2D/3D\n"
+           "extension, then heat, stokes and incompressible follow. A user\n"
+           "solver is a copy under src/solvers/saturn<Name> with a\n"
+           "saturn<Name> target. Use -dumpConfig saturnBurger for its YAML.\n";
   } else if (topic == "completion") {
     std::cout << "completion\n\n"
                  "Print a shell completion script.\n\n"
@@ -413,6 +479,7 @@ void printTopic(const std::string& topic) {
            "  ctest --preset cli\n"
            "  ctest --preset mpi           halo/partition + FVM on 1/2/4\n"
            "  ctest --preset fv            LocalMesh, operators, MMS, Burgers\n"
+           "  ctest --preset burgers       1D Burgers YAML validation\n"
            "  ctest --preset petsc         PETSc Poisson/nullspace tests\n"
            "  ctest --preset gpu           GPU-labelled FV tests\n"
            "  ctest --list-presets         list them\n";
@@ -612,21 +679,30 @@ int runCheckMesh(const Cli& cli) {
   return report.pass() ? 0 : 1;
 }
 
+ConfigSchema schemaFor(const Config& cfg) {
+  const std::string solver = cfg.getString("solver", "");
+  SolverRegistry& registry = solverRegistry();
+  if (solver == "common" || solver.empty())
+    return commonSchema();
+  if (!registry.hasCase(solver))
+    throw ConfigError("solver '" + solver +
+                      "' is not registered; use -listSolvers");
+  return registry.schema(solver);
+}
+
 int runCheckConfig(const Cli& cli) {
   const Config cfg = Config::fromFile(cli.checkConfigFile);
-  const ConfigSchema schema = commonSchema();
+  const ConfigSchema schema = schemaFor(cfg);
   schema.validate(cfg);
 
   std::string meshSummary = "none";
-  const std::string meshFile = cfg.getString("mesh.file", "");
-  if (!meshFile.empty()) {
-    Mesh mesh = readGmsh(meshFile);
-    const MeshReport report = checkMesh(mesh, meshFile);
-    if (!report.pass()) {
-      std::cout << report.toText();
-      throw ConfigError("mesh validation failed for '" + meshFile + "'");
-    }
-    meshSummary = meshFile + " (PASS)";
+  if (cfg.has("mesh")) {
+    const Mesh mesh = makeMeshFromConfig(cfg);
+    meshSummary = std::to_string(mesh.cells.size()) + " cells";
+    if (mesh.structured)
+      meshSummary += " (" + std::to_string(mesh.nx) + "x" +
+                     std::to_string(mesh.ny) + "x" + std::to_string(mesh.nz) +
+                     ", dim " + std::to_string(mesh.dimension) + ")";
   }
 
   std::cout << "config PASS: " << cli.checkConfigFile << "\n";
@@ -646,12 +722,16 @@ int runCheckConfig(const Cli& cli) {
 }
 
 int runDumpConfig(const Cli& cli) {
-  if (cli.dumpSolver != "common")
-    throw UsageError(
-        "solver '" + cli.dumpSolver +
-        "' is not registered in Phase 1; use '-dumpConfig common'");
+  SolverRegistry& registry = solverRegistry();
+  ConfigSchema schema;
+  if (cli.dumpSolver == "common")
+    schema = commonSchema();
+  else if (registry.hasCase(cli.dumpSolver))
+    schema = registry.schema(cli.dumpSolver);
+  else
+    throw UsageError("solver '" + cli.dumpSolver +
+                     "' is not registered; use -listSolvers");
 
-  const ConfigSchema schema = commonSchema();
   std::ostringstream os;
   schema.dump(os, cli.dumpSolver);
   if (!cli.meshFile.empty()) {
@@ -668,11 +748,111 @@ int runDumpConfig(const Cli& cli) {
 
 int runCase(const Cli& cli) {
   const Config cfg = Config::fromFile(cli.casePath);
-  const ConfigSchema schema = commonSchema();
+  SolverRegistry& registry = solverRegistry();
+
+  const std::string solverName = cfg.getString("solver", "");
+  if (solverName.empty())
+    throw ConfigError("case '" + cli.casePath + "' has no solver key");
+  if (!registry.hasCase(solverName))
+    throw ConfigError("solver '" + solverName +
+                      "' is not registered; use -listSolvers");
+
+  const ConfigSchema schema = registry.schema(solverName);
   schema.validate(cfg);
-  throw SaturnError(
-      "case '" + cli.casePath +
-      "' is valid, but solver execution is not implemented in Phase 1");
+
+  std::unique_ptr<Solver> solver = registry.create(solverName, cfg);
+
+  const std::string prefix = cfg.getString("output.prefix", "results");
+  const bool wantExact = cfg.getBool("output.exact", false);
+  const bool wantCsv = cfg.getBool("output.csv", false);
+  const bool wantJson = cfg.getBool("output.json", true);
+
+  auto* burgers = dynamic_cast<SaturnBurger*>(solver.get());
+  const bool exactAvailable = burgers != nullptr && burgers->hasExact();
+  if ((wantExact || wantCsv) && !exactAvailable)
+    throw ConfigError(
+        "output.exact/output.csv requested, but this solver has no analytic "
+        "solution configured");
+
+  TimeControl control;
+  control.t0 = cfg.getDouble("time.start", 0.0);
+  control.tEnd = cfg.getDouble("time.end", 1.0);
+  control.dtMax = cfg.getDouble("time.dtMax", 1e-2);
+  control.maxSteps = cfg.getInt("time.maxSteps", 10000);
+  control.cfl = cfg.getDouble("time.cfl", 0.4);
+  control.adaptive = cfg.getBool("time.adaptive", true);
+
+  const TimeScheme scheme =
+      timeSchemeFromString(cfg.getString("time.scheme", "ssprk3"));
+  if (!isExplicit(scheme))
+    throw ConfigError(
+        "time.scheme: implicit schemes are not implemented by this solver");
+
+  Simulation simulation(*solver, control, scheme);
+  const SimulationResult result = simulation.run();
+  if (!result.reachedEnd)
+    throw SaturnError("case '" + cli.casePath +
+                      "' did not reach time.end within time.maxSteps");
+
+  ExactError exact;
+  const bool haveExact = exactAvailable && (wantExact || wantCsv);
+  if (haveExact)
+    exact = burgers->exactError(result.final.time);
+
+  if (worldRank() == 0) {
+    std::cout << std::setprecision(10);
+    std::cout << "solver : " << solverName << "\n";
+    std::cout << "ranks  : " << worldSize() << "\n";
+    std::cout << "steps  : " << result.final.step << "\n";
+    std::cout << "time   : " << result.final.time << " s\n";
+    std::cout << "dt     : " << result.final.dt << " s\n";
+    std::cout << "l1     : " << result.final.l1 << "\n";
+    std::cout << "l2     : " << result.final.l2 << "\n";
+    std::cout << "linf   : " << result.final.linf << "\n";
+    if (haveExact) {
+      std::cout << "exact l1   : " << exact.l1 << "\n";
+      std::cout << "exact l2   : " << exact.l2 << "\n";
+      std::cout << "exact linf : " << exact.linf << "\n";
+    }
+  }
+
+  if (wantCsv) {
+    const std::vector<ProfilePoint> points =
+        burgers->profile(result.final.time);
+    std::ostringstream os;
+    os << std::setprecision(17);
+    os << "x,u_numerical,u_exact,error\n";
+    for (const ProfilePoint& p : points)
+      os << p.x << ',' << p.numerical << ',' << p.exact << ',' << p.error
+         << '\n';
+    if (worldRank() == 0)
+      writeTextFile(prefix + ".csv", os.str());
+  }
+
+  if (wantJson) {
+    std::ostringstream os;
+    os << std::setprecision(17);
+    os << "{\n"
+       << "  \"case\": \"" << cli.casePath << "\",\n"
+       << "  \"solver\": \"" << solverName << "\",\n"
+       << "  \"ranks\": " << worldSize() << ",\n"
+       << "  \"steps\": " << result.final.step << ",\n"
+       << "  \"time\": " << result.final.time << ",\n"
+       << "  \"dt\": " << result.final.dt << ",\n"
+       << "  \"l1\": " << result.final.l1 << ",\n"
+       << "  \"l2\": " << result.final.l2 << ",\n"
+       << "  \"linf\": " << result.final.linf;
+    if (haveExact) {
+      os << ",\n  \"exact\": {\"l1\": " << exact.l1 << ", \"l2\": " << exact.l2
+         << ", \"linf\": " << exact.linf << ", \"samples\": " << exact.samples
+         << "}";
+    }
+    os << "\n}\n";
+    if (worldRank() == 0)
+      writeTextFile(prefix + ".json", os.str());
+  }
+
+  return 0;
 }
 
 }  // namespace
@@ -680,6 +860,7 @@ int runCase(const Cli& cli) {
 int main(int argc, char** argv) {
   try {
     const Cli cli = parseCli(argc, argv);
+    registerBuiltinSolvers();
     if (cli.help) {
       if (cli.helpTopic.empty())
         printGeneralHelp();
@@ -688,11 +869,13 @@ int main(int argc, char** argv) {
       return 0;
     }
     if (cli.version) {
-      std::cout << "saturnCFD 1.0.0 (Phase 1: mesh and configuration)\n";
+      std::cout << "saturnCFD 1.0.0 (Phase 2: 1D scalar Burgers)\n";
       return 0;
     }
     if (cli.listSolvers) {
-      std::cout << "no solvers registered yet (Phase 1)\n";
+      const std::vector<std::string> names = solverRegistry().names();
+      for (const std::string& name : names)
+        std::cout << name << "\n";
       return 0;
     }
     if (!cli.completionShell.empty()) {
@@ -707,6 +890,8 @@ int main(int argc, char** argv) {
       return runCheckConfig(cli);
     if (!cli.dumpSolver.empty())
       return runDumpConfig(cli);
+
+    Runtime runtime(argc, argv);
     return runCase(cli);
   } catch (const SaturnError& e) {
     std::cerr << "error: " << e.what() << "\n";

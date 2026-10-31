@@ -143,3 +143,38 @@ set_tests_properties(
   cli_checkConfig_si cli_checkConfig_cgs cli_checkMesh_box cli_checkMesh_tet
   cli_defaultOutputs cli_writeVTK cli_completion cli_templateExtension
   PROPERTIES LABELS "cli;regression")
+
+# YAML-driven Burgers validation: runs the real CLI, checks the analytic norms
+# and the profile CSV. The MPI variants exercise the same case on 1/2/4 ranks.
+set(SATURN_BURGERS_CASE
+    "${CMAKE_CURRENT_SOURCE_DIR}/regression/burgers/traveling64.yaml")
+
+add_test(NAME cli_checkConfig_burgers
+  COMMAND saturnCFD -checkConfig ${SATURN_BURGERS_CASE})
+set_tests_properties(cli_checkConfig_burgers
+  PROPERTIES LABELS "cli;config;burgers;regression")
+
+if(SATURN_ENABLE_MPI)
+  foreach(ranks 1 2 4)
+    add_test(NAME burgers_traveling64_np${ranks}
+      COMMAND ${CMAKE_COMMAND}
+              -DCLI=$<TARGET_FILE:saturnCFD>
+              -DCASE=${SATURN_BURGERS_CASE}
+              -DOUT=${CMAKE_CURRENT_BINARY_DIR}/burgers_np${ranks}
+              -DMPIEXEC=${MPIEXEC_EXECUTABLE}
+              -DRANKS=${ranks}
+              -P ${CMAKE_CURRENT_SOURCE_DIR}/checkBurgers.cmake)
+    set_tests_properties(burgers_traveling64_np${ranks} PROPERTIES
+      LABELS "burgers;regression;mpi" RUN_SERIAL TRUE
+      ENVIRONMENT "OMP_NUM_THREADS=1")
+  endforeach()
+else()
+  add_test(NAME burgers_traveling64
+    COMMAND ${CMAKE_COMMAND}
+            -DCLI=$<TARGET_FILE:saturnCFD>
+            -DCASE=${SATURN_BURGERS_CASE}
+            -DOUT=${CMAKE_CURRENT_BINARY_DIR}/burgers_serial
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/checkBurgers.cmake)
+  set_tests_properties(burgers_traveling64
+    PROPERTIES LABELS "burgers;regression")
+endif()

@@ -10,8 +10,9 @@ the CPU Kokkos FVM slice (`CellField`, `FaceField`, `LocalMesh`, interpolation,
 gradient, divergence, non-orthogonal Laplacian, boundary ghosts,
 upwind/Rusanov/MUSCL convection, MMS and a simplified Rhie–Chow flux), the
 Phase 0 PETSc `saturnLinAlg` layer, the explicit solver/time loop and the 1D
-`saturnBurger` solver are in place. 2D/3D Burgers, implicit time schemes and the
-heat solver follow. Solver physics starts in Phase 2.
+`saturnBurger` solver are in place. The 1D Burgers solver is registered in the
+CLI and validated against the exact traveling wave (second order, rank
+independent). 2D/3D Burgers, implicit time schemes and the heat solver follow.
 
 ## Where to start
 
@@ -39,8 +40,8 @@ heat solver follow. Solver physics starts in Phase 2.
 | linear algebra | PETSc |
 | YAML | yaml-cpp 0.8, generated templates, strict validation |
 | units | SI only in v1.0 |
-| solvers | Burgers, heat, Stokes, incompressible |
-| extension | copy a solver under `src/solvers`, add `addSolver(name)` |
+| solvers | `saturnBurger` (1D), then heat, Stokes, incompressible |
+| extension | copy a solver under `src/solvers/saturn<Name>`, add `addSolver(<name>)` |
 | docs | this Doxygen site, built to HTML and PDF |
 
 ## Building the docs

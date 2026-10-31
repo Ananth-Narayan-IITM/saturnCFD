@@ -64,15 +64,15 @@ verification are next. The parallel design is in
 |---|---|
 | `src/fv` | pressure Poisson/SIMPLE-PISO coupling, persistent face flux, Rhie–Chow coefficient from the momentum diagonal |
 | `src/simulation` | output cadence, checkpoint, implicit time schemes |
-| `src/solvers` | 2D/3D `saturnBurger`, `saturnCFDSolver` tool, CLI/YAML wiring |
-| `src/config` | `boundary` and `fields` schemas; solver-specific option schemas |
+| `src/solvers` | 2D/3D `saturnBurger`, `saturnCFDSolver` tool, Neumann BC; 1D CLI/YAML wiring is done |
+| `src/config` | `boundary` and `fields` schemas; `saturnBurger` supplies its own schema |
 | `src/linalg` | FV Poisson matrix assembly, block/multi-RHS, fieldsplit/Schur |
 | `src/io` | CSV diagnostics, run manifest, checkpoint |
 | `tests/parallel` | cross-run 1/2/4-rank equality, GPU execution on a CUDA host |
 | `benchmarks` | halo/stencil strong/weak scaling harness |
 | tooling | ASan/UBSan options, Valgrind/Compute Sanitizer targets |
 | mesh | Gmsh 4.1 ASCII support (2.2 works now) |
-| CLI | `-listSolvers`/`-dumpConfig burgers` are not meaningful until the solver skeleton lands |
+| CLI | solver-specific schema for new solvers; `saturnBurger` is registered |
 
 Deferred deliberately: multi-GPU tuning, GPU-aware halo exchange, AMR,
 two-phase flow, compressible flow.
@@ -126,10 +126,11 @@ Navier–Stokes. The list below is the repository build-out order.
    - Done: `src/simulation` diagnostics and stage workspaces.
    - Next: implicit BE/CN/BDF2 with the PETSc diffusion solve.
    - `src/solvers/saturnBurger` 1D solver — done.
+   - `addSolver(saturnBurger)` and registry entry — done.
+   - `-listSolvers`, `-dumpConfig saturnBurger`, `-checkConfig` and
+     `saturnCFD case.yaml` — done.
    - 2D/3D extension, options, `createFields`, `equations`, diagnostics.
-   - `addSolver(saturnBurger)`.
-   - `saturnCFDSolver burgers myBurgers` (C++ tool).
-   - `-listSolvers` and `-dumpConfig burgers` become real.
+   - `saturnCFDSolver saturnBurger saturnMyBurger` (C++ tool).
    - `boundary`/`fields` YAML schema and validation.
 
 4. **PETSc wrapper — Phase 0 done**
@@ -168,21 +169,24 @@ Then Phase 2: Burgers physics and the `traveling64` analytic regression.
   all-Neumann tests pass on 1/2/4 ranks.
 - **Done:** `Solver`, `SolverRegistry`, `TimeControl` and the explicit
   `Simulation` loop; constant/cosine/sine cases pass on 1/2/4 ranks.
-- **Done:** `saturnBurger` 1D scalar; traveling wave order 2.11 and periodic
-  shock bounded/conservative on 1/2/4 ranks.
+- **Done:** `saturnBurger` 1D scalar; traveling wave N=32->1024 with orders
+  1.98/2.11/2.10/2.06/2.03, periodic shock bounded/conservative, and bitwise
+  identical results on 1/2/4 ranks at N=256.
+- **Done:** YAML CLI path (`saturnCFD case.yaml`), CSV profile and JSON
+  summary; `ctest --preset burgers` passes on 1/2/4 ranks.
 - Pending: FV Poisson matrix assembly, implicit BE/CN/BDF2, 2D/3D Burgers and
   heat solvers.
 - Pending: pressure Poisson/SIMPLE-PISO with PETSc.
-- 1-rank and 2-rank *cross-run* results agree; a CUDA build reproduces the CPU
+- 1/2/4-rank *cross-run* results agree; a CUDA build reproduces the CPU
   reference within precision.
 - `mpirun -np 1` GPU runs the halo/stencil benchmark.
 - `tests/fv` passes on a structured hex mesh with non-uniform geometry.
 - Dirichlet and Neumann *Laplacian* MMS isolate the physical-boundary order.
-- `saturnCFD -listSolvers` lists `burgers`.
-- `saturnCFD -dumpConfig burgers -writeTemplate burgers` produces a
+- `saturnCFD -listSolvers` lists `saturnBurger`.
+- `saturnCFD -dumpConfig saturnBurger -writeTemplate burgers` produces a
   template that passes `-checkConfig`.
-- `saturnCFDSolver burgers myBurgers` creates a buildable copy and prints
-  `addSolver(myBurgers)`.
+- `saturnCFDSolver saturnBurger saturnMyBurger` will create a buildable copy
+  and print `addSolver(saturnMyBurger)` when the scaffold tool lands.
 - Adding that one line to `src/solvers/CMakeLists.txt` and rebuilding makes
   `-listSolvers` show `myBurgers`.
 

@@ -8,8 +8,11 @@
 
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
+\usepackage{graphicx}
 \usepackage{listings}
 \usepackage{xcolor}
+
+\graphicspath{{../validation/figures/}}
 
 \lstset{
   basicstyle=\ttfamily\scriptsize,
@@ -429,17 +432,33 @@ time:
     \item Shared non-orthogonal Laplacian for diffusion.
     \item Explicit SSPRK3; Dirichlet and periodic boundaries; time-dependent
           exact boundary data.
+    \item Registered in the CLI: \texttt{saturnCFD case.yaml},
+          \texttt{-listSolvers}, \texttt{-dumpConfig saturnBurger}.
     \item Tests: traveling wave, constant field, periodic inviscid shock.
   \end{itemize}
 
   \begin{block}{Measured}
-    Traveling wave, \(N=64\to128\), $\nu=0.02$: L2 \(0.00228\to0.00053\),
-    order 2.11. Shock bounds \([-0.9954,0.9954]\), integral \(1.5\times10^{-16}\).
+    Traveling wave, \(N=32\to1024\), $\nu=0.02$: L2
+    \(9.0\times10^{-3}\to7.3\times10^{-6}\), orders
+    1.98/2.11/2.10/2.06/2.03. At \(N=256\), 1/2/4 ranks give identical norms.
+    Shock bounds \([-0.9954,0.9954]\), integral \(1.5\times10^{-16}\).
   \end{block}
 
   \begin{block}{Why first}
     Exact solution, nonlinear convection, limiters, time integration,
     boundary ghosts, conservation and MPI — without pressure coupling.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Burgers validation against the exact traveling wave}
+  \begin{center}
+    \includegraphics[width=0.90\textwidth]{burgersValidationSlide.pdf}
+  \end{center}
+
+  \begin{block}{Verdict}
+    Second-order convergence to the analytic solution, a bounded and
+    conservative shock, and rank-independent norms. The residual error at a
+    finite grid is the expected truncation error, not a solver defect.
   \end{block}
 \end{frame}
 
@@ -572,7 +591,7 @@ rm -rf buildCPU buildGPU
       Rhie--Chow & linear zero, checkerboard suppressed \\
       PETSc Poisson/nullspace & order 2, 1/2/4 ranks \\
       Solver loop & constant, diffusion decay, bounded advection \\
-      \texttt{saturnBurger} & traveling wave order 2.11; shock bounded \\
+      \texttt{saturnBurger} & N=32--1024, order 2.03; 1/2/4 ranks identical \\
       Mesh \texttt{checkMesh} & pass/reject fixtures passing \\
       Config SI-only & accept/reject fixtures passing \\
       CLI regression & help, outputs, completion, templates \\
@@ -607,6 +626,7 @@ rm -rf buildCPU buildGPU
           \item PETSc \texttt{saturnLinAlg} + Poisson tests
           \item Solver registry, \texttt{TimeControl}, SSP-RK loop
           \item 1D \texttt{saturnBurger} + traveling-wave/shock tests
+          \item Registered YAML case + analytic validation figure
           \item 1/2/4-rank tests
           \item Doxygen HTML/PDF
         \end{itemize}

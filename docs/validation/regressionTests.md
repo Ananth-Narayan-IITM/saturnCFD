@@ -163,14 +163,16 @@ If the change is not understood, it is a bug, not a new baseline.
 | `simulation/bounded` | SSPRK3 sine advection bounded | implemented |
 | `simulation/timeControl` | convective/diffusive stability limit | implemented |
 | `simulation/registry` | add/lookup/duplicate/unknown solver | implemented |
-| `burgers/traveling64` | viscous traveling wave, N=64/128, order 2.11 | implemented in `TestSaturnBurger` |
+| `burgers/traveling64` | YAML CLI run, $N=64/128$ convergence, CSV/JSON output | implemented (`tests/regression/burgers/traveling64.yaml`, `checkBurgers.cmake`) |
+| `burgers/convergence` | $N=32\ldots1024$ order and $N=256$ rank independence | implemented in `tools/validateBurgers.py` |
 | `burgers/shock128` | periodic inviscid shock bounded and conservative | implemented in `TestSaturnBurger` |
 
 The FVM entry is a library regression: the stored 32$^3$
 `L2=0.13435580757778084` is the smallest scalar that catches a stencil, halo or
 geometry regression. It is checked on every rank and in a CUDA build. The
-Burgers entries currently store their checks in `TestSaturnBurger`; dedicated
-`.expected` files and a `ctest --preset burgers` are the next step.
+Burgers YAML case is run by CTest on 1/2/4 ranks and checks the analytic norms,
+the CSV rows and the JSON summary. `ctest --preset burgers` selects that slice;
+`tools/validateBurgers.py` regenerates the full table and figure.
 
 ## Why not only unit tests
 

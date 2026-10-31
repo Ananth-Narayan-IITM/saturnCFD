@@ -148,8 +148,10 @@ regression tests are in place. The FV Poisson assembler, implicit time schemes,
 - Rusanov flux, MUSCL/TVD, SSP-RK2/3 — done.
 - Explicit diffusion — done; implicit option later.
 - Exact traveling-wave validation and inviscid shock validation — done for 1D.
-- `docs/validation/burgers.md` with tables and observations — results recorded
-  in `docs/theory/burgers.md`.
+- `docs/validation/burgers.md` with the convergence table, rank-independence
+  table, validation figure and reproduction commands — done.
+- Registered CLI solver with `tests/regression/burgers/traveling64.yaml` and
+  `ctest --preset burgers` — done.
 
 **Exit criterion**
 

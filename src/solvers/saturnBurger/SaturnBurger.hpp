@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <string>
+#include <vector>
 
 #include "comm/HaloExchange.hpp"
 #include "comm/Partition.hpp"
@@ -35,6 +36,26 @@ struct BurgersOptions {
 
   std::function<Real(const Vec3&)> initial;
   std::function<Real(const Vec3&, Real, int)> dirichlet;
+
+  /// Optional analytic solution `u_exact(x,t)`. When set, the CLI can compare
+  /// the numerical profile with it and write a validation CSV.
+  std::function<Real(const Vec3&, Real)> exact;
+};
+
+/// One cell-centre sample of the numerical and analytic profiles.
+struct ProfilePoint {
+  Real x = 0;
+  Real numerical = 0;
+  Real exact = 0;
+  Real error = 0;
+};
+
+/// Global L1/L2/Linf error against the analytic solution.
+struct ExactError {
+  Real l1 = 0;
+  Real l2 = 0;
+  Real linf = 0;
+  BigIndex samples = 0;
 };
 
 /// 1D scalar Burgers solver.
@@ -64,6 +85,14 @@ class SaturnBurger : public Solver {
 
   const Mesh& mesh() const { return mMesh; }
   const BurgersOptions& options() const { return mOptions; }
+  bool hasExact() const { return static_cast<bool>(mOptions.exact); }
+
+  /// Gather the owned cell-centre profile on every rank, sorted by x.
+  /// Requires `BurgersOptions::exact` when exact values are requested.
+  std::vector<ProfilePoint> profile(Real time) const;
+
+  /// Global error norms against `BurgersOptions::exact`.
+  ExactError exactError(Real time) const;
 
  private:
   Mesh mMesh;

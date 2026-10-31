@@ -107,16 +107,23 @@ Implemented:
 - Dirichlet and periodic boundaries; Neumann is next;
 - time-dependent Dirichlet data via `Solver::setTime`;
 - shared non-orthogonal Laplacian for diffusion;
-- constant source.
+- constant source;
+- registered CLI solver with a YAML case, CSV profile and JSON summary.
 
 Validation (viscous traveling wave, `U=1`, `nu=0.02`, `t=0.5`):
 
 | case | result |
 |---|---|
-| travelling wave, N=64 -> 128 | L2 0.002284 -> 0.000529, order 2.11 |
+| travelling wave, N=32 -> 1024 | L2 9.015e-3 -> 7.287e-6, observed orders 1.98/2.11/2.10/2.06/2.03 |
 | constant field | preserved exactly |
 | periodic inviscid shock, $u_0=-\sin(\pi x)$, N=128, t=0.5 | bounds [-0.9954, 0.9954], integral 1.5e-16 |
-| 1/2/4 ranks | all cases pass; traveling-wave error varies slightly with partition and needs parity work |
+| 1/2/4 ranks at N=256 | bitwise-identical L2 1.236378e-4 |
+| YAML CLI path | `ctest --preset burgers` passes on 1/2/4 ranks |
+
+The earlier rank-dependent traveling-wave error was a test-diagnostic bug: the
+test divided by the local owned-cell count. The solver was already rank
+independent. See [`../validation/burgers.md`](../validation/burgers.md) and the
+figure `docs/validation/figures/burgersValidation.png`.
 
 Still to add:
 
@@ -125,11 +132,11 @@ Still to add:
 - Neumann boundary condition;
 - 2D and 3D scalar Burgers;
 - vector Burgers before Navier–Stokes;
-- IMEX BE/CN with implicit diffusion through `saturnLinAlg`;
-- `ctest --preset burgers` and the `traveling64` expected file.
+- IMEX BE/CN with implicit diffusion through `saturnLinAlg`.
 
 Exit for the 1D slice is met: traveling wave and shock tests pass on 1/2/4
-ranks. The full Phase 2 exit waits for 2D/3D and the regression file.
+ranks, the YAML regression runs, and the analytic comparison is plotted. The
+full Phase 2 exit waits for 2D/3D.
 
 ## Phase 3 — Heat equation
 

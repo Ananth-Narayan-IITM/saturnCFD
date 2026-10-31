@@ -1,0 +1,44 @@
+solver: saturnBurger
+
+units:
+  system: SI
+
+mesh:
+  type: box
+  nx: 64
+  ny: 1
+  nz: 1
+  box:
+    xmin: -1.0
+    xmax: 1.0
+    ymin: 0.0
+    ymax: 1.0
+    zmin: 0.0
+    zmax: 1.0
+
+time:
+  start: 0.0
+  end: 0.5
+  scheme: ssprk3
+  adaptive: true
+  cfl: 0.3
+  dtMax: 0.01
+  maxSteps: 20000
+
+burgers:
+  nu: 0.02
+  velocity: 1.0
+  x0: 0.0
+  source: 0.0
+  periodic: false
+  initial: travelingWave
+
+numerics:
+  convection: muscl
+  limiter: vanLeer
+
+output:
+  prefix: results/burgers/traveling64
+  csv: true
+  json: true
+  exact: true

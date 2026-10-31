@@ -168,6 +168,19 @@
       }
     },
     {
+      "name": "burgers",
+      "displayName": "1D Burgers YAML validation",
+      "configurePreset": "default",
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "label": "burgers"
+        }
+      }
+    },
+    {
       "name": "gpu",
       "displayName": "GPU tests in buildGPU",
       "configurePreset": "gpu",

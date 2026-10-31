@@ -14,13 +14,16 @@ function(addSolver name)
 
   add_subdirectory("${dir}" "${CMAKE_BINARY_DIR}/solvers/${name}")
 
-  if(NOT TARGET saturn_solver_${name})
+  if(TARGET saturn_solver_${name})
+    set(solver_target saturn_solver_${name})
+  elseif(TARGET ${name})
+    set(solver_target ${name})
+  else()
     message(FATAL_ERROR
       "addSolver(${name}): the solver CMakeLists must define "
-      "saturn_solver_${name}")
+      "${name} or saturn_solver_${name}")
   endif()
 
-  target_link_libraries(saturn_solver_${name} PUBLIC saturn::Core)
-  set_property(GLOBAL APPEND PROPERTY SATURN_SOLVER_TARGETS
-               saturn_solver_${name})
+  target_link_libraries(${solver_target} PUBLIC saturn::Core)
+  set_property(GLOBAL APPEND PROPERTY SATURN_SOLVER_TARGETS ${solver_target})
 endfunction()

@@ -140,6 +140,104 @@ void SaturnBurger::rhs(const CellField& state, CellField& rate) {
       });
 }
 
+std::vector<ProfilePoint> SaturnBurger::profile(Real time) const {
+  if (!mOptions.exact)
+    throw std::runtime_error(
+        "saturnBurger: profile comparison needs an exact solution");
+
+  const int i0 = mPart.localOrigin(0);
+  const int j0 = mPart.localOrigin(1);
+  const int k0 = mPart.localOrigin(2);
+  const int n = mPart.localExtent(0);
+
+  std::vector<double> x(static_cast<std::size_t>(n));
+  std::vector<double> numerical(static_cast<std::size_t>(n));
+  std::vector<double> exact(static_cast<std::size_t>(n));
+
+  auto host = mU.hostView();
+  const int gi0 = mU.origin(0) - mU.nGrow();
+  const int gj0 = mU.origin(1) - mU.nGrow();
+  const int gk0 = mU.origin(2) - mU.nGrow();
+  for (int a = 0; a < n; ++a) {
+    const int i = i0 + a;
+    const int cell = mMesh.cellAt(i, j0, k0);
+    if (cell < 0)
+      throw std::runtime_error("saturnBurger: missing owned cell");
+    const Vec3& centre = mMesh.cellCentroid[cell];
+    x[static_cast<std::size_t>(a)] = centre.x;
+    numerical[static_cast<std::size_t>(a)] =
+        host(i - gi0, j0 - gj0, k0 - gk0, 0);
+    exact[static_cast<std::size_t>(a)] = mOptions.exact(centre, time);
+  }
+
+  std::vector<double> globalX;
+  std::vector<double> globalNumerical;
+  std::vector<double> globalExact;
+#ifdef SATURN_USE_MPI
+  int localCount = n;
+  int worldSize = 1;
+  MPI_Comm_size(MPI_COMM_WORLD, &worldSize);
+  std::vector<int> counts(static_cast<std::size_t>(worldSize));
+  std::vector<int> offsets(static_cast<std::size_t>(worldSize));
+  MPI_Allgather(&localCount, 1, MPI_INT, counts.data(), 1, MPI_INT,
+                MPI_COMM_WORLD);
+  offsets[0] = 0;
+  for (int r = 1; r < worldSize; ++r)
+    offsets[static_cast<std::size_t>(r)] =
+        offsets[static_cast<std::size_t>(r - 1)] +
+        counts[static_cast<std::size_t>(r - 1)];
+  const int total = offsets.back() + counts.back();
+  globalX.resize(static_cast<std::size_t>(total));
+  globalNumerical.resize(static_cast<std::size_t>(total));
+  globalExact.resize(static_cast<std::size_t>(total));
+  MPI_Allgatherv(x.data(), localCount, MPI_DOUBLE, globalX.data(),
+                 counts.data(), offsets.data(), MPI_DOUBLE, MPI_COMM_WORLD);
+  MPI_Allgatherv(numerical.data(), localCount, MPI_DOUBLE,
+                 globalNumerical.data(), counts.data(), offsets.data(),
+                 MPI_DOUBLE, MPI_COMM_WORLD);
+  MPI_Allgatherv(exact.data(), localCount, MPI_DOUBLE, globalExact.data(),
+                 counts.data(), offsets.data(), MPI_DOUBLE, MPI_COMM_WORLD);
+#else
+  globalX = std::move(x);
+  globalNumerical = std::move(numerical);
+  globalExact = std::move(exact);
+#endif
+
+  std::vector<ProfilePoint> points(globalX.size());
+  for (std::size_t a = 0; a < globalX.size(); ++a) {
+    points[a].x = globalX[a];
+    points[a].numerical = globalNumerical[a];
+    points[a].exact = globalExact[a];
+    points[a].error = points[a].numerical - points[a].exact;
+  }
+  std::sort(
+      points.begin(), points.end(),
+      [](const ProfilePoint& a, const ProfilePoint& b) { return a.x < b.x; });
+  return points;
+}
+
+ExactError SaturnBurger::exactError(Real time) const {
+  const std::vector<ProfilePoint> points = profile(time);
+  ExactError out;
+  out.samples = static_cast<BigIndex>(points.size());
+  if (points.empty())
+    return out;
+  double l1 = 0;
+  double l2 = 0;
+  double linf = 0;
+  for (const ProfilePoint& p : points) {
+    const double e = static_cast<double>(p.error);
+    l1 += std::abs(e);
+    l2 += e * e;
+    linf = std::max(linf, std::abs(e));
+  }
+  out.l1 = static_cast<Real>(l1 / static_cast<double>(points.size()));
+  out.l2 =
+      static_cast<Real>(std::sqrt(l2 / static_cast<double>(points.size())));
+  out.linf = static_cast<Real>(linf);
+  return out;
+}
+
 Real SaturnBurger::maxWaveSpeed() const {
   CellField u = mU;
   double local = 0;

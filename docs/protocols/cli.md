@@ -74,8 +74,8 @@ source <(saturnCFD -completion bash)
 `-dumpConfig <solver|common>` prints a commented YAML template generated from
 the registered options. `-writeTemplate <file>` writes the same content to a
 file; if the argument has no extension, `.yaml` is appended. There is no
-hand-maintained template file. Phase 1 registers `common`; solver templates
-arrive with the solvers.
+hand-maintained template file. `common` and `saturnBurger` are registered; a
+new solver supplies its schema when it registers.
 
 ```bash
 saturnCFD -dumpConfig common -writeTemplate common
@@ -224,13 +224,14 @@ example:
 ```text
 saturnCFD -dumpConfig <solver|common> [-mesh <mesh.msh>] [-writeTemplate <file>]
 
-Print the YAML template generated from the registered options. In Phase 1
-only 'common' is available; solver templates arrive with the solvers.
-With -mesh, the actual patch names are appended as comments.
+Print the YAML template generated from the registered options. 'common' and
+'saturnBurger' are registered; a new solver supplies its schema when it
+registers. With -mesh, the actual patch names are appended as comments.
 With -writeTemplate, the same content is written to a file.
 
 example:
   saturnCFD -dumpConfig common
+  saturnCFD -dumpConfig saturnBurger
   saturnCFD -dumpConfig common -writeTemplate common
   saturnCFD -dumpConfig common -mesh meshes/channel.msh -writeTemplate channel
 ```

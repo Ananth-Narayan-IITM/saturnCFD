@@ -114,7 +114,8 @@ validation.
 |---|---|---|
 | viscous traveling wave, $\nu=10^{-2}$ | $L^1,L^2,L^\infty$ | error decreases under refinement |
 | viscous traveling wave, $\nu=10^{-3}$ | observed order | close to the scheme order in smooth regions |
-| mesh refinement $N=32,64,128,256$ | order | table and plot |
+| mesh refinement $N=32,64,128,256,512$ | order | table and plot |
+| 1/2/4 ranks at $N=256$ | $L^1,L^2,L^\infty$ | identical within roundoff |
 | inviscid smooth data | pre-shock characteristics | pointwise agreement before shock |
 | inviscid shock | shock position/speed | within one cell; conservation error small |
 | limiter comparison | oscillation and smearing | upwind vs minmod vs MC documented |
@@ -148,14 +149,38 @@ cell on the left), then multiplied by the outward normal component. This makes
 the flux antisymmetric across shared faces and preserves the discrete
 conservation law.
 
-## 7. Observations from the first runs
+## 7. Observations from the validation runs
 
-CPU OpenMP build, 1D, `U=1`, `nu=0.02`, `t=0.5`, MUSCL/van Leer, CFL 0.3:
+CPU OpenMP build, 1D, `U=1`, `nu=0.02`, `t=0.5`, MUSCL/van Leer, CFL 0.3,
+SSPRK3. The YAML case is
+`tests/regression/burgers/traveling64.yaml`; `tools/validateBurgers.py`
+regenerates the table and the plot.
 
-| grid | L2 error | observed order |
-|---|---|---|
-| 64 | 0.002284 | — |
-| 128 | 0.000529 | 2.11 |
+| grid | $L^1$ | $L^2$ | $L^\infty$ | observed order |
+|---:|---:|---:|---:|---:|
+| 32 | 3.911e-3 | 9.015e-3 | 2.981e-2 | — |
+| 64 | 9.965e-4 | 2.284e-3 | 7.977e-3 | 1.98 |
+| 128 | 2.259e-4 | 5.291e-4 | 2.009e-3 | 2.11 |
+| 256 | 5.174e-5 | 1.236e-4 | 5.063e-4 | 2.10 |
+| 512 | 1.226e-5 | 2.973e-5 | 1.271e-4 | 2.06 |
+| 1024 | 2.977e-6 | 7.287e-6 | 3.173e-5 | 2.03 |
+
+The error decreases by a factor of about four per refinement, as expected for a
+second-order method. The small non-zero value at a finite grid is the
+discretisation error, not a solver defect; it tends to zero as $h^2$.
+
+At $N=256$, 1, 2 and 4 MPI ranks give **bitwise-identical** norms:
+
+| ranks | $L^1$ | $L^2$ | $L^\infty$ |
+|---:|---:|---:|---:|
+| 1 | 5.173840745110388e-05 | 1.2363783241939333e-04 | 5.062617877850117e-04 |
+| 2 | 5.173840745110388e-05 | 1.2363783241939333e-04 | 5.062617877850117e-04 |
+| 4 | 5.173840745110388e-05 | 1.2363783241939333e-04 | 5.062617877850117e-04 |
+
+An earlier apparent $\sqrt{n_{\rm ranks}}$ growth was a diagnostic bug: the test
+divided the global squared error by the **local** owned-cell count. The solver
+itself was already rank independent. The corrected diagnostic and the YAML
+summary both use the global count.
 
 Periodic inviscid shock, $u_0=-\sin(\pi x)$, $N=128$, $t=0.5$:
 
@@ -164,8 +189,8 @@ Periodic inviscid shock, $u_0=-\sin(\pi x)$, $N=128$, $t=0.5$:
 - the exact traveling wave is reproduced at the Dirichlet boundaries without
   visible reflection.
 
-The measured order is close to two away from the shock; a limiter can reduce
-the local order at extrema and across the shock, as expected.
+See [`../validation/burgers.md`](../validation/burgers.md) for the plot and the
+reproduction commands.
 
 Still to measure:
 
@@ -173,8 +198,6 @@ Still to measure:
 - limiter sensitivity (minmod vs MC vs van Leer vs superbee);
 - shock-speed error in cells;
 - active stability limit versus CFL;
-- rank-count sensitivity of the traveling-wave error (it is small but not yet
-  bit-identical across 1/2/4 ranks; partition-face MUSCL parity is pending);
 - cost per step.
 
 ## 8. Limitations
@@ -185,7 +208,9 @@ Still to measure:
   matrix assembler and `saturnLinAlg`.
 - The 2D/3D extension will add transverse directions and a vector or
   direction-dependent Burgers flux.
-- CLI/YAML wiring is later; the solver is exercised through `testSaturnFV`.
+- The CLI is wired: `saturnCFD case.yaml`, `-listSolvers`,
+  `-dumpConfig saturnBurger` and `-checkConfig` all use the registered solver.
+- Neumann boundaries and a spatially varying source are not exposed yet.
 
 ## References
 

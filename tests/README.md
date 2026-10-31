@@ -19,6 +19,7 @@ tests/
   TestSaturnBurger.cpp
   TestParallel.cpp
   UniformMesh.hpp
+  checkBurgers.cmake
   core/
   config/
   mesh/
@@ -55,6 +56,7 @@ ctest --preset config           # configuration tests only
 ctest --preset cli              # CLI tests only
 ctest --preset mpi              # 1/2/4-rank MPI tests
 ctest --preset fv               # LocalMesh, operators and MMS
+ctest --preset burgers          # YAML Burgers case on 1/2/4 ranks
 
 # equivalent fallback
 ctest --test-dir buildCPU --output-on-failure

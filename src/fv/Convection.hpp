@@ -1,5 +1,8 @@
 #pragma once
 
+#include <stdexcept>
+#include <string>
+
 #include "fv/CellField.hpp"
 #include "fv/FaceField.hpp"
 #include "fv/LocalMesh.hpp"
@@ -10,6 +13,28 @@ enum class ConvectiveScheme { Upwind, Rusanov, Muscl };
 
 /// TVD slope limiters for the MUSCL reconstruction.
 enum class Limiter { Minmod, VanLeer, Superbee };
+
+/// Parse a case-file name (`upwind`, `rusanov`, `muscl`).
+inline ConvectiveScheme convectiveSchemeFromString(const std::string& value) {
+  if (value == "upwind")
+    return ConvectiveScheme::Upwind;
+  if (value == "rusanov")
+    return ConvectiveScheme::Rusanov;
+  if (value == "muscl")
+    return ConvectiveScheme::Muscl;
+  throw std::invalid_argument("unknown convection scheme '" + value + "'");
+}
+
+/// Parse a case-file name (`minmod`, `vanLeer`, `superbee`).
+inline Limiter limiterFromString(const std::string& value) {
+  if (value == "minmod")
+    return Limiter::Minmod;
+  if (value == "vanLeer")
+    return Limiter::VanLeer;
+  if (value == "superbee")
+    return Limiter::Superbee;
+  throw std::invalid_argument("unknown limiter '" + value + "'");
+}
 
 /// Interpolate a three-component cell velocity to faces and take its normal
 /// component. `velocityFaces` is a three-component workspace; `normalVelocity`

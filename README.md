@@ -11,11 +11,17 @@ adapter, structured `LocalMesh`, interpolation/gradient/divergence,
 non-orthogonal Laplacian, Dirichlet/Neumann ghost fill, upwind/Rusanov/MUSCL
 convection, advection–diffusion and divergence-theorem tests, a simplified
 Rhie–Chow flux, the explicit solver/time loop (forward Euler, SSPRK2/3,
-diagnostics, registry), and the 1D `saturnBurger` solver are in place. PETSc
-3.19.6 is linked through the separate `saturnLinAlg` library; the 1D/3D
-Poisson and all-Neumann tests pass on 1/2/4 ranks. The 2D/3D Burgers
+diagnostics, registry), and the registered 1D `saturnBurger` solver are in
+place. PETSc 3.19.6 is linked through the separate `saturnLinAlg` library; the
+1D/3D Poisson and all-Neumann tests pass on 1/2/4 ranks. The 2D/3D Burgers
 extension, implicit time schemes, heat solver and FV Poisson matrix assembler
-are next. Solver physics starts in Phase 2.
+are next.
+
+The 1D Burgers solver is validated against the exact viscous traveling wave:
+$L^2$ falls from $9.0\times10^{-3}$ at $N=32$ to $7.3\times10^{-6}$ at $N=1024$
+with observed orders 1.98/2.11/2.10/2.06/2.03, and 1/2/4 ranks give identical norms.
+See [`docs/validation/burgers.md`](docs/validation/burgers.md) and the figure
+[`docs/validation/figures/burgersValidation.png`](docs/validation/figures/burgersValidation.png).
 
 MPI and GPU are **first-class from the first FVM layer**, not a later port.
 The decomposition, ghost-cell and one-GPU benchmark plan is in
@@ -46,6 +52,7 @@ cmake --build --preset default -j
 ctest --preset regression          # the common case
 ctest --preset mpi                 # 1/2/4-rank halo and FVM tests
 ctest --preset fv                  # fields, operators, MMS, Burgers
+ctest --preset burgers             # YAML Burgers validation on 1/2/4 ranks
 ctest --preset petsc               # PETSc Poisson/nullspace on 1/2/4 ranks
 ctest --preset default             # all tests, output on failure
 ```

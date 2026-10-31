@@ -144,6 +144,7 @@ ctest --preset config
 ctest --preset cli
 ctest --preset mpi           # partition/halo + FVM, 1/2/4 ranks
 ctest --preset fv            # fields, LocalMesh, operators, MMS, Burgers
+ctest --preset burgers       # YAML Burgers validation on 1/2/4 ranks
 ctest --preset petsc         # PETSc Poisson/nullspace on 1/2/4 ranks
 ctest --preset gpu           # GPU-labelled tests in buildGPU
 ```
@@ -292,7 +293,18 @@ cmake -S . -B buildCPU -DSATURN_MPI_PREFLAGS=--oversubscribe
 On the cluster, use `srun`/`mpirun` with the allocated tasks and one rank per
 GPU.
 
-Solver runs are Phase 2+. The intended form is:
+The 1D Burgers solver is registered. Run the YAML case directly:
+
+```bash
+./buildCPU/saturnCFD -listSolvers
+./buildCPU/saturnCFD -dumpConfig saturnBurger
+./buildCPU/saturnCFD -checkConfig tests/regression/burgers/traveling64.yaml
+./buildCPU/saturnCFD tests/regression/burgers/traveling64.yaml
+mpirun -np 4 ./buildCPU/saturnCFD tests/regression/burgers/traveling64.yaml
+python3 tools/validateBurgers.py     # table + validation figure
+```
+
+The same form runs any registered solver:
 
 ```bash
 mpirun -np 4 saturnCFD case.yaml

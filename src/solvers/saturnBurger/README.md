@@ -1,7 +1,11 @@
 # saturnBurger — 1D scalar Burgers solver
 
-**Target:** `saturnBurger`  
-**Class:** `saturn::SaturnBurger`  
+**Target:** `saturnBurger`
+
+**Class:** `saturn::SaturnBurger`
+
+**Registered name:** `saturnBurger`
+
 **Equation:** 1D scalar Burgers
 
 $$
@@ -10,18 +14,67 @@ $$
 = \nu\frac{\partial^2 u}{\partial x^2} + s .
 $$
 
-This is the first production solver. The 2D/3D extension will keep the
-`saturnBurger` name and add the transverse directions.
+This is the first production solver and is fully registered in the CLI:
+`saturnCFD -listSolvers` prints `saturnBurger`, and a case file runs with
+`saturnCFD case.yaml`. The 2D/3D extension will keep the `saturnBurger` name
+and add the transverse directions.
 
 ## Files
 
 ```text
 src/solvers/saturnBurger/
   CMakeLists.txt       target saturnBurger
-  SaturnBurger.hpp     options and solver class
-  SaturnBurger.cpp     FVM assembly, boundary fill, RHS
+  SaturnBurger.hpp     options, solver class, profile/error diagnostics
+  SaturnBurger.cpp     FVM assembly, boundary fill, RHS, profile gathering
+  BurgersCase.hpp      YAML schema and case factory
+  BurgersCase.cpp      mesh + initial/boundary data from YAML
+  TravelingWave.hpp    exact viscous traveling-wave solution
+  Register.hpp/.cpp    registry entry used by saturnCFD
   README.md            this page
 ```
+
+## Running the YAML case
+
+```bash
+cmake --preset default
+cmake --build buildCPU -j
+./buildCPU/saturnCFD -listSolvers                 # saturnBurger
+./buildCPU/saturnCFD -dumpConfig saturnBurger     # full template
+./buildCPU/saturnCFD -checkConfig \
+  tests/regression/burgers/traveling64.yaml
+./buildCPU/saturnCFD tests/regression/burgers/traveling64.yaml
+mpirun -np 4 ./buildCPU/saturnCFD \
+  tests/regression/burgers/traveling64.yaml
+```
+
+The case writes `results/burgers/traveling64.csv` and `.json` when
+`output.csv` and `output.json` are true. The CSV has
+
+```text
+x,u_numerical,u_exact,error
+```
+
+and the JSON stores `l1/l2/linf` of the state and of the analytic error.
+
+### YAML keys
+
+| key | meaning |
+|---|---|
+| `mesh.type` | `auto`, `gmsh` or `box` |
+| `mesh.nx/ny/nz` | box cell counts; 1D Burgers needs `ny = nz = 1` |
+| `mesh.box.*` | box bounds in metres |
+| `time.start/end/dtMax/cfl/maxSteps` | time control |
+| `time.scheme` | `forwardEuler`, `ssprk2`, `ssprk3` |
+| `burgers.nu` | kinematic viscosity |
+| `burgers.velocity` | traveling-wave speed $U$ |
+| `burgers.x0` | traveling-wave centre at $t=0$ |
+| `burgers.source` | constant source |
+| `burgers.periodic` | periodic x boundaries |
+| `burgers.initial` | `travelingWave`, `sine` or `constant` |
+| `numerics.convection` | `upwind`, `rusanov` or `muscl` |
+| `numerics.limiter` | `minmod`, `vanLeer` or `superbee` |
+| `output.prefix` | output path without extension |
+| `output.csv/json/exact` | profile, summary and analytic comparison |
 
 ## Mesh and layout
 
@@ -31,7 +84,8 @@ Requirements:
 - `computeGeometry()` and `detectStructured()` already called;
 - at least two cells per rank when `nGrow = 2`.
 
-The solver constructs:
+The case factory builds the mesh with `makeMeshFromConfig` (a structured box
+or a checked Gmsh mesh), then the solver constructs:
 
 ```text
 MeshPartition  (nx, 1, 1, periodic, false, false)
@@ -125,26 +179,77 @@ loops only the active direction, so those patches are ignored.
 `BurgersOptions::initial(x)` is required and is evaluated at cell centroids.
 `applyInitialConditions` fills the host view and refreshes ghosts.
 
-## Validation
+The YAML factory provides three initial states:
+
+- `travelingWave`: exact viscous wave; Dirichlet data follow it and the exact
+  solution is stored for validation;
+- `sine`: `u0 = -sin(pi x)`, periodic only;
+- `constant`: `u0 = burgers.value`, with constant Dirichlet data.
+
+## Validation against the analytic solution
+
+The exact viscous traveling wave is
+
+$$
+u(x,t)=\frac{U}{2}\left[
+1-\tanh\left(\frac{U(x-x_0-Ut/2)}{4\nu}\right)\right],
+\qquad U=1,\ \nu=0.02.
+$$
+
+`tools/validateBurgers.py` runs the real YAML case at several resolutions and
+rank counts, writes `convergence.csv` and `rankIndependence.csv`, and produces
+
+```text
+docs/validation/figures/burgersValidation.png
+docs/validation/figures/burgersValidation.pdf
+```
+
+![Burgers validation](../../../docs/validation/figures/burgersValidation.png)
+
+Measured on the CPU OpenMP build, $t=0.5$ s, MUSCL/van Leer, SSPRK3, CFL 0.3:
+
+| N | $h$ | $L^1$ | $L^2$ | $L^\infty$ | observed order |
+|---:|---:|---:|---:|---:|---:|
+| 32 | 0.0625 | 3.911e-3 | 9.015e-3 | 2.981e-2 | — |
+| 64 | 0.03125 | 9.965e-4 | 2.284e-3 | 7.977e-3 | 1.98 |
+| 128 | 0.015625 | 2.259e-4 | 5.291e-4 | 2.009e-3 | 2.11 |
+| 256 | 0.0078125 | 5.174e-5 | 1.236e-4 | 5.063e-4 | 2.10 |
+| 512 | 0.00390625 | 1.226e-5 | 2.973e-5 | 1.271e-4 | 2.06 |
+| 1024 | 0.001953125 | 2.977e-6 | 7.287e-6 | 3.173e-5 | 2.03 |
+
+The error falls from $9.0\times10^{-3}$ to $7.3\times10^{-6}$ under five
+refinements, with a clean second-order slope. The remaining non-zero value is
+the expected discretisation error of a second-order scheme; it tends to zero
+as $h^2$.
+
+### Rank independence
+
+At $N=256$ the three rank counts give bitwise-identical norms:
+
+| ranks | $L^1$ | $L^2$ | $L^\infty$ |
+|---:|---:|---:|---:|
+| 1 | 5.173840745110388e-05 | 1.2363783241939333e-04 | 5.062617877850117e-04 |
+| 2 | 5.173840745110388e-05 | 1.2363783241939333e-04 | 5.062617877850117e-04 |
+| 4 | 5.173840745110388e-05 | 1.2363783241939333e-04 | 5.062617877850117e-04 |
+
+An earlier apparent $\sqrt{n_{\rm ranks}}$ growth came from the test
+diagnostic dividing by the **local** owned-cell count. It now uses the global
+count; the solver itself was already rank independent.
+
+### Other tests
 
 `tests/TestSaturnBurger.cpp`:
 
 | case | result |
 |---|---|
-| viscous traveling wave, $N=64,128$, $\nu=0.02$, $t=0.5$ | L2 **0.002284 → 0.000529**, observed order **2.11** |
+| viscous traveling wave, $N=32/64/128/256$, $\nu=0.02$, $t=0.5$ | monotone convergence, orders 1.98/2.11/2.10 |
 | constant field, periodic, inviscid | stays exactly 1 |
-| periodic inviscid shock, $u_0=-\sin(\pi x)$, $t=0.5$ | bounds **[-0.9954, 0.9954]**, integral **1.5e-16** |
+| periodic inviscid shock, $u_0=-\sin(\pi x)$, $t=0.5$ | bounds $[-0.9954, 0.9954]$, integral $1.5\times10^{-16}$ |
 | Burgers constant flux | zero divergence, face flux $-0.5/+0.5$ |
 
-The traveling wave uses the exact solution
-
-$$
-u(x,t)=\frac{U}{2}\left[
-1-\tanh\left(\frac{U(x-Ut/2)}{4\nu}\right)\right],
-\qquad U=1.
-$$
-
 The shock test checks the TVD/boundedness property and discrete conservation.
+The YAML regression `tests/regression/burgers/traveling64.yaml` checks the
+actual CLI path, including the CSV and JSON output.
 
 ## Why this solver first
 
@@ -162,13 +267,11 @@ The shock test checks the TVD/boundedness property and discrete conservation.
   assembler and `saturnLinAlg`.
 - The shock test is conservative and bounded but does not yet report a
   pointwise shock-speed order.
-- The traveling-wave L2 error is small and order-consistent, but differs
-  slightly between 1, 2 and 4 ranks. Partition-face MUSCL parity is a pending
-  refinement.
+- Neumann boundaries and a spatially varying source are not exposed yet.
 - 2D/3D extensions will add transverse flux components and a vector or
-  direction-dependent Burgers flux.
+  direction-dependent Burgers flux (the user asked to keep this phase 1D).
 
-## Using the solver
+## Using the solver as a library
 
 ```cpp
 BurgersOptions options;
@@ -180,6 +283,7 @@ options.initial = [](const Vec3& x) { return exact(x.x, 0); };
 options.dirichlet = [](const Vec3& x, Real t, int) {
   return exact(x.x, t);
 };
+options.exact = [](const Vec3& x, Real t) { return exact(x.x, t); };
 
 SaturnBurger solver(std::move(mesh), options);
 TimeControl control;
@@ -188,7 +292,9 @@ control.cfl = 0.3;
 
 Simulation simulation(solver, control, TimeScheme::SSPRK3);
 const SimulationResult result = simulation.run();
-```
 
-CLI/YAML wiring for `saturnCFD case.yaml` is a later step; the solver is
-currently exercised through `testSaturnFV`.
+if (solver.hasExact()) {
+  const ExactError error = solver.exactError(result.final.time);
+  const std::vector<ProfilePoint> profile = solver.profile(result.final.time);
+}
+```

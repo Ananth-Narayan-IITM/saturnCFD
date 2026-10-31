@@ -50,7 +50,7 @@ endif()
 
 message(STATUS "")
 message(STATUS "saturnCFD ${PROJECT_VERSION}")
-message(STATUS "  phase      : 1 (mesh + config + comm + FVM + simulation + PETSc)")
+message(STATUS "  phase      : 2 (1D Burgers + mesh + FVM + simulation + PETSc)")
 message(STATUS "  build      : ${CMAKE_BUILD_TYPE}")
 message(STATUS "  tests      : ${SATURN_BUILD_TESTS}")
 message(STATUS "  docs       : ${SATURN_BUILD_DOCS}")

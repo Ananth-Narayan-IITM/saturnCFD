@@ -46,10 +46,11 @@ double l2Error(const SaturnBurger& solver, double time, double speed,
     }
   }
   double global = local;
+  double count = static_cast<double>(state.numOwned());
 #ifdef SATURN_USE_MPI
   MPI_Allreduce(&local, &global, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &count, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 #endif
-  const double count = static_cast<double>(state.numOwned());
   return std::sqrt(global / count);
 }
 
@@ -143,14 +144,26 @@ double travelingError(int nx, double nu) {
 }  // namespace
 
 TEST_CASE("saturnBurger: viscous traveling wave converges under refinement") {
+  const double e32 = travelingError(32, 0.02);
   const double e64 = travelingError(64, 0.02);
   const double e128 = travelingError(128, 0.02);
-  const double order = std::log(e64 / e128) / std::log(2.0);
-  MESSAGE("Burgers traveling wave L2: " << e64 << " " << e128
-                                        << " order=" << order);
+  const double e256 = travelingError(256, 0.02);
+  const double o32 = std::log(e32 / e64) / std::log(2.0);
+  const double o64 = std::log(e64 / e128) / std::log(2.0);
+  const double o128 = std::log(e128 / e256) / std::log(2.0);
+  MESSAGE("Burgers traveling wave L2: " << e32 << " " << e64 << " " << e128
+                                        << " " << e256);
+  MESSAGE("Burgers observed orders: " << o32 << " " << o64 << " " << o128);
+  CHECK(e64 < e32);
   CHECK(e128 < e64);
-  CHECK(order > 1.5);
-  CHECK(e128 < 2e-2);
+  CHECK(e256 < e128);
+  CHECK(o32 > 1.7);
+  CHECK(o64 > 1.7);
+  CHECK(o128 > 1.7);
+  // Absolute solver tolerances, not just monotonicity checks.
+  CHECK(e64 < 3e-3);
+  CHECK(e128 < 7e-4);
+  CHECK(e256 < 2e-4);
 }
 
 TEST_CASE("saturnBurger: constant field is preserved") {

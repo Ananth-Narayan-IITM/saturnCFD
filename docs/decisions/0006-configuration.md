@@ -65,7 +65,7 @@ separate YAML template file guarantees that it will drift from the code.
 
 ## Validation / exit criteria
 
-- `-dumpConfig burgers` is generated and round-trips through
+- `-dumpConfig saturnBurger` is generated and round-trips through
   `-checkConfig`.
 - A misspelled key fails with file/line and the closest known key.
 - A BC for a non-existent patch fails before field allocation.

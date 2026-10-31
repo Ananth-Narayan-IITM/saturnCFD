@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <stdexcept>
 #include <string>
 
 #include "core/Types.hpp"
@@ -38,6 +39,23 @@ inline const char* timeSchemeName(TimeScheme scheme) {
     return "bdf2";
   }
   return "unknown";
+}
+
+/// Parse a case-file name (`forwardEuler`, `ssprk2`, `ssprk3`).
+inline TimeScheme timeSchemeFromString(const std::string& value) {
+  if (value == "forwardEuler")
+    return TimeScheme::ForwardEuler;
+  if (value == "ssprk2")
+    return TimeScheme::SSPRK2;
+  if (value == "ssprk3")
+    return TimeScheme::SSPRK3;
+  if (value == "backwardEuler")
+    return TimeScheme::BackwardEuler;
+  if (value == "crankNicolson")
+    return TimeScheme::CrankNicolson;
+  if (value == "bdf2")
+    return TimeScheme::BDF2;
+  throw std::invalid_argument("unknown time scheme '" + value + "'");
 }
 
 /// Time-step controls and the explicit stability limit.

@@ -104,16 +104,19 @@ because the CUDA toolkit is not installed.
 
 `tests/TestSaturnBurger.cpp` checks:
 
-- viscous traveling wave, N=64 -> 128: L2 0.002284 -> 0.000529, observed order
-  2.11;
+- viscous traveling wave, N=32/64/128/256: L2 9.015e-3 -> 2.284e-3 ->
+  5.291e-4 -> 1.236e-4, observed orders 1.98/2.11/2.10;
 - constant field preserved exactly;
 - periodic inviscid shock: bounds [-0.9954, 0.9954], integral 1.5e-16;
-- all cases under 1/2/4 ranks;
+- all cases under 1/2/4 ranks, with bitwise-identical N=256 norms;
 - `fv: Burgers constant flux` separately checks the $-0.5/+0.5$ face sign
   and zero divergence.
 
-The 2D/3D extension, shock-speed table and `traveling64` expected file are
-next. See [`../theory/burgers.md`](../theory/burgers.md) and
+The YAML path is covered by `tests/regression/burgers/traveling64.yaml` and
+`tests/checkBurgers.cmake`; `ctest --preset burgers` runs it on 1/2/4 ranks.
+The 2D/3D extension and shock-speed table are next. See
+[`../validation/burgers.md`](../validation/burgers.md),
+[`../theory/burgers.md`](../theory/burgers.md) and
 [`../../src/solvers/saturnBurger/README.md`](../../src/solvers/saturnBurger/README.md).
 
 ## PETSc tests
@@ -203,16 +206,18 @@ TEST_CASE("units: SI only") {
 
 ## Regression example
 
-The Burgers traveling wave is stored as a case plus expected error norms:
+The Burgers traveling wave is stored as a YAML case and checked by a CMake
+script:
 
 ```text
 tests/regression/burgers/traveling64.yaml
-tests/regression/burgers/traveling64.expected
+tests/checkBurgers.cmake
 ```
 
-The test runs the case, reads the diagnostics, and checks the norms against the
-expected values within a precision-dependent tolerance. The expected file
-records the git hash and the date; updating it requires a reason.
+The script runs the real `saturnCFD` CLI, reads the JSON summary and the CSV
+profile, and checks the analytic norms and row count. The CTest slice is
+`ctest --preset burgers`. A change to the accepted norm is a deliberate code
+change, not a test-run side effect.
 
 ## CI
 

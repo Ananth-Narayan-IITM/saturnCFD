@@ -73,7 +73,7 @@ saturnCFD/
         unknownKey.yaml
       burgers/
         traveling64.yaml
-        traveling64.expected
+    checkBurgers.cmake           # CLI + analytic-norm regression
 
   docs/
     Doxyfile
@@ -95,11 +95,10 @@ saturnCFD/
     references.bib
 
   examples/
-    burgers/
-      traveling64.yaml
-    heat/
-    stokes/
-    incompressible/
+    README.md
+
+  tools/
+    validateBurgers.py           # convergence table + validation figure
 
   external/                     # pinned dependencies or FetchContent cache
   .github/workflows/
@@ -160,8 +159,8 @@ then the manual copy works.
 ## Tests
 
 - `tests/regression/burgers/traveling64.yaml` — case.
-- `tests/regression/burgers/traveling64.expected` — expected norms, git hash and
-  date.
+- `tests/checkBurgers.cmake` — runs the CLI and checks the analytic norms,
+  CSV rows and JSON summary.
 - Unit tests live beside the category they test, not in one giant file.
 - CTest labels: `[unit]`, `[mesh]`, `[config]`, `[mms]`, `[regression]`,
   `[parity]`, `[performance]`.

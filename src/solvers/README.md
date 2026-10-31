@@ -25,10 +25,16 @@ The first implemented solver is `saturnBurger` for 1D scalar Burgers.
 ```text
 src/solvers/
   CMakeLists.txt
+  BuiltinSolvers.cpp       # registers every built-in case-driven solver
   saturnBurger/
+    CMakeLists.txt
     SaturnBurger.hpp
     SaturnBurger.cpp
-    CMakeLists.txt
+    BurgersCase.hpp
+    BurgersCase.cpp
+    TravelingWave.hpp
+    Register.hpp
+    Register.cpp
     README.md
 ```
 
@@ -38,12 +44,14 @@ layout, algorithm, validation and limitations.
 ## Adding a solver
 
 ```bash
-saturnCFDSolver saturnBurger myBurger
-# addSolver(myBurger) to src/solvers/CMakeLists.txt
+cp -r src/solvers/saturnBurger src/solvers/saturnMyBurger
+# rename the class/target and add one line to src/solvers/CMakeLists.txt:
+#   addSolver(saturnMyBurger)
+# then add its registration call to BuiltinSolvers.cpp
 ```
 
-Then edit `createFields.cpp`, `equations.cpp` and the options file and rebuild.
-See `docs/guides/writingASolver.md`.
+The `saturnCFDSolver` scaffold tool will automate the copy/rename. Until then
+the manual copy works. See `docs/guides/writingASolver.md`.
 
 ## Boundaries
 
@@ -54,10 +62,11 @@ See `docs/guides/writingASolver.md`.
 
 ## Tests
 
-- `tests/solvers/<name>/` — unit and analytic tests.
-- `tests/regression/<name>/` — accepted cases.
-- `saturnBurger` is currently tested in `testSaturnFV`
-  (`tests/TestSaturnBurger.cpp`).
+- `tests/TestSaturnBurger.cpp` — unit and analytic tests, run by
+  `testSaturnFV` on 1/2/4 ranks.
+- `tests/regression/burgers/traveling64.yaml` — YAML CLI regression.
+- `ctest --preset burgers` — YAML case on 1/2/4 ranks.
+- `python3 tools/validateBurgers.py` — convergence table and validation plot.
 
 ## Docs
 
