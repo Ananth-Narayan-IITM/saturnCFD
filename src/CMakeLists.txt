@@ -44,4 +44,8 @@ if(SATURN_ENABLE_KOKKOS)
     SATURN_BACKEND_${SATURN_BACKEND_UPPER})
 endif()
 
+if(SATURN_ENABLE_PETSC)
+  add_subdirectory(linalg)
+endif()
+
 add_subdirectory(solvers)

@@ -96,6 +96,7 @@ void printGeneralHelp() {
          "  saturnCFD -completion bash\n"
          "  saturnCFD -help checkMesh\n"
          "  saturnCFD -help mpi\n"
+         "  saturnCFD -help petsc\n"
          "  saturnCFD -help build\n"
          "  saturnCFD -help gpu\n"
          "  saturnCFD -help clean\n"
@@ -135,7 +136,7 @@ _saturnCFD_complete() {
   # Complete the value of the option immediately before the cursor.
   case "${prev}" in
     -help)
-      COMPREPLY=( $(compgen -W "checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion mpi build gpu clean test" -- "${cur}") )
+      COMPREPLY=( $(compgen -W "checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion mpi petsc build gpu clean test" -- "${cur}") )
       ;;
     -completion)
       COMPREPLY=( $(compgen -W "bash zsh fish" -- "${cur}") )
@@ -160,7 +161,7 @@ _saturnCFD() {
   local -a opts
   opts=(-help -version -listSolvers -checkMesh -report -writeVTK -checkConfig -dumpConfig -writeTemplate -mesh -threads -completion)
   _arguments \
-    '-help[show help]::topic:(checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion mpi build gpu clean test)' \
+    '-help[show help]::topic:(checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion mpi petsc build gpu clean test)' \
     '-version[show version]' \
     '-listSolvers[list solvers]' \
     '-checkMesh[validate a Gmsh mesh]:mesh:_files' \
@@ -178,7 +179,7 @@ _saturnCFD "$@"
   } else if (shell == "fish") {
     std::cout << R"FISH(# saturnCFD fish completion
 # install: saturnCFD -completion fish | source
-complete -c saturnCFD -l help -r -a 'checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion mpi build gpu clean test' -d 'Show help'
+complete -c saturnCFD -l help -r -a 'checkMesh report writeVTK checkConfig dumpConfig writeTemplate mesh units config solvers completion mpi petsc build gpu clean test' -d 'Show help'
 complete -c saturnCFD -l version -d 'Show version'
 complete -c saturnCFD -l listSolvers -d 'List registered solvers'
 complete -c saturnCFD -l checkMesh -r -F -d 'Validate a Gmsh mesh'
@@ -329,6 +330,12 @@ void printTopic(const std::string& topic) {
            "Kokkos is ON by default and fetches the pinned tag 4.7.04.\n"
            "  SATURN_BACKEND=openmp|serial|cuda|hip\n"
            "  SATURN_USE_SYSTEM_KOKKOS=ON + Kokkos_ROOT  # installed Kokkos\n\n"
+           "SATURN_ENABLE_PETSC=ON (default) links PETSc through the\n"
+           "separate saturnLinAlg library; saturn_core does not depend on\n"
+           "PETSc. Debian PETSc is found with pkg-config when\n"
+           "find_package(PETSc) fails.\n"
+           "  cmake -S . -B build-cpu -DSATURN_ENABLE_PETSC=OFF  # minimal\n"
+           "  ctest --preset petsc\n\n"
            "SATURN_ENABLE_MPI=ON (default) links MPI, defines SATURN_USE_MPI\n"
            "and builds the MPI tests. The FVM layer is partitioned; the app\n"
            "is still a serial mesh/config front end.\n"
@@ -378,6 +385,9 @@ void printTopic(const std::string& topic) {
            "the visible device count clamps to device 0 and warns.\n\n"
            "GPU tests (FV halo, MMS, reference parity):\n\n"
            "  ctest --preset gpu\n\n"
+           "The gpu preset keeps PETSc off until a GPU PETSc build is\n"
+           "configured. Install the CPU/PETSc build last if you need the\n"
+           "host PETSc solvers.\n\n"
            "Do not benchmark MPI+GPU scaling on one GPU. One GPU is enough\n"
            "for correctness and single-GPU performance; multi-GPU scaling is\n"
            "a cluster measurement.\n";
@@ -401,13 +411,34 @@ void printTopic(const std::string& topic) {
            "  ctest --preset cli\n"
            "  ctest --preset mpi           halo/partition + FVM on 1/2/4\n"
            "  ctest --preset fv            LocalMesh, operators, MMS\n"
+           "  ctest --preset petsc         PETSc Poisson/nullspace tests\n"
            "  ctest --preset gpu           GPU-labelled FV tests\n"
            "  ctest --list-presets         list them\n";
+  } else if (topic == "petsc") {
+    std::cout
+        << "petsc\n\n"
+           "PETSc 3.19.6 is linked through the separate saturnLinAlg\n"
+           "library. It is not part of saturn_core, so the mesh/config/CLI\n"
+           "front end does not depend on PETSc.\n\n"
+           "Configure and build:\n\n"
+           "  cmake --preset default    # SATURN_ENABLE_PETSC=ON\n"
+           "  cmake --build --preset default -j\n\n"
+           "Debian PETSc is found with pkg-config when find_package(PETSc)\n"
+           "fails. Disable PETSc for a minimal build with:\n\n"
+           "  cmake -S . -B build-cpu -DSATURN_ENABLE_PETSC=OFF\n\n"
+           "Tests:\n\n"
+           "  ctest --preset petsc\n"
+           "  ./build-cpu/saturn_petsc_tests\n"
+           "  mpirun -np 4 build-cpu/saturn_petsc_tests\n\n"
+           "The tests cover 1D/3D Poisson, CG/GAMG, and the all-Neumann\n"
+           "nullspace on 1/2/4 ranks. The finite-volume matrix assembler\n"
+           "and Burgers/heat solvers are the next phase.\n\n"
+           "See docs/guides/petsc.md and docs/theory/poisson.md.\n";
   } else {
     throw UsageError("unknown help topic '" + topic +
                      "'; topics: checkMesh, report, writeVTK, checkConfig, "
                      "dumpConfig, writeTemplate, mesh, units, config, solvers, "
-                     "completion, mpi, build, gpu, clean, test");
+                     "completion, mpi, petsc, build, gpu, clean, test");
   }
 }
 

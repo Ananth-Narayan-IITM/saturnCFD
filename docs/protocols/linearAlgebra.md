@@ -1,6 +1,8 @@
 # P7 — Linear algebra protocol (PETSc)
 
-**Status:** accepted (ADR `0003`)
+**Status:** accepted (ADR `0003`, `0017`). Phase 0 implemented: `saturnLinAlg`,
+`PetscScope`, `petscCheck`, `KspSolver`, and PETSc Poisson/nullspace tests.
+Finite-volume matrix assembly is next.
 
 ## Purpose
 
@@ -28,6 +30,13 @@ public:
 
 `SparseMatrix` is assembled from finite-volume coefficients and then handed to
 PETSc as a `Mat` (AIJ/MPIAIJ). `Vector` wraps a `Vec`.
+
+Phase 0 provides `saturn::KspSolver` as the first concrete wrapper. The
+`LinearSolver` interface above is the target for the FV assembler. PETSc lives
+in `saturnLinAlg`, not `saturn_core`.
+
+Discovery note: Debian PETSc 3.19.6 is found through `pkg-config petsc` when
+`find_package(PETSc)` fails. See [`../guides/petsc.md`](../guides/petsc.md).
 
 ## Vector form
 

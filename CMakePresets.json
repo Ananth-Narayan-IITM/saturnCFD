@@ -16,7 +16,8 @@
         "SATURN_BUILD_DOCS": "ON",
         "SATURN_ENABLE_KOKKOS": "ON",
         "SATURN_BACKEND": "openmp",
-        "SATURN_USE_SYSTEM_KOKKOS": "OFF"
+        "SATURN_USE_SYSTEM_KOKKOS": "OFF",
+        "SATURN_ENABLE_PETSC": "ON"
       }
     },
     {
@@ -35,7 +36,8 @@
         "SATURN_BUILD_DOCS": "OFF",
         "SATURN_ENABLE_KOKKOS": "ON",
         "SATURN_BACKEND": "cuda",
-        "SATURN_USE_SYSTEM_KOKKOS": "ON"
+        "SATURN_USE_SYSTEM_KOKKOS": "ON",
+        "SATURN_ENABLE_PETSC": "OFF"
       }
     }
   ],
@@ -136,6 +138,19 @@
       "filter": {
         "include": {
           "label": "mpi"
+        }
+      }
+    },
+    {
+      "name": "petsc",
+      "displayName": "PETSc linear algebra tests",
+      "configurePreset": "default",
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "label": "petsc"
         }
       }
     },

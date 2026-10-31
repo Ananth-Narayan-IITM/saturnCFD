@@ -15,6 +15,7 @@ validation results and the observations.
 | [`incompressible.md`](incompressible.md) | incompressible Navier–Stokes, PISO, cavity |
 | [`units.md`](units.md) | SI convention, dynamic pressure, dimensionless groups |
 | [`manufacturedSolutions.md`](manufacturedSolutions.md) | MMS methodology, expected orders, pitfalls |
+| [`poisson.md`](poisson.md) | FV Poisson matrix, Dirichlet/Neumann, nullspace, PETSc tests |
 
 ## Math rendering
 

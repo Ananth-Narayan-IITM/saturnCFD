@@ -10,8 +10,10 @@ partition/halo substrate, Kokkos `CellField`/`FaceField`, the device halo
 adapter, structured `LocalMesh`, interpolation/gradient/divergence,
 non-orthogonal Laplacian, Dirichlet/Neumann ghost fill, upwind/Rusanov/MUSCL
 convection, advection–diffusion and divergence-theorem tests, and a simplified
-Rhie–Chow flux are in place. The pressure solve/PETSc wrapper and solver
-authoring are next. Solver physics starts in Phase 2.
+Rhie–Chow flux are in place. PETSc 3.19.6 is linked through the separate
+`saturnLinAlg` library; the 1D/3D Poisson and all-Neumann tests pass on 1/2/4
+ranks. The FV Poisson matrix assembler, Burgers and heat solvers are next.
+Solver physics starts in Phase 2.
 
 MPI and GPU are **first-class from the first FVM layer**, not a later port.
 The decomposition, ghost-cell and one-GPU benchmark plan is in
@@ -28,6 +30,7 @@ cmake --build --preset default -j
 ctest --preset regression          # the common case
 ctest --preset mpi                 # 1/2/4-rank halo and FVM tests
 ctest --preset fv                  # fields, halo, LocalMesh, operators, MMS
+ctest --preset petsc               # PETSc Poisson/nullspace on 1/2/4 ranks
 ctest --preset default             # all tests, output on failure
 ```
 
@@ -52,6 +55,12 @@ Kokkos is pinned to 4.7.04 and uses `SATURN_BACKEND=openmp` by default.
 `SATURN_USE_MPI`, and builds the MPI partition/halo and FVM tests. The app is
 still a serial mesh/config front end; the FVM operators live in
 `saturn_fv_tests`. Use `-DSATURN_ENABLE_MPI=OFF` for a serial build.
+
+PETSc 3.19.6 is enabled in the CPU/default preset and linked through
+`saturnLinAlg`. Debian's PETSc is found through `pkg-config` when
+`find_package(PETSc)` fails. Use `-DSATURN_ENABLE_PETSC=OFF` for a minimal
+mesh/config build. Setup and solver choices are in
+[`docs/guides/petsc.md`](docs/guides/petsc.md).
 
 CPU and GPU are separate build directories. The GPU build needs an installed,
 CUDA-enabled Kokkos because Kokkos' `nvcc_wrapper` must be the C++ compiler at

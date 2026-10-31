@@ -114,6 +114,35 @@ else()
   set(SATURN_KOKKOS_ORIGIN "disabled")
 endif()
 
+# -------------------------------------------------------------------- PETSc --
 if(SATURN_ENABLE_PETSC)
-  find_package(PETSc REQUIRED)
+  # Debian's PETSc installs a pkg-config file but not always a CMake config.
+  find_package(PETSc QUIET)
+  if(PETSc_FOUND)
+    if(TARGET PETSc::PETSc)
+      set(SATURN_PETSC_TARGET PETSc::PETSc)
+    elseif(TARGET PETSc)
+      set(SATURN_PETSC_TARGET PETSc)
+    else()
+      add_library(saturn_petsc_external INTERFACE)
+      target_include_directories(saturn_petsc_external INTERFACE
+        ${PETSc_INCLUDE_DIRS})
+      target_link_libraries(saturn_petsc_external INTERFACE
+        ${PETSc_LIBRARIES})
+      set(SATURN_PETSC_TARGET saturn_petsc_external)
+    endif()
+    set(SATURN_PETSC_ORIGIN "system ${PETSc_VERSION}")
+  else()
+    find_package(PkgConfig QUIET)
+    if(NOT PkgConfig_FOUND)
+      message(FATAL_ERROR
+        "PETSc was not found. Install petsc-dev or configure with "
+        "-DSATURN_ENABLE_PETSC=OFF.")
+    endif()
+    pkg_check_modules(PETSC REQUIRED IMPORTED_TARGET petsc)
+    set(SATURN_PETSC_TARGET PkgConfig::PETSC)
+    set(SATURN_PETSC_ORIGIN "pkg-config ${PETSC_VERSION}")
+  endif()
+else()
+  set(SATURN_PETSC_ORIGIN "disabled")
 endif()

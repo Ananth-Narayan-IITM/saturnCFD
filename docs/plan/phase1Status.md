@@ -1,9 +1,11 @@
 # Phase 1 status and remaining work
 
-**Status:** mesh, configuration, CLI, the MPI partition/halo substrate and the
-CPU finite-volume operator slice are implemented. PETSc wrapper, solver
-authoring and the GPU execution verification are next. The parallel design is
-in [`mpiGpuDesign.md`](mpiGpuDesign.md).
+**Status:** mesh, configuration, CLI, the MPI partition/halo substrate, the
+CPU finite-volume operator slice and the Phase 0 PETSc linear-algebra layer are
+implemented. The FV Poisson matrix assembler, Burgers/heat solvers and GPU
+execution verification are next. The parallel design is in
+[`mpiGpuDesign.md`](mpiGpuDesign.md); the solver sequence is in
+[`solverSequence.md`](solverSequence.md).
 
 ## Done
 
@@ -40,6 +42,10 @@ in [`mpiGpuDesign.md`](mpiGpuDesign.md).
 | orthogonal `laplacian` + periodic 2D/3D MMS | done, order 2 on 1/2/4 ranks |
 | upwind/MUSCL convection and advection–diffusion MMS | done |
 | `ctest --preset fv` | done |
+| PETSc 3.19.6 discovery (`pkg-config` fallback) | done |
+| `saturnLinAlg`, `PetscScope`, `KspSolver` | done |
+| 1D/3D Poisson and all-Neumann PETSc tests | done on 1/2/4 ranks |
+| `ctest --preset petsc` | done |
 | GPU-labelled FV regression cases | written; CUDA build not yet verified locally |
 
 ## Pending
@@ -50,7 +56,7 @@ in [`mpiGpuDesign.md`](mpiGpuDesign.md).
 | `src/simulation` | `Solver` interface, registry, time loop, diagnostics |
 | `src/solvers` | `burgers` skeleton, `addSolver(burgers)`, `saturnCFDSolver` tool |
 | `src/config` | `boundary` and `fields` schemas; solver-specific option schemas |
-| `src/linalg` | MPI PETSc wrapper, matrix assembly, null-space handling |
+| `src/linalg` | FV Poisson matrix assembly, block/multi-RHS, fieldsplit/Schur |
 | `src/io` | CSV diagnostics, run manifest, checkpoint |
 | `tests/parallel` | cross-run 1/2/4-rank equality, GPU execution on a CUDA host |
 | `benchmarks` | halo/stencil strong/weak scaling harness |
@@ -62,6 +68,10 @@ Deferred deliberately: multi-GPU tuning, GPU-aware halo exchange, AMR,
 two-phase flow, compressible flow.
 
 ## Recommended order
+
+The solver-specific sequence is in [`solverSequence.md`](solverSequence.md):
+PETSc Phase 0 (done), solver lifecycle, Burgers 1D→2D→3D, heat, Stokes,
+Navier–Stokes. The list below is the repository build-out order.
 
 1. **Parallel decomposition and halo — host MPI slice done**
    - `MeshPartition` from `MPI_Dims_create`/`MPI_Cart_create`.
@@ -110,10 +120,12 @@ two-phase flow, compressible flow.
    - `-listSolvers` and `-dumpConfig burgers` become real.
    - `boundary`/`fields` YAML schema and validation.
 
-4. **PETSc wrapper**
-   - `LinearSolver` interface and MPI PETSc backend.
-   - matrix assembly and null-space handling.
-   - tests: 1D Poisson, Neumann zero-mean, multi-RHS.
+4. **PETSc wrapper — Phase 0 done**
+   - `saturnLinAlg`, `PetscScope`, `KspSolver`.
+   - `pkg-config` fallback for Debian PETSc.
+   - done: 1D/3D Poisson, all-Neumann nullspace on 1/2/4 ranks.
+   - next: FV Poisson matrix assembly from `LocalMesh`.
+   - next: block/multi-RHS and fieldsplit/Schur.
 
 5. **I/O completion**
    - CSV diagnostics, run manifest, checkpoint.
@@ -140,6 +152,9 @@ Then Phase 2: Burgers physics and the `traveling64` analytic regression.
 - **Done:** the discrete divergence theorem holds on a sheared mesh.
 - **Done:** the Rhie–Chow correction vanishes for a linear pressure and
   suppresses a checkerboard pressure.
+- **Done:** PETSc 3.19.6 links through `saturnLinAlg`; 1D/3D Poisson and
+  all-Neumann tests pass on 1/2/4 ranks.
+- Pending: FV Poisson matrix assembly and Burgers/heat solvers.
 - Pending: pressure Poisson/SIMPLE-PISO with PETSc.
 - 1-rank and 2-rank *cross-run* results agree; a CUDA build reproduces the CPU
   reference within precision.

@@ -155,6 +155,9 @@ If the change is not understood, it is a bug, not a new baseline.
 | `fv/gradientMms` | periodic gradient order on 1/2/4 ranks | implemented |
 | `fv/divergenceMms` | periodic divergence order on 1/2/4 ranks | implemented |
 | `fv/gpu` | device space, 32^3 MMS against the CPU reference, halo roundoff | implemented in code; needs a CUDA host to run |
+| `petsc/poisson1d` | 1D Dirichlet Poisson, second-order | implemented |
+| `petsc/poisson3d` | 3D Poisson with CG + GAMG | implemented |
+| `petsc/neumann` | all-Neumann nullspace and residual | implemented |
 
 The FVM entry is a library regression until the Burgers solver exists: the
 stored 32$^3$ `L2=0.13435580757778084` is the smallest scalar that catches a

@@ -3,7 +3,7 @@ option(SATURN_BUILD_DOCS "Enable Doxygen targets" ON)
 option(SATURN_FETCH_DEPS "Fetch yaml-cpp/doctest/Kokkos when not installed" ON)
 option(SATURN_ENABLE_MPI "Enable MPI decomposition" ON)
 option(SATURN_ENABLE_KOKKOS "Enable Kokkos-backed fields and FVM operators" ON)
-option(SATURN_ENABLE_PETSC "Enable PETSc (FVM/PETSc layer)" OFF)
+option(SATURN_ENABLE_PETSC "Enable PETSc linear algebra" ON)
 set(SATURN_MPI_PREFLAGS "" CACHE STRING
     "Extra flags for mpiexec, e.g. --oversubscribe on Open MPI")
 set(SATURN_BACKEND "openmp" CACHE STRING

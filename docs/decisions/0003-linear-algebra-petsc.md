@@ -1,6 +1,6 @@
 # 0003 — Linear algebra: PETSc, not a home-grown Krylov solver
 
-- **Status:** accepted
+- **Status:** accepted; Phase 0 implemented (see ADR `0017`)
 - **Date:** 2026-10-30
 - **Owner:** saturnCFD v1
 - **Supersedes:** none
@@ -34,8 +34,8 @@ preconditioners, sparse direct solvers, null-space handling and MPI support.
 - Wrap PETSc calls in a `petscCheck` helper that converts an error code into a
   host-side exception with the PETSc message. No PETSc call is allowed inside a
   Kokkos kernel.
-- PETSc version: pin a minimum (3.20 at the time of writing) and record the
-  exact version in the run manifest.
+- PETSc version: require at least 3.19 and record the exact version in the run
+  manifest. The development machine uses Debian 3.19.6 (real scalar).
 - CPU double precision first. MPI and GPU backends are configuration choices
   behind the same `LinearSolver` protocol.
 
@@ -70,6 +70,17 @@ preconditioners, sparse direct solvers, null-space handling and MPI support.
   solution.
 - The vector momentum solve with three right-hand sides matches three
   independent scalar solves.
+
+## Implementation status
+
+Phase 0 is implemented in ADR `0017`:
+
+- Debian PETSc 3.19.6 found through `pkg-config`;
+- separate `saturnLinAlg` target with `PetscScope`, `petscCheck` and
+  `KspSolver`;
+- 1D/3D Poisson and all-Neumann tests on 1/2/4 ranks.
+
+Next: finite-volume matrix assembly and the solver time loop.
 
 ## References
 

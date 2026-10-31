@@ -30,10 +30,11 @@ passes on CPU.
 MPI partition/halo, Kokkos `CellField`/`FaceField`, the device halo adapter,
 `LocalMesh`, interpolation/gradient/divergence, non-orthogonal Laplacian,
 Dirichlet/Neumann ghost fill, upwind/Rusanov/MUSCL convection,
-advection–diffusion MMS, a simplified Rhie–Chow flux, Doxygen pipeline and
-regression tests are in place. The pressure solve/PETSc wrapper and solver
-authoring remain. The detailed checklist is
-[`phase1Status.md`](phase1Status.md).
+advection–diffusion MMS, a simplified Rhie–Chow flux, PETSc Phase 0
+(`saturnLinAlg`, 1D/3D Poisson tests), Doxygen pipeline and regression tests
+are in place. The FV Poisson assembler, Burgers/heat solvers and pressure
+coupling remain. The detailed checklist is [`phase1Status.md`](phase1Status.md);
+the solver sequence is [`solverSequence.md`](solverSequence.md).
 
 **Deliverables**
 
@@ -82,10 +83,12 @@ authoring remain. The detailed checklist is
    - All operators iterate owned cells only and read ghost values.
    - Plan: [`fvmKokkosPlan.md`](fvmKokkosPlan.md), ADR `0016`.
 
-5. **Linear algebra**
-   - PETSc wrapper: `Mat`, `Vec`, `KSP`, `PC`.
-   - MPI `Mat`/`Vec` assembly; block-3 momentum; scalar pressure.
-   - Null-space helper; residual diagnostics.
+5. **Linear algebra — Phase 0 done**
+   - `saturnLinAlg`; `PetscScope`, `KspSolver`, `petscCheck`.
+   - Debian PETSc discovery through `pkg-config`.
+   - Done: 1D/3D Poisson and all-Neumann nullspace on 1/2/4 ranks.
+   - Next: FV `Mat`/`Vec` assembly; block-3 momentum; scalar pressure.
+   - Next: residual diagnostics and fieldsplit/Schur.
    - CPU PETSc first; GPU PETSc as an enabled build.
 
 6. **I/O**
@@ -219,7 +222,7 @@ authoring remain. The detailed checklist is
 | risk | mitigation |
 |---|---|
 | `.msh` files are not truly structured | `checkMesh` classifier rejects them early |
-| PETSc installation friction | document `PETSC_DIR`/`PETSC_ARCH`; provide a minimal build script |
+| PETSc installation friction | `pkg-config` fallback for Debian; document `PETSC_DIR`/`PETSC_ARCH` for source builds; minimal `-DSATURN_ENABLE_PETSC=OFF` build |
 | Rhie–Chow sign/interpolation error | derive once in `finiteVolume.md`; checkerboard regression test |
 | pressure null space | PETSc `MatNullSpace`; mean-pressure diagnostic |
 | validation drift | theory page + validation page + test for every solver |

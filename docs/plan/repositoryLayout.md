@@ -24,7 +24,8 @@ saturnCFD/
     comm/                       # MeshPartition, HaloExchange, MPI runtime
     fv/                         # fields, gradient, divergence, laplacian,
                                 # interpolation, fluxes, Rhie-Chow, BCs
-    linalg/                     # MPI PETSc wrappers, matrix assembly
+    linalg/                     # saturnLinAlg: Petsc scope, KSP wrapper,
+                                # Poisson matrix assembly
     io/                         # VTU/PVD, CSV, checkpoint, run manifest
     simulation/                 # Solver interface, registry, time loop
     solvers/
@@ -72,6 +73,12 @@ saturnCFD/
     index.md                    # Doxygen main page
     Design-v1.md
     Reference-v0.md
+    guides/
+      petsc.md                  # PETSc discovery, saturnLinAlg, KSP/PC
+    plan/
+      solverSequence.md         # PETSc -> Burgers -> heat -> Stokes -> NS
+    theory/
+      poisson.md                # FV Poisson matrix and nullspace
     decisions/                  # ADRs
     protocols/                  # contracts
     theory/                     # equations and derivations

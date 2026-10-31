@@ -70,6 +70,31 @@ if(SATURN_ENABLE_KOKKOS)
   endif()
 endif()
 
+if(SATURN_ENABLE_PETSC)
+  add_executable(saturn_petsc_tests
+    TestPetscMain.cpp
+    TestPetsc.cpp
+  )
+  set_target_properties(saturn_petsc_tests PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+  target_link_libraries(saturn_petsc_tests PRIVATE
+    saturn::LinAlg doctest::doctest)
+
+  if(SATURN_ENABLE_MPI)
+    foreach(ranks 1 2 4)
+      add_test(NAME petsc_np${ranks}
+        COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${ranks}
+                ${SATURN_MPI_PREFLAGS} $<TARGET_FILE:saturn_petsc_tests>)
+      set_tests_properties(petsc_np${ranks} PROPERTIES
+        LABELS "petsc;linalg;regression;mpi" RUN_SERIAL TRUE)
+    endforeach()
+  else()
+    add_test(NAME petsc_serial COMMAND saturn_petsc_tests)
+    set_tests_properties(petsc_serial PROPERTIES
+      LABELS "petsc;linalg;regression")
+  endif()
+endif()
+
 # CLI regression checks: the path a user actually runs.
 add_test(NAME cli_help COMMAND saturnCFD -help)
 add_test(NAME cli_version COMMAND saturnCFD -version)

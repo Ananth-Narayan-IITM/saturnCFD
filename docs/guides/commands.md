@@ -28,7 +28,8 @@ Incremental builds are the same command.
 SATURN_ENABLE_MPI=ON      link MPI, define SATURN_USE_MPI, build MPI tests
 SATURN_ENABLE_KOKKOS=ON   fetch pinned Kokkos 4.7.04
 SATURN_BACKEND=openmp     Kokkos execution backend for the CPU build
-SATURN_BUILD_TESTS=ON     build saturn_tests, saturn_mpi_tests, saturn_fv_tests
+SATURN_ENABLE_PETSC=ON    link system PETSc through saturnLinAlg
+SATURN_BUILD_TESTS=ON     build unit, MPI, FV and PETSc tests
 SATURN_BUILD_DOCS=ON      enable docHtml/docPdf targets
 CMAKE_BUILD_TYPE=Release  optimised build
 ```
@@ -44,16 +45,20 @@ writes `build-cpu/`, and `cmake --build --preset default -j` compiles it.
 
 ```text
 src/**            -> build-cpu/src/libsaturn_core.a
+src/linalg/**     -> build-cpu/src/libsaturnLinAlg.a
 apps/main.cpp     -> build-cpu/saturnCFD
 tests/*           -> build-cpu/saturn_tests
 tests/TestMpi*    -> build-cpu/saturn_mpi_tests
 tests/TestFv*     -> build-cpu/saturn_fv_tests
 tests/TestLocalMesh* -> build-cpu/saturn_fv_tests
+tests/TestPetsc*  -> build-cpu/saturn_petsc_tests
 ```
 
 MPI and Kokkos are linked into `saturn_core`. Kokkos is pinned by default;
 `SATURN_USE_SYSTEM_KOKKOS=ON` plus `Kokkos_ROOT` uses an installed Kokkos.
-PETSc is the next layer and is still off.
+PETSc is linked through the separate `saturnLinAlg` target. Debian PETSc is
+found with `pkg-config` when `find_package(PETSc)` fails. Use
+`-DSATURN_ENABLE_PETSC=OFF` for a minimal build.
 
 Optional serial-only build (MPI off):
 
@@ -125,6 +130,7 @@ ctest --preset config
 ctest --preset cli
 ctest --preset mpi           # partition/halo + FVM, 1/2/4 ranks
 ctest --preset fv            # fields, halo, LocalMesh, operators, MMS
+ctest --preset petsc         # PETSc Poisson/nullspace on 1/2/4 ranks
 ctest --preset gpu           # GPU-labelled tests in build-gpu
 ```
 
@@ -136,8 +142,17 @@ mpirun -np 2 build-cpu/saturn_fv_tests
 mpirun -np 4 build-cpu/saturn_fv_tests
 ```
 
+Direct PETSc runs:
+
+```bash
+./build-cpu/saturn_petsc_tests
+mpirun -np 2 build-cpu/saturn_petsc_tests
+mpirun -np 4 build-cpu/saturn_petsc_tests
+```
+
 The MMS tests print the observed orders; a failure on any rank fails the run.
 A CUDA build compiles the `gpu` cases and `ctest --preset gpu` runs them.
+PETSc setup and KSP/PC choices are in [`petsc.md`](petsc.md).
 
 List the available presets instead of memorising them:
 

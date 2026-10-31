@@ -23,7 +23,9 @@ harness is retired.
 | `[config]` | schema, YAML, SI-only units, BC/initial validation | every build |
 | `[fv]` | CellField, halo adapter, FVM operators | every FVM change |
 | `[mms]` | manufactured-solution order of accuracy | every FVM change |
-| `[mpi]` | partition, halo, FVM, 1/2/4-rank runs | MPI CI |
+| `[linalg]` | PETSc discovery, matrix/solve wrappers | every PETSc change |
+| `[petsc]` | Poisson matrix/solve, nullspace, 1/2/4 ranks | every PETSc change |
+| `[mpi]` | partition, halo, FVM, PETSc, 1/2/4-rank runs | MPI CI |
 | `[gpu]` | GPU parity and device indexing | GPU CI |
 | `[regression]` | analytic and benchmark cases (Burgers wave, Poiseuille, Ghia) | nightly / release |
 | `[parity]` | CPU vs GPU within precision floor | GPU CI |
@@ -98,6 +100,21 @@ CTest test. A CUDA build adds the `gpu` label and `ctest --preset gpu` runs the
 device tests. The CUDA build is written but not yet executed on this machine
 because the CUDA toolkit is not installed.
 
+## PETSc tests
+
+`tests/TestPetsc.cpp` currently checks:
+
+- 1D Poisson with Dirichlet boundaries: order 1.98 and 1.99;
+- 3D Poisson with CG + GAMG: L2 error about 2.1e-3 at 12^3;
+- all-Neumann 1D matrix: constant nullspace attached and verified with
+  `MatNullSpaceTest`, CG + GAMG converges;
+- all cases run on 1, 2 and 4 ranks.
+
+The PETSc tests use `DMDA` only as a linear-algebra smoke test. The production
+finite-volume matrix assembler is the next phase. See
+[`../guides/petsc.md`](../guides/petsc.md) and
+[`../theory/poisson.md`](../theory/poisson.md).
+
 ## Regression policy
 
 The stored-expectation format, tolerances and update rules are in
@@ -117,6 +134,7 @@ ctest --preset config
 ctest --preset cli
 ctest --preset mpi           # partition/halo + FVM on 1/2/4 ranks
 ctest --preset fv            # CellField, halo and MMS
+ctest --preset petsc         # PETSc Poisson/nullspace on 1/2/4 ranks
 ctest --preset gpu           # GPU-labelled tests in build-gpu
 ctest --preset benchmark     # benchmark smoke tests
 ```
