@@ -98,7 +98,9 @@
           structured \texttt{LocalMesh}.
     \item Interpolation, Gauss gradient, divergence, non-orthogonal Laplacian
           and Dirichlet/Neumann ghosts.
-    \item Upwind/Rusanov convection, first-order advection--diffusion MMS.
+    \item Upwind/Rusanov/MUSCL convection, TVD limiters and advection--diffusion
+          MMS.
+    \item Divergence theorem on a sheared mesh; simplified Rhie--Chow flux.
     \item Periodic Laplacian, gradient and divergence MMS at order 2 on
           1/2/4 ranks.
     \item 19 CTest cases, regression tests, Doxygen HTML/PDF.
@@ -106,7 +108,7 @@
 
   \begin{block}{Status}
     The mesh/config/comm slice and the CPU Kokkos FVM operator slice are
-    working. MUSCL/TVD, pressure coupling and PETSc are next.
+    working. Pressure coupling/PETSc and Burgers physics are next.
   \end{block}
 \end{frame}
 
@@ -376,8 +378,9 @@ time:
 
   \begin{block}{Measured on 1, 2 and 4 ranks}
     Laplacian: 3D 1.978/1.994, 2D 1.994/1.999. Gradient/divergence:
-    1.967/1.992. Upwind convection: 0.960/0.990. Steady advection--diffusion:
-    0.847/0.936. The 32$^3$ reference $L^2=0.1343558076$ is stored.
+    1.967/1.992. Upwind: 0.960/0.990. MUSCL: 1.61/1.57 (minmod), 1.58/1.52
+    (van Leer), 1.15/1.42 (superbee). The 32$^3$ reference
+    $L^2=0.1343558076$ is stored.
   \end{block}
 \end{frame}
 
@@ -486,6 +489,9 @@ rm -rf build-cpu build-gpu
       MMS Laplacian & order 2 in 2D/3D, 1/2/4 ranks \\
       MMS gradient/divergence & order 1.97/1.99, 1/2/4 ranks \\
       MMS upwind/advection--diffusion & order 0.96 and 0.85--0.94 \\
+      MMS MUSCL & order 1.15--1.61, TVD step bounded \\
+      Divergence theorem & sheared mesh, roundoff \\
+      Rhie--Chow & linear zero, checkerboard suppressed \\
       Mesh \texttt{checkMesh} & pass/reject fixtures passing \\
       Config SI-only & accept/reject fixtures passing \\
       CLI regression & help, outputs, completion, templates \\
@@ -495,9 +501,9 @@ rm -rf build-cpu build-gpu
   \end{center}
 
   \begin{block}{What is not yet tested}
-    MUSCL/TVD limiters, Dirichlet/Neumann Laplacian MMS, divergence theorem on
-    a non-uniform mesh, CUDA execution (no toolkit on this PC) and multi-GPU
-    scaling. These are the next gates.
+    Pressure Poisson/SIMPLE-PISO with PETSc, Dirichlet/Neumann Laplacian MMS,
+    CUDA execution (no toolkit on this PC) and multi-GPU scaling. These are the
+    next gates.
   \end{block}
 \end{frame}
 
@@ -514,7 +520,8 @@ rm -rf build-cpu build-gpu
           \item MPI partition + 26-neighbour halo
           \item Kokkos field + device halo
           \item \texttt{LocalMesh} + operators + BC ghosts
-          \item Non-orthogonal Laplacian + upwind convection
+          \item Non-orthogonal Laplacian + upwind/MUSCL convection
+          \item TVD limiters, divergence theorem, Rhie--Chow flux
           \item Laplacian/gradient/divergence/advection MMS
           \item 1/2/4-rank tests
           \item Doxygen HTML/PDF
@@ -524,11 +531,11 @@ rm -rf build-cpu build-gpu
     \begin{column}{0.48\textwidth}
       \begin{block}{Next}
         \begin{itemize}
-          \item MUSCL/TVD limiter and reconstruction
-          \item Pressure coupling / Rhie--Chow
-          \item Divergence theorem on a non-uniform mesh
+          \item Pressure Poisson / SIMPLE-PISO
+          \item PETSc linear algebra
+          \item Momentum-diagonal Rhie--Chow coefficient
           \item CUDA build verification
-          \item Burgers physics and PETSc
+          \item Burgers physics
         \end{itemize}
       \end{block}
     \end{column}

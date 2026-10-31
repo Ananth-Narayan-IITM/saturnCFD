@@ -42,6 +42,7 @@ struct LocalMeshData {
 
   int origin[3] = {0, 0, 0};
   int extent[3] = {0, 0, 0};
+  int global[3] = {0, 0, 0};
   int nGrow = 0;
   int dimension = 3;
   bool periodic[3] = {false, false, false};
@@ -56,6 +57,17 @@ struct LocalMeshData {
     return i >= origin[0] && i < origin[0] + extent[0] && j >= origin[1] &&
            j < origin[1] + extent[1] && k >= origin[2] &&
            k < origin[2] + extent[2];
+  }
+
+  /// True when LocalMesh filled this cell centroid: every index outside the
+  /// global domain must be periodic.
+  KOKKOS_INLINE_FUNCTION
+  bool hasCentroid(int i, int j, int k) const {
+    const int idx[3] = {i, j, k};
+    for (int d = 0; d < 3; ++d)
+      if ((idx[d] < 0 || idx[d] >= global[d]) && !periodic[d])
+        return false;
+    return true;
   }
 
   KOKKOS_INLINE_FUNCTION

@@ -28,6 +28,8 @@ LocalMesh::LocalMesh(const Mesh& mesh, const MeshPartition& part, int nGrow) {
       throw MeshError(
           "LocalMesh: MeshPartition global extent does not match the mesh");
     mGlobal[d] = global;
+    mDevice.global[d] = global;
+    mHost.global[d] = global;
     mDevice.origin[d] = part.localOrigin(d);
     mHost.origin[d] = part.localOrigin(d);
     mDevice.extent[d] = part.localExtent(d);

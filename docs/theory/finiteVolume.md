@@ -134,7 +134,15 @@ r = \frac{\phi_U-\phi_{UU}}{\phi_D-\phi_U},
 $$
 
 where $U$ is upwind, $D$ downwind and $UU$ second-upwind. $\psi(r)$ is
-minmod, van Leer, MC or superbee. The limiter is selected in YAML.
+minmod, van Leer, MC or superbee. The implemented scheme builds the limited
+slope from the two cell-centred differences along the face direction and
+reconstructs the upwind cell at the face centroid. The limiter is currently a
+function argument; YAML selection comes with the boundary/solver schema.
+
+For a smooth periodic sine field the measured L2 order is about 1.6 for
+minmod/van Leer and 1.15--1.42 for superbee. The reduction from 2 is expected:
+TVD limiters clip smooth extrema. A periodic step advection test verifies that
+the reconstructed scheme stays within the initial bounds.
 
 For a hyperbolic flux, the Rusanov/local Lax–Friedrichs flux is
 
@@ -161,8 +169,20 @@ $$
 
 where $\nabla p_f$ is the compact face-normal pressure gradient and
 $\overline{\nabla p}_f$ is the interpolated cell gradient. The sign is chosen
-so a linear pressure field is reproduced exactly; the derivation is repeated in
-the solver's `rhieChowFlux` documentation. The correction makes the face flux
+so a linear pressure field is reproduced exactly. The implemented operator is
+the first slice:
+
+$$
+u_{n,f} = \overline{u}_{n,f}
++ c\left(\frac{p_N-p_P}{d_\perp}
+- \overline{\nabla p}_f\cdot\mathbf{n}_f\right),
+$$
+
+where the coefficient $c$ is caller-supplied until the momentum diagonal
+$V/a_P$ exists. It is zero for a linear pressure field and nonzero for a
+checkerboard pressure. The pressure Poisson solve, SIMPLE/PISO loop and PETSc
+linear algebra are not yet implemented; the derivation is repeated in the
+solver's `rhieChowFlux` documentation. The correction makes the face flux
 see the compact pressure stencil and removes the odd/even decoupling.
 
 The steady SIMPLE form drops the $\Delta t$ factor and uses the momentum

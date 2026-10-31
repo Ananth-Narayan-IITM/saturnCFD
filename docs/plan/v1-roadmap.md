@@ -29,9 +29,10 @@ passes on CPU.
 **Status:** mesh reader, `checkMesh`, SI-only validator, yaml-cpp schema, CLI,
 MPI partition/halo, Kokkos `CellField`/`FaceField`, the device halo adapter,
 `LocalMesh`, interpolation/gradient/divergence, non-orthogonal Laplacian,
-Dirichlet/Neumann ghost fill, upwind/Rusanov convection, advection–diffusion
-MMS, Doxygen pipeline and regression tests are in place. MUSCL/TVD, PETSc
-wrapper and solver authoring remain. The detailed checklist is
+Dirichlet/Neumann ghost fill, upwind/Rusanov/MUSCL convection,
+advection–diffusion MMS, a simplified Rhie–Chow flux, Doxygen pipeline and
+regression tests are in place. The pressure solve/PETSc wrapper and solver
+authoring remain. The detailed checklist is
 [`phase1Status.md`](phase1Status.md).
 
 **Deliverables**
@@ -73,9 +74,11 @@ wrapper and solver authoring remain. The detailed checklist is
      periodic MMS pass on 1/2/4 ranks.
    - Dirichlet/Neumann boundary ghosts — done.
    - Non-orthogonal Laplacian correction — done.
-   - Upwind and Rusanov convective flux — done.
-   - Steady advection–diffusion MMS — done, first order.
-   - MUSCL/TVD limiter and reconstruction — next.
+   - Upwind, Rusanov and MUSCL/TVD convective flux — done.
+   - Steady advection–diffusion MMS and TVD boundedness — done.
+   - Discrete divergence theorem on a sheared mesh — done.
+   - Simplified Rhie–Chow face flux — done.
+   - Pressure Poisson/SIMPLE-PISO with PETSc — next.
    - All operators iterate owned cells only and read ghost values.
    - Plan: [`fvmKokkosPlan.md`](fvmKokkosPlan.md), ADR `0016`.
 

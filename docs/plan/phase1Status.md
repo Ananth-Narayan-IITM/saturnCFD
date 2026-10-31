@@ -32,10 +32,13 @@ in [`mpiGpuDesign.md`](mpiGpuDesign.md).
 | `fillBoundaryGhosts` Dirichlet/Neumann | done |
 | `interpolate`, `gradient`, `divergence` | done |
 | non-orthogonal `laplacian` on `LocalMesh` | done, exact for a sheared linear field |
-| `faceNormalVelocity`, upwind/Rusanov convection | done |
+| `faceNormalVelocity`, upwind/Rusanov/MUSCL convection | done |
+| MUSCL limiter boundedness | done for minmod, van Leer, superbee |
+| discrete divergence theorem on a sheared mesh | done |
+| simplified `rhieChowFlux` | done, linear/checkerboard tests |
 | linear exactness and periodic gradient/divergence MMS | done on 1/2/4 ranks |
 | orthogonal `laplacian` + periodic 2D/3D MMS | done, order 2 on 1/2/4 ranks |
-| upwind convection and steady advection–diffusion MMS | done, order ~1 |
+| upwind/MUSCL convection and advection–diffusion MMS | done |
 | `ctest --preset fv` | done |
 | GPU-labelled FV regression cases | written; CUDA build not yet verified locally |
 
@@ -43,7 +46,7 @@ in [`mpiGpuDesign.md`](mpiGpuDesign.md).
 
 | area | pending item |
 |---|---|
-| `src/fv` | MUSCL/TVD limiter, divergence theorem on non-uniform meshes, persistent face flux |
+| `src/fv` | pressure Poisson/SIMPLE-PISO coupling, persistent face flux, Rhie–Chow coefficient from the momentum diagonal |
 | `src/simulation` | `Solver` interface, registry, time loop, diagnostics |
 | `src/solvers` | `burgers` skeleton, `addSolver(burgers)`, `saturnCFDSolver` tool |
 | `src/config` | `boundary` and `fields` schemas; solver-specific option schemas |
@@ -83,13 +86,16 @@ two-phase flow, compressible flow.
      `gradient`, `divergence`, Dirichlet/Neumann ghost fill.
    - Done: non-orthogonal Laplacian correction; exact for a sheared linear
      field.
-   - Done: `faceNormalVelocity` and upwind/Rusanov convection.
-   - Done: linear exactness, periodic gradient/divergence MMS, upwind
-     convection and steady advection–diffusion MMS on 1/2/4 ranks; 2D
-     empty-direction check.
-   - Next: MUSCL/TVD limiter and reconstruction; divergence theorem on a
-     non-uniform mesh.
-   - Next: persistent face flux for pressure.
+   - Done: `faceNormalVelocity`, upwind/Rusanov/MUSCL convection with
+     minmod, van Leer and superbee.
+   - Done: linear exactness, periodic gradient/divergence MMS, upwind/MUSCL
+     convection, advection–diffusion MMS, TVD step boundedness and the
+     divergence theorem on a sheared mesh.
+   - Done: simplified Rhie–Chow flux; zero for a linear pressure, suppresses
+     a checkerboard pressure.
+   - Next: pressure Poisson/SIMPLE-PISO with PETSc.
+   - Next: persistent face flux and the momentum-diagonal Rhie–Chow
+     coefficient.
    - Remaining: CUDA execution on a host with the toolkit.
    - MMS methodology: [`../theory/manufacturedSolutions.md`](../theory/manufacturedSolutions.md).
    - plan: [`fvmKokkosPlan.md`](fvmKokkosPlan.md), ADR `0016`.
@@ -129,6 +135,12 @@ Then Phase 2: Burgers physics and the `traveling64` analytic regression.
   mesh.
 - **Done:** upwind convection and steady advection–diffusion MMS are first
   order on 1/2/4 ranks.
+- **Done:** MUSCL improves the L2 order to about 1.6 (minmod/van Leer) and
+  keeps a periodic step bounded with all three limiters.
+- **Done:** the discrete divergence theorem holds on a sheared mesh.
+- **Done:** the Rhie–Chow correction vanishes for a linear pressure and
+  suppresses a checkerboard pressure.
+- Pending: pressure Poisson/SIMPLE-PISO with PETSc.
 - 1-rank and 2-rank *cross-run* results agree; a CUDA build reproduces the CPU
   reference within precision.
 - `mpirun -np 1` GPU runs the halo/stencil benchmark.

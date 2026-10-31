@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <iomanip>
+#include <limits>
 #include <vector>
 
 #include <Kokkos_Core.hpp>
@@ -311,16 +312,18 @@ std::vector<BoundaryCondition> dirichletConstantVector(const LocalMesh& mesh,
   return std::vector<BoundaryCondition>(mesh.numPatches(), bc);
 }
 
-double mmsConvectionL2(int n, ConvectiveScheme scheme) {
+double mmsConvectionL2(int n, ConvectiveScheme scheme,
+                       Limiter limiter = Limiter::Minmod) {
+  const int ng = (scheme == ConvectiveScheme::Muscl) ? 2 : 1;
   Mesh mesh = test::makeUniformBoxMesh(n, n, n);
   MeshPartition part(n, n, n, true, true, true);
-  LocalMesh lm(mesh, part, 1);
-  CellField phi(part, 1, 1, "fv::conv_phi");
-  CellField vel(part, 1, 3, "fv::conv_vel");
-  CellField div(part, 1, 1, "fv::conv_div");
-  FaceField velFaces(part, 1, 3, "fv::conv_vel_face");
-  FaceField un(part, 1, 1, "fv::conv_un");
-  FaceField flux(part, 1, 1, "fv::conv_flux");
+  LocalMesh lm(mesh, part, ng);
+  CellField phi(part, ng, 1, "fv::conv_phi");
+  CellField vel(part, ng, 3, "fv::conv_vel");
+  CellField div(part, ng, 1, "fv::conv_div");
+  FaceField velFaces(part, ng, 3, "fv::conv_vel_face");
+  FaceField un(part, ng, 1, "fv::conv_un");
+  FaceField flux(part, ng, 1, "fv::conv_flux");
   const LocalMesh::DeviceData m = lm.device();
   const Vec3 a{1, 0.5, 0.25};
   CellField p = phi;
@@ -339,18 +342,18 @@ double mmsConvectionL2(int n, ConvectiveScheme scheme) {
       });
 
   {
-    HaloExchange halo(part, 1, 1);
+    HaloExchange halo(part, ng, 1);
     FieldHalo fieldHalo(halo, 1);
     fieldHalo.execute(phi);
   }
   {
-    HaloExchange halo(part, 1, 3);
+    HaloExchange halo(part, ng, 3);
     FieldHalo fieldHalo(halo, 3);
     fieldHalo.execute(vel);
   }
 
   faceNormalVelocity(vel, velFaces, un, lm);
-  convectiveFlux(un, phi, flux, lm, scheme);
+  convectiveFlux(un, phi, flux, lm, scheme, limiter);
   divergence(flux, div, lm);
 
   CellField d = div;
@@ -369,18 +372,19 @@ double mmsConvectionL2(int n, ConvectiveScheme scheme) {
 
 double mmsAdvectionDiffusionL2(int n, ConvectiveScheme scheme) {
   const double nu = 0.1;
+  const int ng = 1;
   Mesh mesh = test::makeUniformBoxMesh(n, n, n);
   MeshPartition part(n, n, n, true, true, true);
-  LocalMesh lm(mesh, part, 1);
-  CellField phi(part, 1, 1, "fv::ad_phi");
-  CellField vel(part, 1, 3, "fv::ad_vel");
-  CellField div(part, 1, 1, "fv::ad_div");
-  CellField lap(part, 1, 1, "fv::ad_lap");
-  CellField grad(part, 1, 3, "fv::ad_grad");
-  FaceField velFaces(part, 1, 3, "fv::ad_vel_face");
-  FaceField un(part, 1, 1, "fv::ad_un");
-  FaceField flux(part, 1, 1, "fv::ad_flux");
-  FaceField lapFace(part, 1, 1, "fv::ad_lap_face");
+  LocalMesh lm(mesh, part, ng);
+  CellField phi(part, ng, 1, "fv::ad_phi");
+  CellField vel(part, ng, 3, "fv::ad_vel");
+  CellField div(part, ng, 1, "fv::ad_div");
+  CellField lap(part, ng, 1, "fv::ad_lap");
+  CellField grad(part, ng, 3, "fv::ad_grad");
+  FaceField velFaces(part, ng, 3, "fv::ad_vel_face");
+  FaceField un(part, ng, 1, "fv::ad_un");
+  FaceField flux(part, ng, 1, "fv::ad_flux");
+  FaceField lapFace(part, ng, 1, "fv::ad_lap_face");
   const LocalMesh::DeviceData m = lm.device();
   const Vec3 a{1, 0.5, 0.25};
   CellField p = phi;
@@ -397,12 +401,12 @@ double mmsAdvectionDiffusionL2(int n, ConvectiveScheme scheme) {
       });
 
   {
-    HaloExchange halo(part, 1, 1);
+    HaloExchange halo(part, ng, 1);
     FieldHalo fieldHalo(halo, 1);
     fieldHalo.execute(phi);
   }
   {
-    HaloExchange halo(part, 1, 3);
+    HaloExchange halo(part, ng, 3);
     FieldHalo fieldHalo(halo, 3);
     fieldHalo.execute(vel);
   }
@@ -428,6 +432,97 @@ double mmsAdvectionDiffusionL2(int n, ConvectiveScheme scheme) {
       },
       local);
   return std::sqrt(globalSum(local) / (static_cast<double>(n) * n * n));
+}
+
+double globalMin(double value) {
+#ifdef SATURN_USE_MPI
+  double out = 0;
+  MPI_Allreduce(&value, &out, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+  return out;
+#else
+  return value;
+#endif
+}
+
+double cellMin(const CellField& field) {
+  CellField f = field;
+  double local = std::numeric_limits<double>::max();
+  Kokkos::parallel_reduce(
+      "fv::cell_min", ownedPolicy(field),
+      KOKKOS_LAMBDA(int i, int j, int k, double& acc) {
+        acc = Kokkos::min(acc, f(i, j, k, 0));
+      },
+      Kokkos::Min<double>(local));
+  return globalMin(local);
+}
+
+double cellMax(const CellField& field) {
+  CellField f = field;
+  double local = -std::numeric_limits<double>::max();
+  Kokkos::parallel_reduce(
+      "fv::cell_max", ownedPolicy(field),
+      KOKKOS_LAMBDA(int i, int j, int k, double& acc) {
+        acc = Kokkos::max(acc, f(i, j, k, 0));
+      },
+      Kokkos::Max<double>(local));
+  return globalMax(local);
+}
+
+double maxAbsFace(const FaceField& field) {
+  FaceField f = field;
+  double local = 0;
+  const int dim = 3;
+  Kokkos::parallel_reduce(
+      "fv::max_abs_face",
+      Kokkos::MDRangePolicy<Kokkos::Rank<3>, Kokkos::IndexType<int>>(
+          {field.origin(0), field.origin(1), field.origin(2)},
+          {field.origin(0) + field.extent(0), field.origin(1) + field.extent(1),
+           field.origin(2) + field.extent(2)}),
+      KOKKOS_LAMBDA(int i, int j, int k, double& acc) {
+        for (int dir = 0; dir < 2 * dim; ++dir)
+          acc = Kokkos::max(acc, Kokkos::abs(f(i, j, k, dir, 0)));
+      },
+      Kokkos::Max<double>(local));
+  return globalMax(local);
+}
+
+double maxDiffFace(const FaceField& a, const FaceField& b) {
+  FaceField fa = a;
+  FaceField fb = b;
+  double local = 0;
+  const int dim = 3;
+  Kokkos::parallel_reduce(
+      "fv::max_diff_face",
+      Kokkos::MDRangePolicy<Kokkos::Rank<3>, Kokkos::IndexType<int>>(
+          {a.origin(0), a.origin(1), a.origin(2)},
+          {a.origin(0) + a.extent(0), a.origin(1) + a.extent(1),
+           a.origin(2) + a.extent(2)}),
+      KOKKOS_LAMBDA(int i, int j, int k, double& acc) {
+        for (int dir = 0; dir < 2 * dim; ++dir)
+          acc = Kokkos::max(
+              acc, Kokkos::abs(fa(i, j, k, dir, 0) - fb(i, j, k, dir, 0)));
+      },
+      Kokkos::Max<double>(local));
+  return globalMax(local);
+}
+
+void fillQuadraticVector(CellField& field, const LocalMesh& mesh) {
+  const LocalMesh::DeviceData m = mesh.device();
+  CellField f = field;
+  Kokkos::parallel_for(
+      "fv::fill_quadratic_vector", ownedPolicy(field),
+      KOKKOS_LAMBDA(int i, int j, int k) {
+        const Vec3 x = m.cellCentroid(i, j, k);
+        for (int c = 0; c < 3; ++c)
+          f(i, j, k, c) = x[c] * x[c];
+      });
+}
+
+std::vector<BoundaryCondition> dirichletQuadraticVector(const LocalMesh& mesh) {
+  BoundaryCondition bc;
+  bc.type = BCType::Dirichlet;
+  bc.value = [](const Vec3& x, const Vec3&, int c) { return x[c] * x[c]; };
+  return std::vector<BoundaryCondition>(mesh.numPatches(), bc);
 }
 
 }  // namespace
@@ -721,4 +816,226 @@ TEST_CASE("fv: steady advection-diffusion MMS is first order") {
   CHECK(e1 < e0);
   CHECK(std::abs(p1 - 1.0) < 0.3);
   CHECK(std::abs(p2 - 1.0) < 0.3);
+}
+
+TEST_CASE("fv: MUSCL preserves a linear field in the interior") {
+  const int n = 8;
+  const int ng = 2;
+  Mesh mesh = test::makeUniformBoxMesh(n, n, n);
+  MeshPartition part(n, n, n, false, false, false);
+  LocalMesh lm(mesh, part, ng);
+  CellField phi(part, ng, 1, "fv::muscl_linear_phi");
+  CellField vel(part, ng, 3, "fv::muscl_linear_vel");
+  CellField div(part, ng, 1, "fv::muscl_linear_div");
+  FaceField velFaces(part, ng, 3, "fv::muscl_linear_vel_face");
+  FaceField un(part, ng, 1, "fv::muscl_linear_un");
+  FaceField flux(part, ng, 1, "fv::muscl_linear_flux");
+  const Vec3 aPhi{2, -3, 0.5};
+  const Vec3 aVel{1, 0.5, 0.25};
+  const Real b = 1;
+
+  fillLinearScalar(phi, lm, aPhi, b);
+  fillConstantVector(vel, aVel);
+  fillGhosts(phi, part, lm, dirichletScalar(lm, aPhi, b));
+  fillGhosts(vel, part, lm, dirichletConstantVector(lm, aVel));
+  faceNormalVelocity(vel, velFaces, un, lm);
+
+  const int gx = part.globalExtent(0);
+  const int gy = part.globalExtent(1);
+  const int gz = part.globalExtent(2);
+  const double exact = aVel.x * aPhi.x + aVel.y * aPhi.y + aVel.z * aPhi.z;
+  CellField d = div;
+
+  for (Limiter limiter :
+       {Limiter::Minmod, Limiter::VanLeer, Limiter::Superbee}) {
+    convectiveFlux(un, phi, flux, lm, ConvectiveScheme::Muscl, limiter);
+    divergence(flux, div, lm);
+    double local = 0;
+    Kokkos::parallel_reduce(
+        "fv::muscl_linear_error", ownedPolicy(div),
+        KOKKOS_LAMBDA(int i, int j, int k, double& acc) {
+          if (i <= 1 || i >= gx - 2 || j <= 1 || j >= gy - 2 || k <= 1 ||
+              k >= gz - 2)
+            return;
+          acc = Kokkos::max(acc, Kokkos::abs(d(i, j, k, 0) - exact));
+        },
+        Kokkos::Max<double>(local));
+    CHECK(globalMax(local) < 1e-11);
+  }
+}
+
+TEST_CASE("fv: MUSCL convection MMS improves on first order") {
+  for (Limiter limiter :
+       {Limiter::Minmod, Limiter::VanLeer, Limiter::Superbee}) {
+    const double e0 = mmsConvectionL2(8, ConvectiveScheme::Muscl, limiter);
+    const double e1 = mmsConvectionL2(16, ConvectiveScheme::Muscl, limiter);
+    const double e2 = mmsConvectionL2(32, ConvectiveScheme::Muscl, limiter);
+    const double p1 = observedOrder(e0, e1);
+    const double p2 = observedOrder(e1, e2);
+    MESSAGE("MUSCL convection L2: " << std::setprecision(17) << e0 << " " << e1
+                                    << " " << e2);
+    MESSAGE("MUSCL convection orders: " << p1 << " " << p2);
+    CHECK(e2 < e1);
+    CHECK(e1 < e0);
+    // Superbee is the most compressive limiter and clips smooth extrema
+    // harder; minmod/van Leer stay closer to second order.
+    const double threshold = (limiter == Limiter::Superbee) ? 1.0 : 1.4;
+    CHECK(p1 > threshold);
+    CHECK(p2 > threshold);
+  }
+}
+
+TEST_CASE("fv: MUSCL keeps a periodic step bounded") {
+  const int n = 64;
+  const int ng = 2;
+  Mesh mesh = test::makeUniformBoxMesh(n, 1, 1);
+  MeshPartition part(n, 1, 1, true, false, false);
+  LocalMesh lm(mesh, part, ng);
+  CellField phi(part, ng, 1, "fv::tvd_phi");
+  CellField vel(part, ng, 3, "fv::tvd_vel");
+  CellField div(part, ng, 1, "fv::tvd_div");
+  FaceField velFaces(part, ng, 3, "fv::tvd_vel_face");
+  FaceField un(part, ng, 1, "fv::tvd_un");
+  FaceField flux(part, ng, 1, "fv::tvd_flux");
+  const LocalMesh::DeviceData m = lm.device();
+
+  fillConstantVector(vel, Vec3{1, 0, 0});
+  HaloExchange haloVel(part, ng, 3);
+  FieldHalo fieldHaloVel(haloVel, 3);
+  fieldHaloVel.execute(vel);
+  faceNormalVelocity(vel, velFaces, un, lm);
+
+  HaloExchange haloPhi(part, ng, 1);
+  FieldHalo fieldHaloPhi(haloPhi, 1);
+  const double h = 1.0 / n;
+  const double dt = 0.2 * h;
+  const int steps = 100;
+  CellField p = phi;
+  CellField d = div;
+
+  for (Limiter limiter :
+       {Limiter::Minmod, Limiter::VanLeer, Limiter::Superbee}) {
+    Kokkos::parallel_for(
+        "fv::tvd_init", ownedPolicy(phi), KOKKOS_LAMBDA(int i, int j, int k) {
+          const Vec3 x = m.cellCentroid(i, j, k);
+          p(i, j, k, 0) = (x.x < 0.5) ? Real(1) : Real(0);
+        });
+    fieldHaloPhi.execute(phi);
+
+    for (int step = 0; step < steps; ++step) {
+      convectiveFlux(un, phi, flux, lm, ConvectiveScheme::Muscl, limiter);
+      divergence(flux, div, lm);
+      Kokkos::parallel_for(
+          "fv::tvd_update", ownedPolicy(phi),
+          KOKKOS_LAMBDA(int i, int j, int k) {
+            p(i, j, k, 0) -= dt * d(i, j, k, 0);
+          });
+      fieldHaloPhi.execute(phi);
+    }
+
+    const double lo = cellMin(phi);
+    const double hi = cellMax(phi);
+    MESSAGE("TVD step range: " << lo << " " << hi);
+    CHECK(lo >= -1e-12);
+    CHECK(hi <= 1 + 1e-12);
+  }
+}
+
+TEST_CASE("fv: discrete divergence theorem on a sheared mesh") {
+  const int n = 6;
+  Mesh mesh = test::makeShearedBoxMesh(n, n, n, 0.5);
+  MeshPartition part(n, n, n, false, false, false);
+  LocalMesh lm(mesh, part, 1);
+  CellField vel(part, 1, 3, "fv::divthm_vel");
+  CellField div(part, 1, 1, "fv::divthm_div");
+  FaceField velFaces(part, 1, 3, "fv::divthm_face");
+  const LocalMesh::DeviceData m = lm.device();
+
+  fillQuadraticVector(vel, lm);
+  fillGhosts(vel, part, lm, dirichletQuadraticVector(lm));
+  interpolate(vel, velFaces, lm);
+  divergence(velFaces, div, lm);
+
+  CellField d = div;
+  double localDiv = 0;
+  Kokkos::parallel_reduce(
+      "fv::divthm_lhs", ownedPolicy(div),
+      KOKKOS_LAMBDA(int i, int j, int k, double& acc) {
+        acc += d(i, j, k, 0) * m.cellVolume(i, j, k);
+      },
+      localDiv);
+
+  FaceField f = velFaces;
+  double localFlux = 0;
+  Kokkos::parallel_reduce(
+      "fv::divthm_rhs", ownedPolicy(vel),
+      KOKKOS_LAMBDA(int i, int j, int k, double& acc) {
+        for (int dir = 0; dir < 2 * m.dimension; ++dir) {
+          if (m.boundaryPatch(i, j, k, dir) < 0 || m.periodic[dir / 2])
+            continue;
+          const Vec3 n = m.faceNormal(i, j, k, dir);
+          const Vec3 u = {f(i, j, k, dir, 0), f(i, j, k, dir, 1),
+                          f(i, j, k, dir, 2)};
+          acc += m.faceArea(i, j, k, dir) * dot(u, n);
+        }
+      },
+      localFlux);
+
+  const double lhs = globalSum(localDiv);
+  const double rhs = globalSum(localFlux);
+  MESSAGE("divergence theorem: " << std::setprecision(17) << lhs << " " << rhs);
+  CHECK(std::abs(lhs - rhs) < 1e-11 * std::max(1.0, std::abs(rhs)));
+}
+
+TEST_CASE("fv: Rhie-Chow vanishes for a linear pressure field") {
+  const int n = 8;
+  Mesh mesh = test::makeUniformBoxMesh(n, n, n);
+  MeshPartition part(n, n, n, false, false, false);
+  LocalMesh lm(mesh, part, 1);
+  CellField vel(part, 1, 3, "fv::rc_vel");
+  CellField pressure(part, 1, 1, "fv::rc_p");
+  CellField gradP(part, 1, 3, "fv::rc_grad");
+  FaceField velFaces(part, 1, 3, "fv::rc_vel_face");
+  FaceField pFaces(part, 1, 1, "fv::rc_p_face");
+  FaceField un(part, 1, 1, "fv::rc_un");
+  FaceField plain(part, 1, 1, "fv::rc_plain");
+  FaceField plainFaces(part, 1, 3, "fv::rc_plain_faces");
+  const Vec3 aVel{1, 0.5, 0.25};
+  const Vec3 aP{2, -3, 0.5};
+
+  fillConstantVector(vel, aVel);
+  fillLinearScalar(pressure, lm, aP, 1);
+  fillGhosts(vel, part, lm, dirichletConstantVector(lm, aVel));
+  fillGhosts(pressure, part, lm, dirichletScalar(lm, aP, 1));
+  faceNormalVelocity(vel, plainFaces, plain, lm);
+  rhieChowFlux(vel, pressure, velFaces, pFaces, gradP, un, lm, 1.0);
+  CHECK(maxDiffFace(un, plain) < 1e-12);
+}
+
+TEST_CASE("fv: Rhie-Chow suppresses a checkerboard pressure") {
+  const int n = 8;
+  Mesh mesh = test::makeUniformBoxMesh(n, n, n);
+  MeshPartition part(n, n, n, true, true, true);
+  LocalMesh lm(mesh, part, 1);
+  CellField vel(part, 1, 3, "fv::rc_cb_vel");
+  CellField pressure(part, 1, 1, "fv::rc_cb_p");
+  CellField gradP(part, 1, 3, "fv::rc_cb_grad");
+  FaceField velFaces(part, 1, 3, "fv::rc_cb_vel_face");
+  FaceField pFaces(part, 1, 1, "fv::rc_cb_p_face");
+  FaceField un(part, 1, 1, "fv::rc_cb_un");
+  const LocalMesh::DeviceData m = lm.device();
+
+  vel.fill(0.0);
+  CellField p = pressure;
+  Kokkos::parallel_for(
+      "fv::rc_cb_fill", ownedPolicy(pressure),
+      KOKKOS_LAMBDA(int i, int j, int k) {
+        p(i, j, k, 0) = ((i + j + k) % 2 == 0) ? Real(1) : Real(-1);
+      });
+  HaloExchange haloP(part, 1, 1);
+  FieldHalo fieldHaloP(haloP, 1);
+  fieldHaloP.execute(pressure);
+
+  rhieChowFlux(vel, pressure, velFaces, pFaces, gradP, un, lm, 1.0);
+  CHECK(maxAbsFace(un) > 0.1);
 }

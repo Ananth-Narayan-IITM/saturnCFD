@@ -8,10 +8,10 @@ driven by YAML and validated against analytic solutions.
 validator, yaml-cpp schema validation, CLI help, VTK mesh export, the MPI
 partition/halo substrate, Kokkos `CellField`/`FaceField`, the device halo
 adapter, structured `LocalMesh`, interpolation/gradient/divergence,
-non-orthogonal Laplacian, Dirichlet/Neumann ghost fill, upwind/Rusanov
-convection and periodic/advection–diffusion manufactured-solution tests are in
-place. MUSCL/TVD, PETSc wrapper and solver authoring are next. Solver physics
-starts in Phase 2.
+non-orthogonal Laplacian, Dirichlet/Neumann ghost fill, upwind/Rusanov/MUSCL
+convection, advection–diffusion and divergence-theorem tests, and a simplified
+Rhie–Chow flux are in place. The pressure solve/PETSc wrapper and solver
+authoring are next. Solver physics starts in Phase 2.
 
 MPI and GPU are **first-class from the first FVM layer**, not a later port.
 The decomposition, ghost-cell and one-GPU benchmark plan is in

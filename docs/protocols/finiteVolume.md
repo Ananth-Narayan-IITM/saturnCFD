@@ -58,8 +58,8 @@ $$
 | `laplacian` | `CellField` | `CellField` | orthogonal + non-orthogonal correction on `LocalMesh`; implemented |
 | `interpolate` | `CellField` | `FaceField` | linear with face weight; implemented |
 | `faceNormalVelocity` | `CellField` velocity | `FaceField` | interpolate then dot with the face normal; implemented |
-| `convectiveFlux` | normal velocity + cell scalar | `FaceField` | upwind and Rusanov; MUSCL/TVD next |
-| `rhieChowFlux` | velocity, pressure | `FaceField` | collocated pressure correction |
+| `convectiveFlux` | normal velocity + cell scalar | `FaceField` | upwind, Rusanov and MUSCL/TVD (minmod, van Leer, superbee); implemented |
+| `rhieChowFlux` | velocity, pressure | `FaceField` | simplified face-normal correction; pressure solve/PETSc next |
 
 ## Face interpolation
 

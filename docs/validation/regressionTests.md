@@ -148,6 +148,9 @@ If the change is not understood, it is a bug, not a new baseline.
 | `fv/divergenceIntegral` | periodic divergence integrates to zero | implemented |
 | `fv/skewLaplacian` | sheared-mesh non-orthogonal Laplacian exact for a linear field | implemented |
 | `fv/upwindConvection` | upwind convection and constant-field divergence | implemented |
+| `fv/musclConvection` | MUSCL order and TVD step boundedness | implemented |
+| `fv/divergenceTheorem` | discrete divergence theorem on a sheared mesh | implemented |
+| `fv/rhieChow` | linear-pressure zero correction and checkerboard suppression | implemented |
 | `fv/advectionDiffusion` | steady advection–diffusion MMS order | implemented |
 | `fv/gradientMms` | periodic gradient order on 1/2/4 ranks | implemented |
 | `fv/divergenceMms` | periodic divergence order on 1/2/4 ranks | implemented |

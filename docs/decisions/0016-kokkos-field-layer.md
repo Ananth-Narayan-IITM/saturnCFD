@@ -2,7 +2,8 @@
 
 - **Status:** accepted (CellField/FaceField, FieldHalo, structured LocalMesh,
   interpolation, gradient, divergence, non-orthogonal Laplacian, boundary
-  ghosts, upwind/Rusanov convection and MMS; MUSCL/TVD follows)
+  ghosts, upwind/Rusanov/MUSCL convection, MMS and a simplified Rhie–Chow
+  flux; pressure solve/PETSc follows)
 - **Date:** 2026-10-31
 - **Owner:** saturnCFD v1
 - **Supersedes:** none
@@ -69,6 +70,11 @@ and GPU. This is where the field layout and kernel policy are fixed.
   order on 1/2/4 ranks.
 - **Done:** upwind convection and steady advection–diffusion MMS are first
   order on 1/2/4 ranks.
+- **Done:** MUSCL improves the L2 order to about 1.6 and keeps a periodic step
+  bounded with minmod, van Leer and superbee.
+- **Done:** the discrete divergence theorem holds on a sheared mesh.
+- **Done:** the Rhie–Chow correction vanishes for a linear pressure and
+  suppresses a checkerboard pressure.
 - **Pending:** CPU/GPU parity on a CUDA host.
 - **Pending:** `mpirun -np 1` GPU runs the field/halo test.
 

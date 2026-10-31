@@ -152,6 +152,9 @@ assembles the same operator.
 | 3D periodic gradient (LocalMesh) | $8^3,16^3,32^3$ | 1.967, 1.992 | — |
 | 3D periodic divergence (LocalMesh) | $8^3,16^3,32^3$ | 1.967, 1.992 | — |
 | 3D periodic upwind convection | $8^3,16^3,32^3$ | 0.960, 0.990 | — |
+| 3D MUSCL minmod | $8^3,16^3,32^3$ | 1.608, 1.568 | — |
+| 3D MUSCL van Leer | $8^3,16^3,32^3$ | 1.578, 1.516 | — |
+| 3D MUSCL superbee | $8^3,16^3,32^3$ | 1.154, 1.418 | — |
 | 3D steady advection–diffusion | $8^3,16^3,32^3$ | 0.847, 0.936 | — |
 
 The 32$^3$ value is stored in `tests/TestFv.cpp` and checked to `1e-10` on
@@ -171,6 +174,12 @@ residual combines the upwind flux divergence with the non-orthogonal
 Laplacian; its observed order is approaching 1 from below, consistent with the
 convective error dominating.
 
+MUSCL raises the L2 order to about 1.6 with minmod/van Leer. Superbee is more
+compressive and clips smooth extrema harder, giving 1.15–1.42. This is the
+expected TVD order reduction at extrema, not a bug. The separate periodic step
+advection test verifies that all three limiters stay within the initial bounds.
+A sheared-mesh test verifies the discrete divergence theorem to roundoff.
+
 ## 6. Test matrix
 
 Implemented now: the 2D/3D periodic Laplacian and 3D periodic
@@ -187,7 +196,11 @@ and execution on a CUDA host.
 | linear gradient | 1, 2, 4 | CPU | Neumann |
 | sheared linear Laplacian | 1, 2, 4 | CPU | Dirichlet |
 | 3D periodic upwind convection | 1, 2, 4 | CPU | periodic |
+| 3D periodic MUSCL convection | 1, 2, 4 | CPU | periodic |
+| periodic step advection (boundedness) | 1, 2, 4 | CPU | periodic |
 | 3D steady advection–diffusion | 1, 2, 4 | CPU | periodic |
+| sheared divergence theorem | 1, 2, 4 | CPU | Dirichlet |
+| Rhie–Chow linear/checkerboard | 1, 2, 4 | CPU | Dirichlet/periodic |
 | 3D Dirichlet Laplacian | 1, 2 | CPU | Dirichlet |
 | 3D Neumann Laplacian | 1, 2 | CPU | Neumann |
 | 2D/3D periodic Laplacian | 1 | GPU | periodic |

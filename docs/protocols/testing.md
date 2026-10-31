@@ -81,7 +81,14 @@ expected orders, rank/backend matrix and pitfalls are in
 - constant-field upwind/Rusanov convection has zero divergence;
 - upwind convection MMS: observed order 0.960 and 0.990;
 - Rusanov equals upwind for scalar advection (algebraic identity);
+- MUSCL linear-field interior exactness with all three limiters;
+- MUSCL convection MMS: about 1.61/1.57 (minmod), 1.58/1.52 (van Leer),
+  1.15/1.42 (superbee);
+- periodic step advection stays within the initial bounds with all limiters;
 - steady advection–diffusion MMS: observed order 0.847 and 0.936;
+- discrete divergence theorem on a sheared mesh: 3.5 vs 3.5;
+- Rhie–Chow correction vanishes for a linear pressure and is nonzero for a
+  checkerboard pressure;
 - periodic 3D gradient MMS: observed order 1.967 and 1.992;
 - periodic 3D divergence MMS: observed order 1.967 and 1.992;
 - all cases run on 1, 2 and 4 ranks.
