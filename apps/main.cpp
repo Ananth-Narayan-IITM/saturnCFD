@@ -776,6 +776,10 @@ int runCase(const Cli& cli) {
   std::unique_ptr<Solver> solver = registry.create(solverName, cfg);
 
   const std::string prefix = cfg.getString("output.prefix", "results");
+  if (prefix.empty() || prefix == "." || prefix == "./")
+    throw ConfigError(
+        "output.prefix must name a file prefix, e.g. results/burgers/case; "
+        "an empty prefix or '.' would create '..csv'");
   const bool wantExact = cfg.getBool("output.exact", false);
   const bool wantCsv = cfg.getBool("output.csv", false);
   const bool wantJson = cfg.getBool("output.json", true);

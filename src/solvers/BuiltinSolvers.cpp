@@ -1,7 +1,7 @@
 #include "solvers/BuiltinSolvers.hpp"
 
 #include "simulation/Registry.hpp"
-#include "solvers/saturnBurger/Register.hpp"
+#include "solvers/saturnBurger/BurgersCase.hpp"
 
 namespace saturn {
 

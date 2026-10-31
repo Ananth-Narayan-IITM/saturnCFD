@@ -9,13 +9,30 @@
 #include "core/Error.hpp"
 #include "fv/Convection.hpp"
 #include "mesh/MeshFactory.hpp"
+#include "simulation/Registry.hpp"
 #include "solvers/saturnBurger/SaturnBurger.hpp"
-#include "solvers/saturnBurger/TravelingWave.hpp"
 
 namespace saturn {
 namespace {
 
 constexpr Real kPi = Real(3.14159265358979323846264338327950288);
+
+/// Exact viscous traveling-wave solution of
+///
+///   u_t + (u^2/2)_x = nu u_xx
+///
+/// on the whole line:
+///
+///   u(x,t) = U/2 [ 1 - tanh( U (x - x0 - U t/2) / (4 nu) ) ].
+///
+/// This is a physical case preset, not a test helper: the YAML option
+/// `burgers.initial: travelingWave` uses it for the initial state, the
+/// time-dependent Dirichlet data and the `output.exact` reference.
+Real travelingWave(Real x, Real t, Real speed, Real nu, Real x0) {
+  return Real(0.5) * speed *
+         (Real(1) -
+          std::tanh(speed * (x - x0 - Real(0.5) * speed * t) / (Real(4) * nu)));
+}
 
 }  // namespace
 
@@ -60,12 +77,16 @@ std::unique_ptr<Solver> makeSaturnBurger(const Config& cfg) {
     if (!(options.nu > 0))
       throw ConfigError(
           "burgers.initial: travelingWave requires burgers.nu > 0");
-    const TravelingWave wave{speed, options.nu, x0};
-    options.initial = [wave](const Vec3& x) { return wave(x.x, 0); };
-    options.dirichlet = [wave](const Vec3& x, Real t, int) {
-      return wave(x.x, t);
+    const Real nu = options.nu;
+    options.initial = [speed, nu, x0](const Vec3& x) {
+      return travelingWave(x.x, 0, speed, nu, x0);
     };
-    options.exact = [wave](const Vec3& x, Real t) { return wave(x.x, t); };
+    options.dirichlet = [speed, nu, x0](const Vec3& x, Real t, int) {
+      return travelingWave(x.x, t, speed, nu, x0);
+    };
+    options.exact = [speed, nu, x0](const Vec3& x, Real t) {
+      return travelingWave(x.x, t, speed, nu, x0);
+    };
   } else if (initial == "sine") {
     if (!options.periodic)
       throw ConfigError(
@@ -81,6 +102,12 @@ std::unique_ptr<Solver> makeSaturnBurger(const Config& cfg) {
   }
 
   return std::make_unique<SaturnBurger>(std::move(mesh), std::move(options));
+}
+
+void registerSaturnBurger(SolverRegistry& registry) {
+  registry.addCase(
+      "saturnBurger", [](const Config& cfg) { return makeSaturnBurger(cfg); },
+      [] { return burgersSchema(); });
 }
 
 }  // namespace saturn

@@ -8,6 +8,8 @@
 
 namespace saturn {
 
+class SolverRegistry;
+
 /// Complete option list for `saturnBurger`: common keys plus the Burgers block.
 ConfigSchema burgersSchema();
 
@@ -20,5 +22,8 @@ ConfigSchema burgersSchema();
 /// - `sine`: `u0 = -sin(pi x)`; requires periodic boundaries;
 /// - `constant`: `u0 = burgers.value`; Dirichlet data hold that value.
 std::unique_ptr<Solver> makeSaturnBurger(const Config& cfg);
+
+/// Add the 1D scalar Burgers solver to a registry.
+void registerSaturnBurger(SolverRegistry& registry);
 
 }  // namespace saturn

@@ -21,7 +21,7 @@ units:
 
 mesh:
   type: box
-  nx: 32          # cells in x
+  nx: 256          # cells in x
   ny: 1            # 1D: must stay 1
   nz: 1            # 1D: must stay 1
   box:
@@ -54,7 +54,7 @@ numerics:
   limiter: vanLeer
 
 output:
-  prefix: .
+  prefix: results/saturnBurger/traveling
   csv: true       # x, u_numerical, u_exact, error
   json: true      # L1, L2, Linf and exact norms
   exact: true     # compare against the solver's analytic solution

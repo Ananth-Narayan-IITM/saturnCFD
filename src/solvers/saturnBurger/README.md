@@ -26,12 +26,30 @@ src/solvers/saturnBurger/
   CMakeLists.txt       target saturnBurger
   SaturnBurger.hpp     options, solver class, profile/error diagnostics
   SaturnBurger.cpp     FVM assembly, boundary fill, RHS, profile gathering
-  BurgersCase.hpp      YAML schema and case factory
-  BurgersCase.cpp      mesh + initial/boundary data from YAML
-  TravelingWave.hpp    exact viscous traveling-wave solution
-  Register.hpp/.cpp    registry entry used by saturnCFD
+  BurgersCase.hpp      YAML schema, case factory and registration
+  BurgersCase.cpp      mesh, initial/boundary/exact data, registry entry
   README.md            this page
 ```
+
+## Why the files are split
+
+- `SaturnBurger.hpp/.cpp` is the **physics and numerics**: mesh partition,
+  fields, Burgers flux, diffusion, boundary refresh, RHS and time state. It
+  does not include `Config`, YAML or the registry.
+- `BurgersCase.hpp/.cpp` is the **case layer**: the YAML schema, mesh choice,
+  `burgers.initial` presets, the exact traveling-wave helper and the registry
+  entry. It translates a case file into a `SaturnBurger`.
+- `README.md` documents both.
+
+This keeps the solver usable from C++ tests without YAML, and keeps YAML and
+case presets out of the RHS. There are **no tests** in this directory: all
+tests are in `tests/TestSaturnBurger.cpp`, `tests/regression/burgers/` and
+`tools/validateBurgers.py`. The `profile`/`exactError` methods are user-facing
+CLI diagnostics (`output.exact` and `output.csv`), not test code.
+
+`BurgersCase` is not redundant with `SaturnBurger`: one is "what case", the
+other is "how to advance it". If they were merged, the physics class would
+have to include `Config`, `ConfigSchema`, `MeshFactory` and the registry.
 
 ## Running the YAML case
 
@@ -195,10 +213,21 @@ loops only the active direction, so those patches are ignored.
 
 The YAML factory provides three initial states:
 
-- `travelingWave`: exact viscous wave; Dirichlet data follow it and the exact
-  solution is stored for validation;
-- `sine`: `u0 = -sin(pi x)`, periodic only;
-- `constant`: `u0 = burgers.value`, with constant Dirichlet data.
+| `burgers.initial` | initial state | boundaries | exact reference | use |
+|---|---|---|---|---|
+| `travelingWave` | $u_0(x)=\frac{U}{2}[1-\tanh(\frac{U(x-x_0)}{4\nu})]$ | time-dependent Dirichlet from the exact solution | yes | quantitative validation |
+| `sine` | $u_0(x)=-\sin(\pi x)$ | periodic only | no | inviscid shock, TVD/boundedness |
+| `constant` | $u_0(x)=v$ (`burgers.value`) | constant Dirichlet (or periodic) | no | flux/conservation sanity |
+
+`travelingWave` is the default because it is the only preset with a known
+analytic solution at every time. The other two test qualitative behavior, not
+pointwise accuracy.
+
+A **traveling wave** means the profile keeps its shape and moves at constant
+speed: $u(x,t)=f(x-Ut)$. For viscous Burgers the tanh profile is an exact
+solution because nonlinear steepening balances diffusion. It is not a
+numerical scheme; it is a physical solution used for initial data, boundary
+data and the error norm reference.
 
 ## Validation against the analytic solution
 

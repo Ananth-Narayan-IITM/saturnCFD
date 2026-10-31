@@ -28,13 +28,10 @@ src/solvers/
   BuiltinSolvers.cpp       # registers every built-in case-driven solver
   saturnBurger/
     CMakeLists.txt
-    SaturnBurger.hpp
+    SaturnBurger.hpp       # core solver (no YAML)
     SaturnBurger.cpp
-    BurgersCase.hpp
-    BurgersCase.cpp
-    TravelingWave.hpp
-    Register.hpp
-    Register.cpp
+    BurgersCase.hpp        # YAML schema + factory + registration
+    BurgersCase.cpp        # case presets, including the exact wave
     README.md
 ```
 

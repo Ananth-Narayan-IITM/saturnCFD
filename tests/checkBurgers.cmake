@@ -31,6 +31,8 @@ if(NOT DEFINED LINF_MAX)
   set(LINF_MAX 1.0e-2)
 endif()
 
+# Start clean: a stale CSV/JSON would hide a failed or misplaced output.
+file(REMOVE_RECURSE "${OUT}")
 file(MAKE_DIRECTORY "${OUT}")
 if(DEFINED MPIEXEC AND DEFINED RANKS AND RANKS GREATER 1)
   execute_process(

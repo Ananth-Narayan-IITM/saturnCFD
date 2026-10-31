@@ -35,8 +35,10 @@ saturnCFD/
     solvers/
       CMakeLists.txt            # addSolver(saturnBurger), addSolver(heat), ...
       saturnBurger/             # 1D scalar Burgers
-        SaturnBurger.hpp
+        SaturnBurger.hpp        # core solver
         SaturnBurger.cpp
+        BurgersCase.hpp         # YAML schema/factory/registration
+        BurgersCase.cpp
         README.md
       heat/
       stokes/
