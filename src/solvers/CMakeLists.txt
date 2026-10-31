@@ -3,5 +3,5 @@
 #
 #   addSolver(myBurgers)
 #
-# Phase 1 has no solver yet. Phase 2 adds:
-# addSolver(burgers)
+# Naming convention: saturn<SolverName> for the library target.
+add_subdirectory(saturnBurger)

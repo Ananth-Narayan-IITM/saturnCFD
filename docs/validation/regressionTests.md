@@ -163,11 +163,14 @@ If the change is not understood, it is a bug, not a new baseline.
 | `simulation/bounded` | SSPRK3 sine advection bounded | implemented |
 | `simulation/timeControl` | convective/diffusive stability limit | implemented |
 | `simulation/registry` | add/lookup/duplicate/unknown solver | implemented |
+| `burgers/traveling64` | viscous traveling wave, N=64/128, order 2.11 | implemented in `TestSaturnBurger` |
+| `burgers/shock128` | periodic inviscid shock bounded and conservative | implemented in `TestSaturnBurger` |
 
-The FVM entry is a library regression until the Burgers solver exists: the
-stored 32$^3$ `L2=0.13435580757778084` is the smallest scalar that catches a
-stencil, halo or geometry regression. It is checked on every rank and in a
-CUDA build. Phase 2 adds `burgers/traveling64` and `burgers/shock128`.
+The FVM entry is a library regression: the stored 32$^3$
+`L2=0.13435580757778084` is the smallest scalar that catches a stencil, halo or
+geometry regression. It is checked on every rank and in a CUDA build. The
+Burgers entries currently store their checks in `TestSaturnBurger`; dedicated
+`.expected` files and a `ctest --preset burgers` are the next step.
 
 ## Why not only unit tests
 

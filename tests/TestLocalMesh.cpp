@@ -1039,3 +1039,25 @@ TEST_CASE("fv: Rhie-Chow suppresses a checkerboard pressure") {
   rhieChowFlux(vel, pressure, velFaces, pFaces, gradP, un, lm, 1.0);
   CHECK(maxAbsFace(un) > 0.1);
 }
+
+TEST_CASE("fv: Burgers constant flux has zero divergence") {
+  const int n = 32;
+  Mesh mesh = test::makeUniformBoxMesh(n, 1, 1, {-1, 0, 0}, {1, 1, 1});
+  MeshPartition part(n, 1, 1, true, false, false);
+  LocalMesh lm(mesh, part, 2);
+  CellField u(part, 2, 1, "dbg_burgers_u");
+  u.fill(1.0);
+  HaloExchange halo(part, 2, 1);
+  FieldHalo fieldHalo(halo, 1);
+  fieldHalo.execute(u);
+  FaceField flux(part, 2, 1, "dbg_burgers_flux");
+  burgersFlux(u, flux, lm, ConvectiveScheme::Muscl, Limiter::VanLeer);
+  CellField div(part, 2, 1, "dbg_burgers_div");
+  divergence(flux, div, lm);
+  CHECK(maxAbsCell(div) < 1e-12);
+  if (lm.origin(0) == 0) {
+    CHECK(flux(0, 0, 0, 0, 0) == doctest::Approx(-0.5).epsilon(1e-12));
+    CHECK(flux(0, 0, 0, 1, 0) == doctest::Approx(0.5).epsilon(1e-12));
+    CHECK(div(0, 0, 0, 0) == doctest::Approx(0.0).epsilon(1e-12));
+  }
+}

@@ -87,6 +87,9 @@ through the loop on 1/2/4 ranks.
 
 ## Phase 2 — Burgers
 
+**Status:** 1D scalar solver `saturnBurger` implemented and tested. 2D/3D and
+implicit diffusion are next.
+
 **Start with 1D scalar conservative Burgers:**
 
 $$
@@ -94,30 +97,39 @@ $$
 = \nu\partial_{xx}u + s .
 $$
 
-Method:
+Implemented:
 
-- MUSCL/TVD reconstruction of $u$; face flux $\frac12 u_f^2$;
-- Rusanov fallback for robustness;
-- explicit SSP-RK3 first;
-- then IMEX BE/CN: convection explicit, diffusion implicit with PETSc;
-- Dirichlet, Neumann and periodic boundaries.
+- `src/solvers/saturnBurger/` target `saturnBurger`;
+- `burgersFlux` with canonical face orientation and Rusanov/local
+  Lax–Friedrichs;
+- MUSCL/TVD reconstruction with minmod, van Leer and superbee;
+- explicit SSPRK3 (forward Euler and SSPRK2 also available);
+- Dirichlet and periodic boundaries; Neumann is next;
+- time-dependent Dirichlet data via `Solver::setTime`;
+- shared non-orthogonal Laplacian for diffusion;
+- constant source.
 
-Validation:
+Validation (viscous traveling wave, `U=1`, `nu=0.02`, `t=0.5`):
 
-| case | criterion |
+| case | result |
 |---|---|
-| viscous traveling wave, $\nu=10^{-2},10^{-3}$ | L1/L2/Linf decrease; order near scheme order |
-| refinement $N=32,64,128,256$ | convergence table |
-| inviscid smooth data before shock | characteristics agreement |
-| inviscid shock | shock within one cell; conservation error small |
-| limiter comparison | upwind vs minmod/MC/van Leer/superbee |
-| 1/2/4 ranks | same result within roundoff |
-| regression `traveling64` | stored norms |
+| travelling wave, N=64 -> 128 | L2 0.002284 -> 0.000529, order 2.11 |
+| constant field | preserved exactly |
+| periodic inviscid shock, $u_0=-\sin(\pi x)$, N=128, t=0.5 | bounds [-0.9954, 0.9954], integral 1.5e-16 |
+| 1/2/4 ranks | all cases pass; traveling-wave error varies slightly with partition and needs parity work |
 
-Then extend the same solver to 2D and 3D scalar Burgers. Vector Burgers comes
-after scalar validation and before Navier–Stokes.
+Still to add:
 
-Exit: traveling wave and shock pass; `ctest --preset burgers` passes.
+- limiter comparison table (upwind/minmod/MC/van Leer/superbee);
+- shock-speed error in cells;
+- Neumann boundary condition;
+- 2D and 3D scalar Burgers;
+- vector Burgers before Navier–Stokes;
+- IMEX BE/CN with implicit diffusion through `saturnLinAlg`;
+- `ctest --preset burgers` and the `traveling64` expected file.
+
+Exit for the 1D slice is met: traveling wave and shock tests pass on 1/2/4
+ranks. The full Phase 2 exit waits for 2D/3D and the regression file.
 
 ## Phase 3 — Heat equation
 

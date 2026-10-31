@@ -1,6 +1,7 @@
 # Burgers equation
 
-**Status:** first solver in the v1 sequence (ADR `0001`).
+**Status:** 1D scalar solver `saturnBurger` implemented and validated
+(ADR `0001`). The 2D/3D extension and implicit diffusion are next.
 
 ## 1. Governing equations
 
@@ -118,17 +119,73 @@ validation.
 | inviscid shock | shock position/speed | within one cell; conservation error small |
 | limiter comparison | oscillation and smearing | upwind vs minmod vs MC documented |
 
-## 6. Observations (to be filled from runs)
+## 6. Implemented 1D solver
 
-Record:
+**Library target:** `saturnBurger`
 
-- the measured order in smooth regions and the order reduction at the shock;
-- the effective numerical diffusion versus $\nu$;
-- the sensitivity to the limiter and the CFL number;
-- the conservation error for the inviscid case;
-- whether the exact traveling wave is reproduced at the outflow boundary or
-  reflected;
-- the cost per step and the active stability limit.
+**Class:** `saturn::SaturnBurger`
+
+**Directory:** `src/solvers/saturnBurger/`
+
+The solver advances
+
+$$
+\partial_t u + \partial_x\left(\frac{u^2}{2}\right)
+= \nu\partial_{xx}u + s
+$$
+
+on a structured 1D block. It uses:
+
+- `burgersFlux` with Rusanov/local Lax–Friedrichs;
+- MUSCL reconstruction with minmod, van Leer or superbee;
+- the shared non-orthogonal `laplacian` for diffusion;
+- `Simulation` with forward Euler, SSPRK2 or SSPRK3;
+- `setTime` so Dirichlet data at a moving exact boundary is refreshed after
+  every RK stage.
+
+The face flux is stored with a **canonical orientation** (lower-coordinate
+cell on the left), then multiplied by the outward normal component. This makes
+the flux antisymmetric across shared faces and preserves the discrete
+conservation law.
+
+## 7. Observations from the first runs
+
+CPU OpenMP build, 1D, `U=1`, `nu=0.02`, `t=0.5`, MUSCL/van Leer, CFL 0.3:
+
+| grid | L2 error | observed order |
+|---|---|---|
+| 64 | 0.002284 | — |
+| 128 | 0.000529 | 2.11 |
+
+Periodic inviscid shock, $u_0=-\sin(\pi x)$, $N=128$, $t=0.5$:
+
+- bounds: $[-0.9954, 0.9954]$ — no new extrema;
+- discrete integral: $1.5\times10^{-16}$ — conservative;
+- the exact traveling wave is reproduced at the Dirichlet boundaries without
+  visible reflection.
+
+The measured order is close to two away from the shock; a limiter can reduce
+the local order at extrema and across the shock, as expected.
+
+Still to measure:
+
+- effective numerical diffusion versus $\nu$;
+- limiter sensitivity (minmod vs MC vs van Leer vs superbee);
+- shock-speed error in cells;
+- active stability limit versus CFL;
+- rank-count sensitivity of the traveling-wave error (it is small but not yet
+  bit-identical across 1/2/4 ranks; partition-face MUSCL parity is pending);
+- cost per step.
+
+## 8. Limitations
+
+- 1D only; `ny = nz = 1`.
+- Constant source only.
+- Explicit diffusion; IMEX/implicit BE/CN/BDF2 waits for the FV Poisson
+  matrix assembler and `saturnLinAlg`.
+- The 2D/3D extension will add transverse directions and a vector or
+  direction-dependent Burgers flux.
+- CLI/YAML wiring is later; the solver is exercised through `testSaturnFV`.
 
 ## References
 

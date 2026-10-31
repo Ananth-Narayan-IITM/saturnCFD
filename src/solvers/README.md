@@ -3,24 +3,47 @@
 One directory per PDE. A solver is self-contained: lifecycle, options, state,
 equations and diagnostics.
 
+## Naming convention
+
+Every solver library is named
+
+```text
+saturn<SolverName>
+```
+
+Examples:
+
+```text
+saturnBurger
+saturnHeat
+saturnStokes
+saturnIncompressible
+```
+
+The first implemented solver is `saturnBurger` for 1D scalar Burgers.
+
 ```text
 src/solvers/
   CMakeLists.txt
-  burgers/
-  heat/
-  stokes/
-  incompressible/
+  saturnBurger/
+    SaturnBurger.hpp
+    SaturnBurger.cpp
+    CMakeLists.txt
+    README.md
 ```
+
+Each solver directory has its own `README.md` explaining the equations, data
+layout, algorithm, validation and limitations.
 
 ## Adding a solver
 
 ```bash
-saturnCFDSolver burgers myBurgers
-# addSolver(myBurgers) to src/solvers/CMakeLists.txt
+saturnCFDSolver saturnBurger myBurger
+# addSolver(myBurger) to src/solvers/CMakeLists.txt
 ```
 
-Then edit `createFields.cpp`, `equations.cpp` and `MyBurgersOptions.cpp` and
-rebuild. See `docs/guides/writingASolver.md`.
+Then edit `createFields.cpp`, `equations.cpp` and the options file and rebuild.
+See `docs/guides/writingASolver.md`.
 
 ## Boundaries
 
@@ -33,8 +56,12 @@ rebuild. See `docs/guides/writingASolver.md`.
 
 - `tests/solvers/<name>/` — unit and analytic tests.
 - `tests/regression/<name>/` — accepted cases.
+- `saturnBurger` is currently tested in `testSaturnFV`
+  (`tests/TestSaturnBurger.cpp`).
 
 ## Docs
 
 - `docs/guides/writingASolver.md`
+- `docs/theory/burgers.md`
+- `src/solvers/saturnBurger/README.md`
 - ADR `0011`

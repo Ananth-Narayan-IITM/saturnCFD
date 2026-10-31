@@ -33,8 +33,11 @@ saturnCFD/
     io/                         # VTU/PVD, CSV, checkpoint, run manifest
     simulation/                 # Solver, registry, TimeControl, SSP-RK loop
     solvers/
-      CMakeLists.txt            # addSolver(burgers), addSolver(heat), ...
-      burgers/
+      CMakeLists.txt            # addSolver(saturnBurger), addSolver(heat), ...
+      saturnBurger/             # 1D scalar Burgers
+        SaturnBurger.hpp
+        SaturnBurger.cpp
+        README.md
       heat/
       stokes/
       incompressible/
@@ -136,29 +139,23 @@ reading the build.
 ## Solver directories
 
 ```text
-src/solvers/burgers/
+src/solvers/saturnBurger/
   CMakeLists.txt
-  BurgersSolver.hpp
-  BurgersSolver.cpp        # lifecycle + registration
-  BurgersCase.hpp          # typed SI options
-  BurgersOptions.cpp       # registerOptions()
-  createFields.cpp         # state, initial conditions, BCs
-  equations.cpp            # PDE/flux/source/time step
-  diagnostics.cpp
-  README.md
-  cases/traveling64.yaml
+  SaturnBurger.hpp         # options + class
+  SaturnBurger.cpp         # geometry, BCs, RHS
+  README.md                # equations, algorithm, validation
 ```
 
-A user copies `src/solvers/burgers` to `src/solvers/myBurgers` and adds one line
-to `src/solvers/CMakeLists.txt`:
+A user copies `src/solvers/saturnBurger` to `src/solvers/saturnMyBurger`,
+renames the class/target, and adds one line to `src/solvers/CMakeLists.txt`:
 
 ```cmake
-addSolver(myBurgers)
+add_subdirectory(saturnMyBurger)
 ```
 
-`addSolver(name)` adds the directory, creates the static library and links it
-into `saturnCFD`. `saturnCFDSolver burgers myBurgers` performs the copy, rename
-and prints that line. No Bash script.
+Each solver target is `saturn<SolverName>`. `saturnCFDSolver saturnBurger
+saturnMyBurger` will perform the copy/rename when the scaffold tool lands; until
+then the manual copy works.
 
 ## Tests
 

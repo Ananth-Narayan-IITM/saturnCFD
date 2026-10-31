@@ -286,9 +286,10 @@ void printTopic(const std::string& topic) {
   } else if (topic == "solvers") {
     std::cout
         << "solvers\n\n"
-           "Phase 1 registers no solver yet. Phase 2 adds burgers, then heat,\n"
-           "stokes and incompressible. A user solver is a copy under\n"
-           "src/solvers/<name> plus one addSolver(<name>) line.\n";
+           "Phase 2 implements saturnBurger for 1D scalar Burgers; 2D/3D,\n"
+           "then heat, stokes and incompressible follow. A user solver is a\n"
+           "copy under src/solvers/saturn<Name> with a saturn<Name> target.\n"
+           "Use saturnCFD -help test for the solver test command.\n";
   } else if (topic == "completion") {
     std::cout << "completion\n\n"
                  "Print a shell completion script.\n\n"
@@ -411,7 +412,7 @@ void printTopic(const std::string& topic) {
            "  ctest --preset config\n"
            "  ctest --preset cli\n"
            "  ctest --preset mpi           halo/partition + FVM on 1/2/4\n"
-           "  ctest --preset fv            LocalMesh, operators, MMS\n"
+           "  ctest --preset fv            LocalMesh, operators, MMS, Burgers\n"
            "  ctest --preset petsc         PETSc Poisson/nullspace tests\n"
            "  ctest --preset gpu           GPU-labelled FV tests\n"
            "  ctest --list-presets         list them\n";

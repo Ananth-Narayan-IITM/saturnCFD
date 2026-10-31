@@ -10,11 +10,12 @@ partition/halo substrate, Kokkos `CellField`/`FaceField`, the device halo
 adapter, structured `LocalMesh`, interpolation/gradient/divergence,
 non-orthogonal Laplacian, Dirichlet/Neumann ghost fill, upwind/Rusanov/MUSCL
 convection, advection–diffusion and divergence-theorem tests, a simplified
-Rhie–Chow flux, and the explicit solver/time loop (forward Euler, SSPRK2/3,
-diagnostics, registry) are in place. PETSc 3.19.6 is linked through the
-separate `saturnLinAlg` library; the 1D/3D Poisson and all-Neumann tests pass
-on 1/2/4 ranks. The FV Poisson matrix assembler, implicit time schemes,
-Burgers and heat solvers are next. Solver physics starts in Phase 2.
+Rhie–Chow flux, the explicit solver/time loop (forward Euler, SSPRK2/3,
+diagnostics, registry), and the 1D `saturnBurger` solver are in place. PETSc
+3.19.6 is linked through the separate `saturnLinAlg` library; the 1D/3D
+Poisson and all-Neumann tests pass on 1/2/4 ranks. The 2D/3D Burgers
+extension, implicit time schemes, heat solver and FV Poisson matrix assembler
+are next. Solver physics starts in Phase 2.
 
 MPI and GPU are **first-class from the first FVM layer**, not a later port.
 The decomposition, ghost-cell and one-GPU benchmark plan is in
@@ -44,7 +45,7 @@ cmake --preset default
 cmake --build --preset default -j
 ctest --preset regression          # the common case
 ctest --preset mpi                 # 1/2/4-rank halo and FVM tests
-ctest --preset fv                  # fields, halo, LocalMesh, operators, MMS
+ctest --preset fv                  # fields, operators, MMS, Burgers
 ctest --preset petsc               # PETSc Poisson/nullspace on 1/2/4 ranks
 ctest --preset default             # all tests, output on failure
 ```
@@ -83,6 +84,7 @@ Library targets are uniformly camelCase:
 saturnCore         mesh, config, comm, FVM
 saturnLinAlg       PETSc wrappers and matrix assembly
 saturnSimulation   Solver, registry, TimeControl, explicit time loop
+saturnBurger       1D scalar Burgers solver
 ```
 
 For clangd, the standard database is `buildCPU/compile_commands.json` (or

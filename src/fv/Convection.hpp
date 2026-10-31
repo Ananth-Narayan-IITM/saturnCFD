@@ -34,6 +34,18 @@ void convectiveFlux(const FaceField& normalVelocity, const CellField& phi,
                     FaceField& flux, const LocalMesh& mesh,
                     ConvectiveScheme scheme, Limiter limiter = Limiter::Minmod);
 
+/// Inviscid Burgers flux f(u) = u^2/2 through every face.
+///
+/// - `Rusanov`: local Lax--Friedrichs with the cell values.
+/// - `Muscl`: Rusanov with MUSCL-reconstructed left/right states.
+/// - `Upwind`: Godunov flux from the two cell values.
+///
+/// `u` must have one component and two ghost layers for MUSCL. This operator
+/// provides the convective part only; add diffusion and sources in the solver.
+void burgersFlux(const CellField& u, FaceField& flux, const LocalMesh& mesh,
+                 ConvectiveScheme scheme = ConvectiveScheme::Rusanov,
+                 Limiter limiter = Limiter::Minmod);
+
 /// Simplified Rhie--Chow face-normal velocity.
 ///
 /// A momentum solve supplies the coefficient `V/a_P` in the full method. Until

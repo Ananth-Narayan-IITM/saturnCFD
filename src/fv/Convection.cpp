@@ -90,6 +90,19 @@ Real musclFaceValue(const CellField& phi, const LocalMesh::DeviceData& m, int i,
   return phiP + limitedSlope(s1, s2, limiter) * df;
 }
 
+KOKKOS_INLINE_FUNCTION
+Real godunovBurgers(Real left, Real right) {
+  const Real fLeft = Real(0.5) * left * left;
+  const Real fRight = Real(0.5) * right * right;
+  if (left >= right)
+    return Kokkos::max(fLeft, fRight);  // shock
+  if (left >= 0)
+    return fLeft;
+  if (right <= 0)
+    return fRight;
+  return 0;  // transonic rarefaction
+}
+
 }  // namespace
 
 void faceNormalVelocity(const CellField& velocity, FaceField& velocityFaces,
@@ -191,6 +204,76 @@ void convectiveFlux(const FaceField& normalVelocity, const CellField& phi,
             }
             f(i, j, k, dir, 0) = velocity * phiFace;
           }
+        }
+      });
+}
+
+void burgersFlux(const CellField& u, FaceField& flux, const LocalMesh& mesh,
+                 ConvectiveScheme scheme, Limiter limiter) {
+  requireOwnedLayout(u, mesh);
+  requireOwnedLayout(flux, mesh);
+  if (u.ncomp() != 1 || flux.ncomp() != 1)
+    throw std::invalid_argument(
+        "burgersFlux: all fields must have one component");
+  if (scheme == ConvectiveScheme::Muscl && u.nGrow() < 2)
+    throw std::invalid_argument("burgersFlux: MUSCL needs two ghost layers");
+
+  const LocalMesh::DeviceData m = mesh.device();
+  const int i0 = mesh.origin(0);
+  const int j0 = mesh.origin(1);
+  const int k0 = mesh.origin(2);
+  const int nx = mesh.extent(0);
+  const int ny = mesh.extent(1);
+  const int nz = mesh.extent(2);
+  CellField p = u;
+  FaceField f = flux;
+
+  Kokkos::parallel_for(
+      "saturn::burgers_flux",
+      Kokkos::MDRangePolicy<Kokkos::Rank<3>, Kokkos::IndexType<int>>(
+          {i0, j0, k0}, {i0 + nx, j0 + ny, k0 + nz}),
+      KOKKOS_LAMBDA(int i, int j, int k) {
+        for (int dir = 0; dir < 2 * m.dimension; ++dir) {
+          int di = 0, dj = 0, dk = 0;
+          faceDirectionOffset(dir, di, dj, dk);
+          const int ni = i + di;
+          const int nj = j + dj;
+          const int nk = k + dk;
+          const Vec3 normal = m.faceNormal(i, j, k, dir);
+          const bool positive = (dir % 2 == 1);
+          const bool physicalBoundary =
+              (m.boundaryPatch(i, j, k, dir) >= 0) && !m.periodic[dir / 2];
+
+          // Canonical orientation: the lower-coordinate cell is "left" and the
+          // higher-coordinate cell is "right", independent of which cell owns
+          // the face. This makes the flux antisymmetric across a shared face.
+          Real left = positive ? p(i, j, k, 0) : p(ni, nj, nk, 0);
+          Real right = positive ? p(ni, nj, nk, 0) : p(i, j, k, 0);
+
+          if (scheme == ConvectiveScheme::Muscl && !physicalBoundary) {
+            const Vec3 xFace = m.faceCentroid(i, j, k, dir);
+            if (positive) {
+              left = musclFaceValue(p, m, i, j, k, dir, xFace, limiter);
+              right = musclFaceValue(p, m, ni, nj, nk, dir ^ 1, xFace, limiter);
+            } else {
+              left = musclFaceValue(p, m, ni, nj, nk, dir ^ 1, xFace, limiter);
+              right = musclFaceValue(p, m, i, j, k, dir, xFace, limiter);
+            }
+          }
+
+          Real value = 0;
+          if (scheme == ConvectiveScheme::Upwind) {
+            value = godunovBurgers(left, right);
+          } else {
+            const Real fLeft = Real(0.5) * left * left;
+            const Real fRight = Real(0.5) * right * right;
+            const Real speed =
+                Kokkos::max(Kokkos::abs(left), Kokkos::abs(right));
+            value = Real(0.5) * (fLeft + fRight) -
+                    Real(0.5) * speed * (right - left);
+          }
+          // f(u) points along +x; store the outward normal flux.
+          f(i, j, k, dir, 0) = normal.x * value;
         }
       });
 }

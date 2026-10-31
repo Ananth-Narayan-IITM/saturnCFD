@@ -38,6 +38,9 @@ class Solver {
   /// Fill owned cells with the initial state and refresh ghosts.
   virtual void applyInitialConditions() = 0;
 
+  /// Tell the solver the current stage time for time-dependent boundary data.
+  virtual void setTime(Real) {}
+
   /// Refresh periodic, partition and physical ghosts after a stage update.
   virtual void applyBoundaryConditions() = 0;
 

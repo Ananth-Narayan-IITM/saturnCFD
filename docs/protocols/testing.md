@@ -100,6 +100,22 @@ CTest test. A CUDA build adds the `gpu` label and `ctest --preset gpu` runs the
 device tests. The CUDA build is written but not yet executed on this machine
 because the CUDA toolkit is not installed.
 
+## Burgers solver tests
+
+`tests/TestSaturnBurger.cpp` checks:
+
+- viscous traveling wave, N=64 -> 128: L2 0.002284 -> 0.000529, observed order
+  2.11;
+- constant field preserved exactly;
+- periodic inviscid shock: bounds [-0.9954, 0.9954], integral 1.5e-16;
+- all cases under 1/2/4 ranks;
+- `fv: Burgers constant flux` separately checks the $-0.5/+0.5$ face sign
+  and zero divergence.
+
+The 2D/3D extension, shock-speed table and `traveling64` expected file are
+next. See [`../theory/burgers.md`](../theory/burgers.md) and
+[`../../src/solvers/saturnBurger/README.md`](../../src/solvers/saturnBurger/README.md).
+
 ## PETSc tests
 
 `tests/TestPetsc.cpp` currently checks:

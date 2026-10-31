@@ -1,6 +1,7 @@
 # Writing a user solver
 
-**Status:** accepted model (ADR `0011`). No solver code is written yet.
+**Status:** accepted model (ADR `0011`). `saturnBurger` is the first
+implemented solver; the `saturnCFDSolver` scaffold tool is still to come.
 
 This is the saturnCFD equivalent of copying an OpenFOAM solver directory,
 editing its equations and rebuilding. You copy a solver under `src/solvers/`,
@@ -9,30 +10,22 @@ PETSc and I/O layers stay untouched.
 
 ## 1. Copy a solver
 
-> Phase 1 fixes this workflow and the `addSolver(name)` helper. The
-> `saturnCFDSolver` executable and the built-in `burgers` directory arrive with
-> the first solver in Phase 2.
+> `saturnBurger` exists and is the template. The `saturnCFDSolver` tool that
+> automates the copy is still to come; the manual copy below works now.
 
 ```bash
-saturnCFDSolver burgers myBurgers
+# future:
+saturnCFDSolver saturnBurger myBurger
 ```
 
-`saturnCFDSolver` is a C++ tool (`tools/saturnCFDSolver.cpp`). It copies
-`src/solvers/burgers` to `src/solvers/myBurgers`, renames the class and the
-registration string, and prints the exact CMake line to add:
-
-```text
-Add this line to src/solvers/CMakeLists.txt:
-
-  addSolver(myBurgers)
-```
-
-You can also do it by hand:
+The tool will copy `src/solvers/saturnBurger` to `src/solvers/saturnMyBurger`,
+rename the class/registration string and print the CMake line. Until then, do it
+by hand:
 
 ```bash
-cp -r src/solvers/burgers src/solvers/myBurgers
+cp -r src/solvers/saturnBurger src/solvers/saturnMyBurger
 # edit the class/registration names
-# add addSolver(myBurgers) to src/solvers/CMakeLists.txt
+# add the saturnMyBurger target to src/solvers/CMakeLists.txt
 ```
 
 Then:

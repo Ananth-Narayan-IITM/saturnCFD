@@ -77,24 +77,29 @@ void Simulation::explicitStep(Real dt) {
   mOriginal.copyFrom(u);
 
   if (mScheme == TimeScheme::ForwardEuler) {
+    mSolver.setTime(mTime);
     mSolver.rhs(u, mRate);
     rkUpdate(u, mOriginal, mOriginal, mRate, dt, 1, 0, 1);
+    mSolver.setTime(mTime + dt);
     mSolver.applyBoundaryConditions();
     return;
   }
 
-  // Stage 1: u1 = u0 + dt L(u0)
+  // Stage 1: u1 = u0 + dt L(u0), advanced to t + dt.
+  mSolver.setTime(mTime);
   mSolver.rhs(u, mRate);
   rkUpdate(mStage1, mOriginal, mOriginal, mRate, dt, 1, 0, 1);
   u.copyFrom(mStage1);
+  mSolver.setTime(mTime + dt);
   mSolver.applyBoundaryConditions();
 
-  // Stage 2: u2 = 3/4 u0 + 1/4 (u1 + dt L(u1))
+  // Stage 2: u2 = 3/4 u0 + 1/4 (u1 + dt L(u1)).
   mSolver.rhs(u, mRate);
   if (mScheme == TimeScheme::SSPRK2) {
     // For SSPRK2 the second update is the final one:
     // u^{n+1} = 1/2 u0 + 1/2 (u1 + dt L(u1)).
     rkUpdate(u, mOriginal, mStage1, mRate, dt, Real(0.5), Real(0.5), Real(0.5));
+    mSolver.setTime(mTime + dt);
     mSolver.applyBoundaryConditions();
     return;
   }
@@ -102,12 +107,14 @@ void Simulation::explicitStep(Real dt) {
   rkUpdate(mStage2, mOriginal, mStage1, mRate, dt, Real(0.75), Real(0.25),
            Real(0.25));
   u.copyFrom(mStage2);
+  mSolver.setTime(mTime + Real(0.5) * dt);
   mSolver.applyBoundaryConditions();
 
-  // Stage 3: u^{n+1} = 1/3 u0 + 2/3 (u2 + dt L(u2))
+  // Stage 3: u^{n+1} = 1/3 u0 + 2/3 (u2 + dt L(u2)), final at t + dt.
   mSolver.rhs(u, mRate);
   rkUpdate(u, mOriginal, mStage2, mRate, dt, Real(1) / Real(3),
            Real(2) / Real(3), Real(2) / Real(3));
+  mSolver.setTime(mTime + dt);
   mSolver.applyBoundaryConditions();
 }
 
@@ -168,6 +175,8 @@ SimulationResult Simulation::run() {
         "use forwardEuler, ssprk2 or ssprk3 for now");
 
   mSolver.initialize();
+  mTime = mControl.t0;
+  mSolver.setTime(mTime);
   mSolver.applyInitialConditions();
   mSolver.applyBoundaryConditions();
   allocateWorkspaces();

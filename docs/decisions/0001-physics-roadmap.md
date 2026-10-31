@@ -32,13 +32,13 @@ The v1 solver sequence is:
 4. **Incompressible Navier–Stokes** — combines all of the above with the
    pressure–velocity coupling.
 
-Each is a separate solver under `src/solvers/<name>/`:
+Each is a separate solver under `src/solvers/saturn<Name>/`:
 
 ```text
-src/solvers/burgers/
-src/solvers/heat/
-src/solvers/stokes/
-src/solvers/incompressible/
+src/solvers/saturnBurger/
+src/solvers/saturnHeat/
+src/solvers/saturnStokes/
+src/solvers/saturnIncompressible/
 ```
 
 They share `src/mesh`, `src/fv`, `src/config`, `src/linalg` and `src/io`.

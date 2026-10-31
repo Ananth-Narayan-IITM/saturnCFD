@@ -127,6 +127,7 @@ Library targets are uniformly camelCase:
 saturnCore
 saturnLinAlg
 saturnSimulation
+saturnBurger
 ```
 
 The test executables are `testSaturn`, `testSaturnMPI`, `testSaturnFV` and

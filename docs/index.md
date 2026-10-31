@@ -9,9 +9,9 @@ yaml-cpp schema validation, CLI help, VTK mesh export, MPI partition/halo and
 the CPU Kokkos FVM slice (`CellField`, `FaceField`, `LocalMesh`, interpolation,
 gradient, divergence, non-orthogonal Laplacian, boundary ghosts,
 upwind/Rusanov/MUSCL convection, MMS and a simplified Rhie–Chow flux), the
-Phase 0 PETSc `saturnLinAlg` layer and the explicit solver/time loop are in
-place. Implicit time schemes, Burgers and heat solvers follow. Solver physics
-starts in Phase 2.
+Phase 0 PETSc `saturnLinAlg` layer, the explicit solver/time loop and the 1D
+`saturnBurger` solver are in place. 2D/3D Burgers, implicit time schemes and the
+heat solver follow. Solver physics starts in Phase 2.
 
 ## Where to start
 

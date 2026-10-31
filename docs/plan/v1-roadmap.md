@@ -32,9 +32,9 @@ MPI partition/halo, Kokkos `CellField`/`FaceField`, the device halo adapter,
 Dirichlet/Neumann ghost fill, upwind/Rusanov/MUSCL convection,
 advection–diffusion MMS, a simplified Rhie–Chow flux, PETSc Phase 0
 (`saturnLinAlg`, 1D/3D Poisson tests), the explicit solver lifecycle/time loop
-(forward Euler, SSPRK2/3), Doxygen pipeline and regression tests are in place.
-The FV Poisson assembler, implicit time schemes, Burgers/heat solvers and
-pressure coupling remain. The detailed checklist is
+(forward Euler, SSPRK2/3), the 1D `saturnBurger` solver, Doxygen pipeline and
+regression tests are in place. The FV Poisson assembler, implicit time schemes,
+2D/3D Burgers, heat and pressure coupling remain. The detailed checklist is
 [`phase1Status.md`](phase1Status.md); the solver sequence is
 [`solverSequence.md`](solverSequence.md).
 
@@ -140,13 +140,16 @@ pressure coupling remain. The detailed checklist is
 
 ## Phase 2 — Burgers
 
+**Status:** 1D scalar `saturnBurger` done. 2D/3D and implicit diffusion next.
+
 **Deliverables**
 
-- `src/solvers/burgers`: scalar first, vector second.
-- Rusanov flux, MUSCL/TVD, SSP-RK2/3.
-- Explicit diffusion; implicit option later.
-- Exact traveling-wave validation and inviscid shock validation.
-- `docs/validation/burgers.md` with tables and observations.
+- `src/solvers/saturnBurger`: 1D scalar done; 2D/3D and vector next.
+- Rusanov flux, MUSCL/TVD, SSP-RK2/3 — done.
+- Explicit diffusion — done; implicit option later.
+- Exact traveling-wave validation and inviscid shock validation — done for 1D.
+- `docs/validation/burgers.md` with tables and observations — results recorded
+  in `docs/theory/burgers.md`.
 
 **Exit criterion**
 

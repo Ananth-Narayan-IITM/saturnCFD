@@ -143,7 +143,7 @@ ctest --preset mesh
 ctest --preset config
 ctest --preset cli
 ctest --preset mpi           # partition/halo + FVM, 1/2/4 ranks
-ctest --preset fv            # fields, halo, LocalMesh, operators, MMS
+ctest --preset fv            # fields, LocalMesh, operators, MMS, Burgers
 ctest --preset petsc         # PETSc Poisson/nullspace on 1/2/4 ranks
 ctest --preset gpu           # GPU-labelled tests in buildGPU
 ```
@@ -155,6 +155,7 @@ Direct FVM runs:
 mpirun -np 2 buildCPU/testSaturnFV
 mpirun -np 4 buildCPU/testSaturnFV
 ./buildCPU/testSaturnFV --test-case="simulation:*"
+./buildCPU/testSaturnFV --test-case="saturnBurger:*"
 ```
 
 Direct PETSc runs:

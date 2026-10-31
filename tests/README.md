@@ -4,7 +4,7 @@ doctest + CTest. Every numerical feature has a unit or manufactured test, and
 every solver gets a regression case.
 
 Test executables: `testSaturn` (units/mesh/config/CLI regression),
-`testSaturnMPI` (partition/halo), `testSaturnFV` (FV operators, MMS, time loop), and
+`testSaturnMPI` (partition/halo), `testSaturnFV` (FV operators, MMS, time loop, Burgers), and
 `testSaturnPETSc` (PETSc Poisson/nullspace).
 
 ## Layout
@@ -16,6 +16,7 @@ tests/
   TestFv.cpp
   TestLocalMesh.cpp
   TestSimulation.cpp
+  TestSaturnBurger.cpp
   TestParallel.cpp
   UniformMesh.hpp
   core/

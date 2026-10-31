@@ -20,13 +20,14 @@ so it behaves the same on every machine.
 
 ## Decision
 
-1. **A solver is a self-contained directory** under `src/solvers/<name>/`.
-   Built-in solvers and user copies use exactly the same layout and API.
+1. **A solver is a self-contained directory** under
+   `src/solvers/saturn<Name>/`. Built-in solvers and user copies use exactly the
+   same layout and API.
 2. **User workflow:** copy a built-in solver, add one line to
    `src/solvers/CMakeLists.txt`, rebuild.
    ```bash
-   cp -r src/solvers/burgers src/solvers/myBurgers
-   # add: addSolver(myBurgers)
+   cp -r src/solvers/saturnBurger src/solvers/saturnMyBurger
+   # rename class/target and add: add_subdirectory(saturnMyBurger)
    ```
    or let the C++ scaffold do the copy and print the line.
 3. **No `user/solvers/` discovery path in v1.0.** One solver tree, one CMake
@@ -46,25 +47,23 @@ so it behaves the same on every machine.
 8. **The scaffold is C++:** `tools/saturnCFDSolver.cpp`, built as the `saturnCFDSolver`
    executable. It copies the directory, renames the class/registration strings,
    and prints the exact CMake line to add. No Bash script.
-9. **OpenFOAM analogy:** copy `src/solvers/burgers` to
-   `src/solvers/myBurgers`, edit `createFields` and `equations`, add one CMake
-   line, rebuild, then `saturnCFD -listSolvers` shows `myBurgers`.
+9. **OpenFOAM analogy:** copy `src/solvers/saturnBurger` to
+   `src/solvers/saturnMyBurger`, edit the equations/fields, add one CMake line,
+   rebuild, then `saturnCFD -listSolvers` shows the new solver.
 
 ## Solver directory layout
 
 ```text
-src/solvers/burgers/
-  CMakeLists.txt
-  BurgersSolver.hpp
-  BurgersSolver.cpp        # lifecycle + registration only
-  BurgersCase.hpp          # typed SI options
-  BurgersOptions.cpp       # registerOptions()
-  createFields.cpp         # state, initial conditions, BC setup
-  equations.cpp            # flux/operator assembly and advance
-  diagnostics.cpp          # solver-specific diagnostics
-  README.md                # what to edit, validation case
-  cases/traveling64.yaml   # example case
+src/solvers/saturnBurger/
+  CMakeLists.txt           # target saturnBurger
+  SaturnBurger.hpp         # options + class
+  SaturnBurger.cpp         # geometry, BCs, RHS
+  README.md                # equations, algorithm, validation
 ```
+
+The current 1D solver keeps its options in the header. A larger solver may add
+`createFields.cpp`, `equations.cpp` and `diagnostics.cpp`; the split is
+deliberate: physics edits stay out of the driver and mesh.
 
 The split is deliberate: a user changing the physics edits `equations.cpp` and
 `createFields.cpp`, not the driver or the mesh.
