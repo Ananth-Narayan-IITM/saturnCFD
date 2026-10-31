@@ -1,0 +1,21 @@
+var searchData=
+[
+  ['name_0',['name',['../structsaturn_1_1Patch.html#a982cffbbe3e6111b036553f13807de43',1,'saturn::Patch']]],
+  ['nboundaryfaces_1',['nBoundaryFaces',['../structsaturn_1_1MeshReport.html#a2670170046ff7a275569a44cf28d37aa',1,'saturn::MeshReport']]],
+  ['ncells_2',['nCells',['../structsaturn_1_1MeshReport.html#a3a74c67e8645c1d96554a9514792f51d',1,'saturn::MeshReport']]],
+  ['neighbour_3',['neighbour',['../structsaturn_1_1Face.html#a879d8b6a044eb10b8ee37a4fb3e6515c',1,'saturn::Face']]],
+  ['nfaces_4',['nFaces',['../structsaturn_1_1MeshReport.html#a22f06e05a6d9899ea496d63033ab5d7d',1,'saturn::MeshReport']]],
+  ['ngrow_5',['nGrow',['../structsaturn_1_1LocalMeshData.html#a10cc9621d1bccbbd8397b8f55c99d1d1',1,'saturn::LocalMeshData']]],
+  ['ninternalfaces_6',['nInternalFaces',['../structsaturn_1_1MeshReport.html#a39e963b59645bbd2ffb6202379b7dd90',1,'saturn::MeshReport']]],
+  ['nnodes_7',['nNodes',['../structsaturn_1_1Face.html#a2bf09c362ef3b84db161a0e80148f4b5',1,'saturn::Face']]],
+  ['nodes_8',['nodes',['../structsaturn_1_1Cell.html#a224f6d0c57a93c99bfa00019d810ef79',1,'saturn::Cell::nodes'],['../structsaturn_1_1Face.html#afb1f23dc4546c90712088afd9508ebbd',1,'saturn::Face::nodes']]],
+  ['nonorthoavg_9',['nonOrthoAvg',['../structsaturn_1_1MeshReport.html#ab0cd9d2106896b7fd65beceb7116e7a9',1,'saturn::MeshReport']]],
+  ['nonorthomax_10',['nonOrthoMax',['../structsaturn_1_1MeshReport.html#ad957231a3c05e5250a24922b58764da3',1,'saturn::MeshReport']]],
+  ['normal_11',['normal',['../structsaturn_1_1Face.html#ae1a2697b195bec20283bde9d4629ac60',1,'saturn::Face']]],
+  ['npoints_12',['nPoints',['../structsaturn_1_1MeshReport.html#a15f401d5b86a3279190ac481c0c62bb8',1,'saturn::MeshReport']]],
+  ['nu_13',['nu',['../structsaturn_1_1BurgersOptions.html#a86f20de1fb0cca1250d779781cbf7bc9',1,'saturn::BurgersOptions']]],
+  ['numerical_14',['numerical',['../structsaturn_1_1ProfilePoint.html#a6c51bf62c63ab68dcfc35b7b4e34e2e3',1,'saturn::ProfilePoint']]],
+  ['nx_15',['nx',['../structsaturn_1_1MeshReport.html#a1641263924ee9a39becc5d5bb8571f0e',1,'saturn::MeshReport::nx'],['../structsaturn_1_1Mesh.html#a5e1839ee80a8a43dab3184cd58fcc8d6',1,'saturn::Mesh::nx']]],
+  ['ny_16',['ny',['../structsaturn_1_1MeshReport.html#a0c2bfc148ee502b41837e6e53fdeeb6f',1,'saturn::MeshReport::ny'],['../structsaturn_1_1Mesh.html#a72f731338caf966409e804d73988b33b',1,'saturn::Mesh::ny']]],
+  ['nz_17',['nz',['../structsaturn_1_1MeshReport.html#ab779b8af911f748ce94ed689a66263a6',1,'saturn::MeshReport::nz'],['../structsaturn_1_1Mesh.html#acd769012587674e52a6784c8224d4349',1,'saturn::Mesh::nz']]]
+];
