@@ -101,16 +101,18 @@ saturnCFD/
   examples/
     README.md
     saturnBurger/
-      saturnBurger.yaml          # standalone 1D traveling-wave case
-      compareAnalytic.py         # independent analytic check and plot
-      README.md
-    saturnBurger2D/
-      saturnBurger2D.yaml        # standalone 2D diagonal-wave case
-      compareAnalytic.py
-      README.md
+      saturnBurger1D/
+        saturnBurger.yaml        # standalone 1D traveling-wave case
+        compareAnalytic.py       # independent analytic check and plot
+        README.md
+      saturnBurger2D/
+        saturnBurger2D.yaml      # standalone 2D diagonal-wave case
+        compareAnalytic.py
+        README.md
 
   tools/
     validateBurgers.py           # convergence table + validation figure
+    benchmarkBurgers.py          # CPU vs GPU wall-clock comparison
 
   external/                     # pinned dependencies or FetchContent cache
   .github/workflows/

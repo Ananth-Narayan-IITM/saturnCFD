@@ -67,18 +67,19 @@ mpirun -np 4 ./buildCPU/saturnCFD \
 ```
 
 A standalone user example with an independent analytic check is in
-`examples/saturnBurger/`:
+`examples/saturnBurger/saturnBurger1D/`:
 
 ```bash
-cd examples/saturnBurger
+cd examples/saturnBurger/saturnBurger1D
 saturnCFD saturnBurger.yaml
 python3 compareAnalytic.py
 ```
 
-It uses 256 cells on $[0,1]$, $x_0=0.25$ and $t=0.5$ s and reports
-$L^2=4.226\times10^{-5}$ against the exact wave. The script recomputes the
-analytic solution from the case parameters rather than trusting the solver's
-`u_exact` column.
+It uses 256 cells on $[0,1]$, $x_0=0.25$ and $t=1.5$ s and reports
+$L^2=8.051\times10^{-5}$ against the exact wave ($t=0.5$ s gives
+$4.226\times10^{-5}$ and keeps the wave away from the outlet). The script
+recomputes the analytic solution from the case parameters rather than trusting
+the solver's `u_exact` column.
 
 The case writes `results/burgers/traveling64.csv` and `.json` when
 `output.csv` and `output.json` are true. The CSV is the raw field at the final
@@ -331,7 +332,7 @@ actual CLI path, including the CSV and JSON output.
   pointwise shock-speed order.
 - Neumann boundaries and a spatially varying source are not exposed yet.
 - A 3D extension would add the third flux component. The 2D example is in
-  `examples/saturnBurger2D/`; the 1D example is unchanged.
+  `examples/saturnBurger/saturnBurger2D/`; the 1D example is unchanged.
 
 ## Using the solver as a library
 

@@ -33,6 +33,12 @@ class FieldHalo {
   int numSendOps() const { return static_cast<int>(mSend.size()); }
   int numRecvOps() const { return static_cast<int>(mRecv.size()); }
 
+  // These are implementation details, but they must be public: nvcc rejects
+  // an extended __host__ __device__ lambda inside a private member function.
+  void pack(int sendIndex, const CellField& field);
+  void unpack(int recvIndex, CellField& field);
+  void copyLocal(int recvIndex, CellField& field);
+
  private:
   struct Buffer {
     Kokkos::View<Real*> dev;
@@ -44,10 +50,6 @@ class FieldHalo {
   int mNcomp = 1;
   std::vector<Buffer> mSend;
   std::vector<Buffer> mRecv;
-
-  void pack(int sendIndex, const CellField& field);
-  void unpack(int recvIndex, CellField& field);
-  void copyLocal(int recvIndex, CellField& field);
 };
 
 }  // namespace saturn

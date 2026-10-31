@@ -56,7 +56,7 @@ verification are next. The parallel design is in
 | `saturnBurger` 1D scalar Burgers | done |
 | Burgers traveling wave and periodic shock | done on 1/2/4 ranks |
 | 3D Burgers and implicit diffusion | next |
-| GPU-labelled FV regression cases | written; CUDA build not yet verified locally |
+| GPU-labelled FV regression cases | verified on the local Quadro P620 CUDA build |
 
 ## Pending
 
@@ -116,7 +116,8 @@ Navier–Stokes. The list below is the repository build-out order.
    - Next: pressure Poisson/SIMPLE-PISO with PETSc.
    - Next: persistent face flux and the momentum-diagonal Rhie–Chow
      coefficient.
-   - Remaining: CUDA execution on a host with the toolkit.
+   - Done: CUDA build and `saturnBurger` tests on the Quadro P620.
+   - Next: device boundary/halo path and multi-GPU scaling.
    - MMS methodology: [`../theory/manufacturedSolutions.md`](../theory/manufacturedSolutions.md).
    - plan: [`fvmKokkosPlan.md`](fvmKokkosPlan.md), ADR `0016`.
 

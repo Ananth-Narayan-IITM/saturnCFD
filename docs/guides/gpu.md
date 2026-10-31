@@ -1,0 +1,146 @@
+# CPU and GPU builds, threads and benchmarking
+
+The case YAML is backend independent: the same `saturnBurger` case runs on the
+CPU or the GPU. The backend is selected at configure time.
+
+## The two builds
+
+```text
+buildCPU/    Kokkos OpenMP, PETSc on
+buildGPU/    Kokkos CUDA, PETSc off
+```
+
+They cannot share a build directory because CMake fixes the compiler and
+Kokkos backend at configure time.
+
+## Building the GPU backend
+
+The GPU build needs an installed **CUDA-enabled Kokkos** because the C++
+compiler must be Kokkos' `nvcc_wrapper`. The OpenMP-only Kokkos install is not
+enough.
+
+Example for a Quadro P620 (`PASCAL61`), using the Kokkos source already fetched
+by the CPU build:
+
+```bash
+cmake -S buildCPU/_deps/kokkos-src -B /tmp/kokkos-cuda-build \
+  -DCMAKE_INSTALL_PREFIX="$HOME/.local/kokkos-cuda" \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DKokkos_ENABLE_CUDA=ON \
+  -DKokkos_ENABLE_SERIAL=ON \
+  -DKokkos_ENABLE_OPENMP=OFF \
+  -DKokkos_ARCH_PASCAL61=ON \
+  -DKokkos_ENABLE_CUDA_LAMBDA=ON \
+  -DCMAKE_CXX_COMPILER="$PWD/buildCPU/_deps/kokkos-src/bin/nvcc_wrapper"
+
+cmake --build /tmp/kokkos-cuda-build -j 8
+cmake --install /tmp/kokkos-cuda-build
+
+export KOKKOS_ROOT="$HOME/.local/kokkos-cuda"
+cmake --preset gpu
+cmake --build --preset gpu -j
+```
+
+Use the architecture that matches the card (`Kokkos_ARCH_...`), for example
+`AMPERE80`, `HOPPER90`, or `PASCAL61`.
+
+## Running the same case
+
+```bash
+# CPU
+./buildCPU/saturnCFD examples/saturnBurger/saturnBurger2D/saturnBurger2D.yaml
+
+# GPU
+./buildGPU/saturnCFD examples/saturnBurger/saturnBurger2D/saturnBurger2D.yaml
+```
+
+Both write the same CSV/JSON, and the analytic comparison is identical. The
+GPU `saturnBurger` tests also pass:
+
+```bash
+./buildGPU/testSaturnFV --test-case="saturnBurger:*"
+```
+
+For one GPU, use one MPI rank:
+
+```bash
+mpirun -np 1 ./buildGPU/saturnCFD case.yaml
+```
+
+For four GPUs, one rank per GPU:
+
+```bash
+mpirun -np 4 ./buildGPU/saturnCFD case.yaml
+```
+
+`mpirun` is not CPU-only; each rank's compiled Kokkos backend decides whether
+it uses a CPU or a GPU. Do not benchmark multi-GPU scaling on one GPU.
+
+## CPU/GPU benchmark
+
+`tools/benchmarkBurgers.py` generates one 2D case, runs it through both
+binaries and reads `wallSeconds` from each JSON summary:
+
+```bash
+python3 tools/benchmarkBurgers.py \
+  --cpu buildCPU/saturnCFD \
+  --gpu buildGPU/saturnCFD \
+  --nx 256 --ny 256 --t-end 0.2
+```
+
+Measured on this machine (Quadro P620, 2 GB, 24-core CPU, CPU with 12 threads):
+
+```text
+grid       : 256 x 256
+t_end      : 0.2 s
+CPU threads: 12
+CPU wall   : 33.75 s
+GPU wall   : 16.74 s
+speedup    : 2.02 x
+```
+
+The GPU is a low-power Quadro P620 with only 2 GB, and the display uses about
+1.3 GB. A 512 x 512 run ran out of memory. Use 256 x 256 or 384 x 384 on this
+card; larger GPUs can take denser meshes.
+
+The current halo and Dirichlet boundary fill are host-staged, so the GPU
+speedup is limited by copies between host and device. The device kernels
+themselves are GPU-parallel; a device boundary/halo path is the next
+optimization for bigger gains.
+
+## What `OMP_NUM_THREADS` means
+
+`OMP_NUM_THREADS` is the number of **CPU threads per process** for the Kokkos
+OpenMP backend. It has nothing to do with the number of GPU threads.
+
+Total CPU threads used is
+
+```text
+MPI ranks x OMP_NUM_THREADS
+```
+
+Keep that product at or below the number of physical cores. Four MPI ranks with
+12 threads each on a 24-core node means 48 threads competing for 24 cores; that
+is why `fv_np4` was slow.
+
+Rules of thumb:
+
+| situation | starting point |
+|---|---|
+| pure MPI on CPU | `OMP_NUM_THREADS=1`, one rank per core |
+| hybrid MPI+OpenMP | `ranks * threads = physical cores` |
+| small 1D/2D cases | fewer threads often faster; kernel overhead dominates |
+| large 3D cases | one rank per NUMA domain, several threads per rank |
+| GPU | one MPI rank per GPU; `OMP_NUM_THREADS` is irrelevant |
+
+Useful pinning:
+
+```bash
+export OMP_PROC_BIND=spread
+export OMP_PLACES=threads
+mpirun --bind-to core -np 4 ./buildCPU/saturnCFD case.yaml
+```
+
+The `saturnCFD` CLI chooses `max(1, cores/ranks)` automatically for MPI runs
+when `OMP_NUM_THREADS` is not set. The CTest MPI targets set it to `1` so tests
+stay fast and reproducible. An explicit user value always wins.

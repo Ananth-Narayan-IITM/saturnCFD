@@ -21,6 +21,13 @@ class Simulation {
 
   SimulationResult run();
 
+  // Public only because nvcc rejects an extended __host__ __device__ lambda
+  // inside a private member function. They are internal to run().
+  void rkUpdate(CellField& out, const CellField& base, const CellField& stage,
+                const CellField& rate, Real dt, Real aBase, Real aStage,
+                Real aRate);
+  Diagnostics makeDiagnostics() const;
+
  private:
   Solver& mSolver;
   TimeControl mControl;
@@ -36,10 +43,6 @@ class Simulation {
 
   void allocateWorkspaces();
   void explicitStep(Real dt);
-  void rkUpdate(CellField& out, const CellField& base, const CellField& stage,
-                const CellField& rate, Real dt, Real aBase, Real aStage,
-                Real aRate);
-  Diagnostics makeDiagnostics() const;
 };
 
 }  // namespace saturn

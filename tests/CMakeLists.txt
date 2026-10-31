@@ -160,7 +160,7 @@ set_tests_properties(cli_checkConfig_burgers
 
 # The standalone user-facing example must stay valid and numerically clean.
 set(SATURN_BURGERS_EXAMPLE
-    "${SATURN_SOURCE_DIR}/examples/saturnBurger/saturnBurger.yaml")
+    "${SATURN_SOURCE_DIR}/examples/saturnBurger/saturnBurger1D/saturnBurger.yaml")
 add_test(NAME cli_checkConfig_example_burgers
   COMMAND saturnCFD -checkConfig ${SATURN_BURGERS_EXAMPLE})
 set_tests_properties(cli_checkConfig_example_burgers
@@ -169,7 +169,7 @@ set_tests_properties(cli_checkConfig_example_burgers
 # Examples are user-editable demos: only validate their schema in CTest.
 # Numerical regression uses the stable cases in tests/regression/.
 set(SATURN_BURGERS2D_EXAMPLE
-    "${SATURN_SOURCE_DIR}/examples/saturnBurger2D/saturnBurger2D.yaml")
+    "${SATURN_SOURCE_DIR}/examples/saturnBurger/saturnBurger2D/saturnBurger2D.yaml")
 add_test(NAME cli_checkConfig_example_burgers2d
   COMMAND saturnCFD -checkConfig ${SATURN_BURGERS2D_EXAMPLE})
 set_tests_properties(cli_checkConfig_example_burgers2d

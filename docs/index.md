@@ -24,6 +24,7 @@ independent). 3D Burgers, implicit time schemes and the heat solver follow.
 - [Theory pages](theory/README.md)
 - [Host requirements](guides/requirements.md)
 - [PETSc setup and saturnLinAlg](guides/petsc.md)
+- [CPU/GPU builds, threads and benchmarking](guides/gpu.md)
 - [Solver implementation sequence](plan/solverSequence.md)
 - [Poisson matrix and nullspace](theory/poisson.md)
 - [Time integration](theory/timeIntegration.md)

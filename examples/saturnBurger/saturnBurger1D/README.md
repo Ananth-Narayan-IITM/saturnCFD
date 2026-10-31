@@ -22,13 +22,14 @@ $$
 | viscosity | $\nu = 0.02$ m²/s |
 | wave speed | $U = 1$ m/s |
 | initial centre | $x_0 = 0.25$ m |
-| end time | $t = 0.5$ s (centre reaches $x=0.5$) |
+| end time | $t = 1.5$ s (centre reaches $x=1.0$) |
 | convection | MUSCL, van Leer limiter |
 | time scheme | SSPRK3, CFL 0.3 |
 | boundaries | Dirichlet, exact traveling-wave data |
 
-At $t=0.5$ the wave is fully inside the domain, away from both boundaries, so
-the comparison is clean.
+At $t=1.5$ the centre reaches the outlet boundary. The comparison still passes,
+but $t=0.5$ is the cleaner interior validation point if you want the wave away
+from both boundaries (set `time.end: 0.5` in the YAML).
 
 ## Run
 
@@ -55,14 +56,14 @@ python3 compareAnalytic.py --tolerance 1e-4
 
 ## Expected result
 
-CPU build, 256 cells, $t=0.5$ s:
+CPU build, 256 cells, $t=1.5$ s:
 
 ```text
-L1 error    : 2.421051e-05
-L2 error    : 4.225856e-05
-Linf error  : 1.362376e-04
+L1 error    : 3.089618e-05
+L2 error    : 8.050775e-05
+Linf error  : 5.741723e-04
 max |u_exact column - independent analytic| : 0.000e+00
-PASS: L2 4.225856e-05 <= tolerance 1.0e-04
+PASS: L2 8.050775e-05 <= tolerance 1.0e-04
 ```
 
 The zero in the fourth line means the solver's `u_exact` column and the
@@ -81,7 +82,7 @@ The CSV is the raw field data at the final time, one row per cell:
 
 ```text
 x,u_numerical,u_exact,error
-0.001953125,0.9999961033,0.9999960869,1.6459e-08
+0.001953125,0.999999999985,0.999999999985,5.862e-14
 ...
 ```
 
@@ -92,10 +93,10 @@ The JSON stores the run summary:
   "solver": "saturnBurger",
   "ranks": 4,
   "steps": 2622,
-  "time": 0.5,
+  "time": 1.5,
   "dt": 8.392e-05,
   "wallSeconds": 0.841,
-  "exact": {"l1": 2.421e-05, "l2": 4.226e-05, "linf": 1.362e-04}
+  "exact": {"l1": 3.090e-05, "l2": 8.051e-05, "linf": 5.742e-04}
 }
 ```
 
@@ -120,7 +121,7 @@ results/saturnBurger/comparison.pdf
 Every case prints a `wall` line and stores `wallSeconds` in the JSON:
 
 ```text
-wall   : 1.711704155 s
+wall   : 7.331998737 s
 ```
 
 For several MPI ranks it is the maximum of the per-rank times. It measures

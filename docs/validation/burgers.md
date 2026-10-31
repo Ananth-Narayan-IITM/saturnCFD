@@ -66,29 +66,31 @@ were already rank independent.
 
 ## Standalone example
 
-A user-facing case lives in `examples/saturnBurger/`:
+A user-facing case lives in `examples/saturnBurger/saturnBurger1D/`:
 
 ```bash
-cd examples/saturnBurger
+cd examples/saturnBurger/saturnBurger1D
 saturnCFD saturnBurger.yaml
 python3 compareAnalytic.py
 ```
 
-It uses 256 cells on $[0,1]$, $x_0=0.25$, $U=1$, $\nu=0.02$ and $t=0.5$ s, so
-the wave is away from both boundaries. `compareAnalytic.py` re-reads the case
+It uses 256 cells on $[0,1]$, $x_0=0.25$, $U=1$, $\nu=0.02$. The checked-in
+case uses $t=1.5$ s, where the centre reaches the outlet; $t=0.5$ s is the
+cleaner interior validation point. `compareAnalytic.py` re-reads the case
 parameters, recomputes the $\tanh$ solution independently and checks:
 
 ```text
-L1 error    : 2.421051e-05
-L2 error    : 4.225856e-05
-Linf error  : 1.362376e-04
-PASS: L2 4.225856e-05 <= tolerance 1.0e-04
+L1 error    : 3.089618e-05
+L2 error    : 8.050775e-05
+Linf error  : 5.741723e-04
+PASS: L2 8.050775e-05 <= tolerance 1.0e-04
 ```
 
 It also writes `results/saturnBurger/comparison.png`. The raw final-time field
 is `results/saturnBurger/traveling.csv` (`x,u_numerical,u_exact,error`); the
-JSON summary includes `wallSeconds`. The CTest slice checks this example with
-`burgers_example`.
+JSON summary includes `wallSeconds`. CTest validates the example schema; the
+numerical regression is the stable
+`tests/regression/burgers/traveling64.yaml`.
 
 ## 2D diagonal wave
 
@@ -114,8 +116,8 @@ Measured on $[-1,1]^2$, $U=1$, $\nu=0.02$, $t=0.5$:
 | 64x64 | 2.555e-3 | 1.96 |
 | 128x128 | 5.968e-4 | 2.10 |
 
-The separate user example is `examples/saturnBurger2D/`; the 1D example is
-unchanged. `python3 examples/saturnBurger2D/compareAnalytic.py` recomputes the
+The separate user example is `examples/saturnBurger/saturnBurger2D/`; the 1D example is
+unchanged. `python3 examples/saturnBurger/saturnBurger2D/compareAnalytic.py` recomputes the
 2D tanh solution and writes a four-panel comparison plot.
 
 ![2D Burgers validation figure](figures/burgers2DValidation.png)
@@ -135,7 +137,7 @@ cmake --build buildCPU -j
 python3 tools/validateBurgers.py
 
 # 2D example + independent comparison
-cd examples/saturnBurger2D
+cd examples/saturnBurger/saturnBurger2D
 saturnCFD saturnBurger2D.yaml
 python3 compareAnalytic.py
 

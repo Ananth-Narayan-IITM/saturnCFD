@@ -240,7 +240,7 @@ Still to measure:
 - Explicit diffusion; IMEX/implicit BE/CN/BDF2 waits for the FV Poisson
   matrix assembler and `saturnLinAlg`.
 - A 3D extension will add the third flux component; the 2D example lives in
-  `examples/saturnBurger2D/`.
+  `examples/saturnBurger/saturnBurger2D/`.
 - The CLI is wired: `saturnCFD case.yaml`, `-listSolvers`,
   `-dumpConfig saturnBurger` and `-checkConfig` all use the registered solver.
 - Neumann boundaries and a spatially varying source are not exposed yet.

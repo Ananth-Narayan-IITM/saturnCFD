@@ -24,11 +24,12 @@ with observed orders 1.98/2.11/2.10/2.06/2.03, and 1/2/4 ranks give identical no
 See [`docs/validation/burgers.md`](docs/validation/burgers.md) and the figure
 [`docs/validation/figures/burgersValidation.png`](docs/validation/figures/burgersValidation.png).
 
-Standalone user examples are in [`examples/saturnBurger/`](examples/saturnBurger/)
-and [`examples/saturnBurger2D/`](examples/saturnBurger2D/):
+Standalone user examples are in
+[`examples/saturnBurger/saturnBurger1D/`](examples/saturnBurger/saturnBurger1D/)
+and [`examples/saturnBurger/saturnBurger2D/`](examples/saturnBurger/saturnBurger2D/):
 
 ```bash
-cd examples/saturnBurger
+cd examples/saturnBurger/saturnBurger1D
 saturnCFD saturnBurger.yaml
 python3 compareAnalytic.py     # independent analytic check + plot
 
@@ -130,8 +131,9 @@ ctest --preset gpu
 ```
 
 Build the installed Kokkos for the target architecture (for example
-`PASCAL61` for the Quadro P620). This machine has the GPU but no CUDA toolkit,
-so the CUDA build is written but not yet run locally.
+`PASCAL61` for the Quadro P620). The CUDA build and `saturnBurger` tests are
+verified locally; the exact Kokkos build commands and the CPU/GPU benchmark
+are in [`docs/guides/gpu.md`](docs/guides/gpu.md).
 
 ```bash
 saturnCFD -version

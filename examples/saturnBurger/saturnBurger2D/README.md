@@ -1,6 +1,6 @@
 # saturnBurger 2D standalone example
 
-This is a separate 2D example. The 1D example in `examples/saturnBurger/` is
+This is a separate 2D example. The 1D example in `examples/saturnBurger/saturnBurger1D/` is
 left unchanged.
 
 ## Equation
@@ -50,7 +50,7 @@ the front speed in the \(x+y\) coordinate.
 ## Run
 
 ```bash
-cd examples/saturnBurger2D
+cd examples/saturnBurger/saturnBurger2D
 saturnCFD saturnBurger2D.yaml
 python3 compareAnalytic.py
 ```

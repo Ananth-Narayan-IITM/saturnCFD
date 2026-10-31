@@ -103,11 +103,18 @@ export KOKKOS_ROOT=/path/to/cuda-kokkos
 cmake --preset gpu        # buildGPU, CUDA, system Kokkos + nvcc_wrapper
 cmake --build --preset gpu -j
 cmake --install buildGPU --prefix "$HOME/.local"
+
+# same case, CPU vs GPU wall time
+python3 tools/benchmarkBurgers.py \
+  --cpu buildCPU/saturnCFD --gpu buildGPU/saturnCFD \
+  --nx 256 --ny 256 --t-end 0.2
 ```
 
 The GPU preset needs an installed CUDA-enabled Kokkos because the compiler must
 be Kokkos' `nvcc_wrapper` before the project is configured. Build that Kokkos
-for the target architecture (for example `PASCAL61` for the Quadro P620).
+for the target architecture (for example `PASCAL61` for the Quadro P620). The
+exact commands, the GPU benchmark and the thread/pinning guidance are in
+[`gpu.md`](gpu.md).
 
 They do not coexist in one build directory. Install puts one `saturnCFD` on
 `PATH`; the installed binary carries the backend it was compiled with. Install
@@ -314,7 +321,7 @@ mpirun -np 4 ./buildCPU/saturnCFD tests/regression/burgers/traveling64.yaml
 python3 tools/validateBurgers.py     # table + validation figure
 
 # standalone user examples + independent analytic comparison
-cd examples/saturnBurger
+cd examples/saturnBurger/saturnBurger1D
 saturnCFD saturnBurger.yaml
 python3 compareAnalytic.py
 

@@ -1,18 +1,19 @@
 # examples
 
-Case files that a user can run directly. One directory per solver or
-dimension, camelCase case names.
+Case files that a user can run directly. The first level is the solver; the
+next level is the dimensionality.
 
 ```text
 examples/
-  saturnBurger/            # 1D viscous traveling wave (unchanged)
-    saturnBurger.yaml
-    compareAnalytic.py
-    README.md
-  saturnBurger2D/          # 2D diagonal traveling wave
-    saturnBurger2D.yaml
-    compareAnalytic.py
-    README.md
+  saturnBurger/
+    saturnBurger1D/        # 1D viscous traveling wave
+      saturnBurger.yaml
+      compareAnalytic.py
+      README.md
+    saturnBurger2D/        # 2D diagonal traveling wave
+      saturnBurger2D.yaml
+      compareAnalytic.py
+      README.md
   heat/                    # later
   saturnStokes/            # later
   saturnIncompressible/    # later
@@ -31,11 +32,11 @@ regressions use the stable files under `tests/regression/`.
 - `-checkConfig` must pass on every example.
 - Generated output goes under `results/` (ignored by git).
 
-## Running the Burger examples
+## Running the Burgers examples
 
 ```bash
 # 1D
-cd saturnBurger
+cd saturnBurger/saturnBurger1D
 saturnCFD saturnBurger.yaml
 python3 compareAnalytic.py
 
@@ -47,4 +48,4 @@ python3 compareAnalytic.py
 
 Each script recomputes the analytic solution from the case parameters and
 prints L1/L2/Linf, a PASS/FAIL check and a comparison plot. See the README in
-each directory.
+each dimension directory.

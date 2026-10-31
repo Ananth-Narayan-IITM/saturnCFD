@@ -43,8 +43,8 @@ on the MPI partition/halo layer already implemented.
 - The discrete divergence theorem holds on a sheared mesh.
 - Periodic gradient/divergence MMS on `LocalMesh` passes on 1, 2 and 4 ranks
   with observed order about 1.97 and 1.99 for the two refinement pairs.
-- GPU-labelled tests are compiled and run in a CUDA build; the local machine
-  has the GPU but no CUDA toolkit, so that build is not yet verified here.
+- GPU-labelled tests compile and run in the local CUDA build (Quadro P620,
+  CUDA-enabled Kokkos).
 
 ## 1. Goal
 

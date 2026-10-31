@@ -44,6 +44,12 @@ if(SATURN_ENABLE_KOKKOS)
   string(TOUPPER "${SATURN_BACKEND}" SATURN_BACKEND_UPPER)
   target_compile_definitions(saturnCore PUBLIC
     SATURN_BACKEND_${SATURN_BACKEND_UPPER})
+  if(SATURN_BACKEND STREQUAL "cuda")
+    # Vec3 and its operators are constexpr host functions used in device
+    # kernels; nvcc needs this relaxation (Kokkos uses it internally too).
+    target_compile_options(saturnCore PUBLIC
+      $<$<COMPILE_LANGUAGE:CXX>:--expt-relaxed-constexpr>)
+  endif()
 endif()
 
 if(SATURN_ENABLE_PETSC)

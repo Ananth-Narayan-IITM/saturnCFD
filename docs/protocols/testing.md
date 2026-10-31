@@ -97,8 +97,8 @@ expected orders, rank/backend matrix and pitfalls are in
 
 The same binary is run under `mpirun -np 1/2/4`; a failure on any rank fails the
 CTest test. A CUDA build adds the `gpu` label and `ctest --preset gpu` runs the
-device tests. The CUDA build is written but not yet executed on this machine
-because the CUDA toolkit is not installed.
+device tests. The CUDA build is verified on the local Quadro P620; see
+[`../guides/gpu.md`](../guides/gpu.md).
 
 ## Burgers solver tests
 
@@ -120,7 +120,7 @@ The stable YAML regressions are `tests/regression/burgers/traveling64.yaml`
 and `tests/regression/burgers2d/traveling64.yaml`; they use
 `tests/checkBurgers.cmake`. `ctest --preset burgers` covers the 1D cases on
 1/2/4 ranks and `ctest --preset burgers2d` covers 2D. The user-facing examples
-`examples/saturnBurger/` and `examples/saturnBurger2D/` are schema-checked by
+`examples/saturnBurger/saturnBurger1D/` and `examples/saturnBurger/saturnBurger2D/` are schema-checked by
 CTest and have their own independent `compareAnalytic.py` scripts.
 
 MPI test targets set `OMP_NUM_THREADS=1`. Without it, four ranks each request
