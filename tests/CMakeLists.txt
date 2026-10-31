@@ -1,55 +1,55 @@
-add_executable(saturn_tests
+add_executable(testSaturn
   TestMain.cpp
   TestUnits.cpp
   TestConfig.cpp
   TestMesh.cpp
   TestRegression.cpp
 )
-set_target_properties(saturn_tests PROPERTIES
+set_target_properties(testSaturn PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
-target_link_libraries(saturn_tests PRIVATE saturn::core doctest::doctest)
-target_compile_definitions(saturn_tests PRIVATE
+target_link_libraries(testSaturn PRIVATE saturn::core doctest::doctest)
+target_compile_definitions(testSaturn PRIVATE
   SATURN_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data/meshes"
   SATURN_REGRESSION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/regression"
 )
 
-add_test(NAME saturn_tests COMMAND saturn_tests)
-set_tests_properties(saturn_tests PROPERTIES
+add_test(NAME testSaturn COMMAND testSaturn)
+set_tests_properties(testSaturn PROPERTIES
   LABELS "unit;mesh;config;regression")
 
 if(SATURN_ENABLE_MPI)
-  add_executable(saturn_mpi_tests
+  add_executable(testSaturnMPI
     TestMpiMain.cpp
     TestParallel.cpp
   )
-  set_target_properties(saturn_mpi_tests PROPERTIES
+  set_target_properties(testSaturnMPI PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
-  target_link_libraries(saturn_mpi_tests PRIVATE
+  target_link_libraries(testSaturnMPI PRIVATE
     saturn::core doctest::doctest MPI::MPI_CXX)
 
   add_test(NAME mpi_np1
     COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 1
-            ${SATURN_MPI_PREFLAGS} $<TARGET_FILE:saturn_mpi_tests>)
+            ${SATURN_MPI_PREFLAGS} $<TARGET_FILE:testSaturnMPI>)
   add_test(NAME mpi_np2
     COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 2
-            ${SATURN_MPI_PREFLAGS} $<TARGET_FILE:saturn_mpi_tests>)
+            ${SATURN_MPI_PREFLAGS} $<TARGET_FILE:testSaturnMPI>)
   add_test(NAME mpi_np4
     COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 4
-            ${SATURN_MPI_PREFLAGS} $<TARGET_FILE:saturn_mpi_tests>)
+            ${SATURN_MPI_PREFLAGS} $<TARGET_FILE:testSaturnMPI>)
   set_tests_properties(mpi_np1 mpi_np2 mpi_np4 PROPERTIES
     LABELS "mpi" RUN_SERIAL TRUE)
 endif()
 
 if(SATURN_ENABLE_KOKKOS)
-  add_executable(saturn_fv_tests
+  add_executable(testSaturnFV
     TestFvMain.cpp
     TestFv.cpp
     TestLocalMesh.cpp
   )
-  set_target_properties(saturn_fv_tests PROPERTIES
+  set_target_properties(testSaturnFV PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
-  target_link_libraries(saturn_fv_tests PRIVATE saturn::core doctest::doctest)
+  target_link_libraries(testSaturnFV PRIVATE saturn::core doctest::doctest)
 
   set(SATURN_FV_LABELS "fv;regression;parity")
   if(SATURN_BACKEND STREQUAL "cuda")
@@ -60,36 +60,36 @@ if(SATURN_ENABLE_KOKKOS)
     foreach(ranks 1 2 4)
       add_test(NAME fv_np${ranks}
         COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${ranks}
-                ${SATURN_MPI_PREFLAGS} $<TARGET_FILE:saturn_fv_tests>)
+                ${SATURN_MPI_PREFLAGS} $<TARGET_FILE:testSaturnFV>)
       set_tests_properties(fv_np${ranks} PROPERTIES
         LABELS "${SATURN_FV_LABELS};mpi" RUN_SERIAL TRUE)
     endforeach()
   else()
-    add_test(NAME fv_serial COMMAND saturn_fv_tests)
+    add_test(NAME fv_serial COMMAND testSaturnFV)
     set_tests_properties(fv_serial PROPERTIES LABELS "${SATURN_FV_LABELS}")
   endif()
 endif()
 
 if(SATURN_ENABLE_PETSC)
-  add_executable(saturn_petsc_tests
+  add_executable(testSaturnPETSc
     TestPetscMain.cpp
     TestPetsc.cpp
   )
-  set_target_properties(saturn_petsc_tests PROPERTIES
+  set_target_properties(testSaturnPETSc PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
-  target_link_libraries(saturn_petsc_tests PRIVATE
+  target_link_libraries(testSaturnPETSc PRIVATE
     saturn::LinAlg doctest::doctest)
 
   if(SATURN_ENABLE_MPI)
     foreach(ranks 1 2 4)
       add_test(NAME petsc_np${ranks}
         COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${ranks}
-                ${SATURN_MPI_PREFLAGS} $<TARGET_FILE:saturn_petsc_tests>)
+                ${SATURN_MPI_PREFLAGS} $<TARGET_FILE:testSaturnPETSc>)
       set_tests_properties(petsc_np${ranks} PROPERTIES
         LABELS "petsc;linalg;regression;mpi" RUN_SERIAL TRUE)
     endforeach()
   else()
-    add_test(NAME petsc_serial COMMAND saturn_petsc_tests)
+    add_test(NAME petsc_serial COMMAND testSaturnPETSc)
     set_tests_properties(petsc_serial PROPERTIES
       LABELS "petsc;linalg;regression")
   endif()

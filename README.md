@@ -54,7 +54,7 @@ Kokkos is pinned to 4.7.04 and uses `SATURN_BACKEND=openmp` by default.
 `SATURN_ENABLE_MPI=ON` is the default: it links MPI, defines
 `SATURN_USE_MPI`, and builds the MPI partition/halo and FVM tests. The app is
 still a serial mesh/config front end; the FVM operators live in
-`saturn_fv_tests`. Use `-DSATURN_ENABLE_MPI=OFF` for a serial build.
+`testSaturnFV`. Use `-DSATURN_ENABLE_MPI=OFF` for a serial build.
 
 PETSc 3.19.6 is enabled in the CPU/default preset and linked through
 `saturnLinAlg`. Debian's PETSc is found through `pkg-config` when

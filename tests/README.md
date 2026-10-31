@@ -3,6 +3,10 @@
 doctest + CTest. Every numerical feature has a unit or manufactured test, and
 every solver gets a regression case.
 
+Test executables: `testSaturn` (units/mesh/config/CLI regression),
+`testSaturnMPI` (partition/halo), `testSaturnFV` (FV operators and MMS), and
+`testSaturnPETSc` (PETSc Poisson/nullspace).
+
 ## Layout
 
 ```text

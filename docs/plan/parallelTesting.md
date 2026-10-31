@@ -99,7 +99,7 @@ MPI tests use a generated test command:
 ```cmake
 add_test(NAME halo_np2
   COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 2
-          ${MPIEXEC_PREFLAGS} $<TARGET_FILE:saturn_mpi_tests>
+          ${MPIEXEC_PREFLAGS} $<TARGET_FILE:testSaturnMPI>
           ${MPIEXEC_POSTFLAGS})
 ```
 

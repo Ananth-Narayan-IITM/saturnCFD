@@ -307,7 +307,7 @@ Implemented:
   periodic gradient/divergence MMS;
 - `tests/TestFvMain.cpp` — MPI then Kokkos initialization, global failure
   reduction;
-- `saturn_fv_tests` runs under `mpirun -np 1/2/4` and as a serial binary when
+- `testSaturnFV` runs under `mpirun -np 1/2/4` and as a serial binary when
   MPI is off;
 - the same binary carries `gpu`-labelled CUDA cases (`TestFv.cpp`,
   `SATURN_BACKEND_CUDA`): active CUDA space, 32^3 MMS against the CPU

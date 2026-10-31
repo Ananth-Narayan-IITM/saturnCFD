@@ -441,6 +441,7 @@ mpirun -np 1 saturnCFD case.yaml
 ctest --preset regression
 ctest --preset mpi
 ctest --preset fv
+ctest --preset petsc
 ctest --preset gpu
 \end{lstlisting}
     \end{column}
@@ -452,7 +453,9 @@ ctest --preset gpu
   are separate build directories; install the one you want to run. The
   \texttt{cpu} preset builds \texttt{build-cpu} with Kokkos OpenMP. The
   \texttt{gpu} preset builds \texttt{build-gpu} and needs an installed
-  CUDA-enabled Kokkos in \texttt{KOKKOS\_ROOT}.
+  CUDA-enabled Kokkos in \texttt{KOKKOS\_ROOT}. Test binaries:
+  \texttt{testSaturn}, \texttt{testSaturnMPI}, \texttt{testSaturnFV},
+  \texttt{testSaturnPETSc}.
 \end{frame}
 
 \begin{frame}[fragile]{Help, clean and completion}
@@ -461,6 +464,7 @@ saturnCFD -help
 saturnCFD -help build
 saturnCFD -help gpu
 saturnCFD -help mpi
+saturnCFD -help petsc
 saturnCFD -help test
 saturnCFD -help clean
 

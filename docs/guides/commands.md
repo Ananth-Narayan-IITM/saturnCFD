@@ -47,11 +47,11 @@ writes `build-cpu/`, and `cmake --build --preset default -j` compiles it.
 src/**            -> build-cpu/src/libsaturn_core.a
 src/linalg/**     -> build-cpu/src/libsaturnLinAlg.a
 apps/main.cpp     -> build-cpu/saturnCFD
-tests/*           -> build-cpu/saturn_tests
-tests/TestMpi*    -> build-cpu/saturn_mpi_tests
-tests/TestFv*     -> build-cpu/saturn_fv_tests
-tests/TestLocalMesh* -> build-cpu/saturn_fv_tests
-tests/TestPetsc*  -> build-cpu/saturn_petsc_tests
+tests/*           -> build-cpu/testSaturn
+tests/TestMpi*    -> build-cpu/testSaturnMPI
+tests/TestFv*     -> build-cpu/testSaturnFV
+tests/TestLocalMesh* -> build-cpu/testSaturnFV
+tests/TestPetsc*  -> build-cpu/testSaturnPETSc
 ```
 
 MPI and Kokkos are linked into `saturn_core`. Kokkos is pinned by default;
@@ -137,17 +137,17 @@ ctest --preset gpu           # GPU-labelled tests in build-gpu
 Direct FVM runs:
 
 ```bash
-./build-cpu/saturn_fv_tests
-mpirun -np 2 build-cpu/saturn_fv_tests
-mpirun -np 4 build-cpu/saturn_fv_tests
+./build-cpu/testSaturnFV
+mpirun -np 2 build-cpu/testSaturnFV
+mpirun -np 4 build-cpu/testSaturnFV
 ```
 
 Direct PETSc runs:
 
 ```bash
-./build-cpu/saturn_petsc_tests
-mpirun -np 2 build-cpu/saturn_petsc_tests
-mpirun -np 4 build-cpu/saturn_petsc_tests
+./build-cpu/testSaturnPETSc
+mpirun -np 2 build-cpu/testSaturnPETSc
+mpirun -np 4 build-cpu/testSaturnPETSc
 ```
 
 The MMS tests print the observed orders; a failure on any rank fails the run.
@@ -245,9 +245,9 @@ The MPI partition/halo layer is implemented. Run its tests with:
 ```bash
 ctest --preset mpi
 # equivalent:
-mpirun -np 1 build-cpu/saturn_mpi_tests
-mpirun -np 2 build-cpu/saturn_mpi_tests
-mpirun -np 4 build-cpu/saturn_mpi_tests
+mpirun -np 1 build-cpu/testSaturnMPI
+mpirun -np 2 build-cpu/testSaturnMPI
+mpirun -np 4 build-cpu/testSaturnMPI
 ```
 
 This PC has enough cores for the current 1/2/4-rank tests; no

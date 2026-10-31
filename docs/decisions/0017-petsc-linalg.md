@@ -51,7 +51,7 @@ Burgers → heat → Stokes → Navier–Stokes.
 - **Dependency:** PETSc is available in the default CPU build; the minimal
   build can disable it.
 - **Code:** `saturnLinAlg` owns all PETSc calls; solvers link it.
-- **Testing:** `saturn_petsc_tests` runs on 1/2/4 ranks; `ctest --preset
+- **Testing:** `testSaturnPETSc` runs on 1/2/4 ranks; `ctest --preset
   petsc` is the entry point.
 - **Risk:** Debian's PETSc and Open MPI must stay ABI-compatible. Record the
   PETSc version and configured precision in the run manifest.

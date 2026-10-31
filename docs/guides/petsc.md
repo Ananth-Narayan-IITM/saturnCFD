@@ -83,7 +83,7 @@ allowed in a kernel. The test main and future solver mains follow this order.
 ctest --preset petsc
 ```
 
-The tests are `saturn_petsc_tests`, run under `mpirun -np 1/2/4`:
+The tests are `testSaturnPETSc`, run under `mpirun -np 1/2/4`:
 
 - 1D Poisson with Dirichlet boundaries: observed order `1.98, 1.99`.
 - 3D Poisson with CG + GAMG: L2 error about `2.1e-3` at `12^3`.

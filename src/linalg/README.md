@@ -15,7 +15,7 @@ PETSc directly.
   norm.
 - CMake discovery: `find_package(PETSc)` with a `pkg-config` fallback for
   Debian.
-- `saturn_petsc_tests` — 1D Poisson order, 3D Poisson with CG + GAMG, and an
+- `testSaturnPETSc` — 1D Poisson order, 3D Poisson with CG + GAMG, and an
   all-Neumann nullspace test on 1/2/4 ranks.
 
 The Phase 0 tests use PETSc `DMDA` only as a smoke test. The production

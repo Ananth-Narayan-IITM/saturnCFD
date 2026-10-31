@@ -46,7 +46,7 @@ cmake --build build-cpu-dbg -j
 valgrind --tool=memcheck \
   --leak-check=full --show-leak-kinds=definite \
   --track-origins=yes --error-exitcode=1 \
-  ./build-dbg/saturn_tests
+  ./build-cpu-dbg/testSaturn
 ```
 
 One MPI rank:
@@ -54,7 +54,7 @@ One MPI rank:
 ```bash
 mpirun -np 1 valgrind --log-file=valgrind.%p.log \
   --leak-check=full --track-origins=yes \
-  ./build-dbg/saturn_tests
+  ./build-cpu-dbg/testSaturn
 ```
 
 Two ranks:
@@ -62,7 +62,7 @@ Two ranks:
 ```bash
 mpirun --oversubscribe -np 2 valgrind --log-file=valgrind.%p.log \
   --leak-check=full --track-origins=yes \
-  ./build-dbg/saturn_tests
+  ./build-cpu-dbg/testSaturn
 ```
 
 Caveats:
@@ -177,8 +177,8 @@ way to see kernel-level time on CPU and GPU.
 
 ## 10. First profiling milestones
 
-1. Valgrind Memcheck clean on `saturn_tests` (serial).
-2. ASan/UBSan clean on `saturn_tests`.
+1. Valgrind Memcheck clean on `testSaturn` (serial).
+2. ASan/UBSan clean on `testSaturn`.
 3. `perf` hotspot report for the serial FVM stencil.
 4. `compute-sanitizer` clean on the one-GPU halo test.
 5. `nsys` timeline for the one-GPU stencil.
