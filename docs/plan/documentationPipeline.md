@@ -53,15 +53,15 @@ USE_PDFLATEX    = YES
 USE_MATHJAX     = YES
 CITE_BIB_FILES  = docs/references.bib
 INPUT           = README.md docs src
-OUTPUT_DIRECTORY= build-cpu/doxygen
+OUTPUT_DIRECTORY= buildCPU/doxygen
 ```
 
 CMake targets:
 
 | target | output |
 |---|---|
-| `docHtml` | `build-cpu/doxygen/html/index.html` |
-| `docPdf` | `build-cpu/doxygen/latex/refman.pdf` |
+| `docHtml` | `buildCPU/doxygen/html/index.html` |
+| `docPdf` | `buildCPU/doxygen/latex/refman.pdf` |
 | `doc` | both |
 | `formatCode` | runs clang-format on tracked C++ files |
 
@@ -72,8 +72,8 @@ CMake targets:
 - runs on push to `v1`/`main` and on `workflow_dispatch`;
 - installs Doxygen and Graphviz;
 - runs `mkdir -p build && doxygen docs/Doxyfile`;
-- uploads `build-cpu/doxygen/html` as the `saturnCFD-docs-html` artifact;
-- publishes `build-cpu/doxygen/html` to the `gh-pages` branch with
+- uploads `buildCPU/doxygen/html` as the `saturnCFD-docs-html` artifact;
+- publishes `buildCPU/doxygen/html` to the `gh-pages` branch with
   `peaceiris/actions-gh-pages`.
 
 The Pages URL is:
@@ -107,7 +107,7 @@ It is not rebuilt on every push because the TeX installation is large.
   ```
 - CMake target:
   ```bash
-  cmake --build build-cpu --target formatCode
+  cmake --build buildCPU --target formatCode
   ```
 - `.github/workflows/format.yml` runs:
   ```bash
@@ -159,7 +159,7 @@ Every page has a status line and links to the ADR or protocol it implements.
 
 - `mkdir -p build && doxygen docs/Doxyfile` builds HTML without missing-input
   errors.
-- `make -C build-cpu/doxygen/latex` produces `refman.pdf`.
+- `make -C buildCPU/doxygen/latex` produces `refman.pdf`.
 - The Pages workflow deploys and the URL loads.
 - A `$...$` equation appears as an equation in HTML and PDF.
 - `clang-format --dry-run --Werror` passes on tracked C++ files.

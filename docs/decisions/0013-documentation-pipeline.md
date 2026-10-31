@@ -32,7 +32,7 @@ serve both without duplicating equations.
    - `.github/workflows/docs.yml` builds on push to `v1`/`main` and on
      `workflow_dispatch`.
    - It uploads the HTML as the `saturnCFD-docs-html` artifact.
-   - It publishes `build-cpu/doxygen/html` to the `gh-pages` branch with
+   - It publishes `buildCPU/doxygen/html` to the `gh-pages` branch with
      `peaceiris/actions-gh-pages`.
    - The one-time setting is **Settings -> Pages -> Deploy from a branch ->
      Branch: `gh-pages` / (root)**.
@@ -77,7 +77,7 @@ serve both without duplicating equations.
 ## Validation / exit criteria
 
 - `doxygen docs/Doxyfile` builds HTML with no missing-input errors.
-- `make -C build-cpu/doxygen/latex` produces `refman.pdf`.
+- `make -C buildCPU/doxygen/latex` produces `refman.pdf`.
 - A page with `$...$` renders as an equation in HTML and PDF.
 - The Pages workflow deploys and the URL loads.
 - `clang-format --dry-run --Werror` passes on tracked C++ files.

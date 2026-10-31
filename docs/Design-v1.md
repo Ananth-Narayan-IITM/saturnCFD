@@ -82,8 +82,8 @@ saturnCFD -completion bash
 
 `-checkMesh` writes `<prefix>.vtu` and `<prefix>.json` by default;
 `-writeVTK` adds `.vtp` patches and a `.pvd`. Open the `.pvd` in ParaView.
-The binary is installed with `cmake --install build-cpu --prefix "$HOME/.local"`,
-so the command is `saturnCFD`, not `./build-cpu/saturnCFD`. `-completion` prints
+The binary is installed with `cmake --install buildCPU --prefix "$HOME/.local"`,
+so the command is `saturnCFD`, not `./buildCPU/saturnCFD`. `-completion` prints
 bash/zsh/fish completion; `ctest --preset regression` is the short test command.
 The full option list is in `docs/protocols/cli.md`.
 
@@ -143,8 +143,8 @@ in v1.0. See [`guides/writingASolver.md`](guides/writingASolver.md) and ADR
 
 ## 6a. Documentation and formatting
 
-- Doxygen builds HTML (`build-cpu/doxygen/html`) and PDF
-  (`build-cpu/doxygen/latex/refman.pdf`).
+- Doxygen builds HTML (`buildCPU/doxygen/html`) and PDF
+  (`buildCPU/doxygen/latex/refman.pdf`).
 - Markdown uses `$...$` and `$$...$$`; `tools/doxygenMathFilter.py` adapts them
   for Doxygen.
 - `.github/workflows/docs.yml` deploys the HTML to GitHub Pages.

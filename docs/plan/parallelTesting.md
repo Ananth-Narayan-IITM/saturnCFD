@@ -123,7 +123,7 @@ the hardware and rank layout.
 First target: `benchmarks/haloStencil`.
 
 ```text
-mpirun -np N build-cpu/benchmarks/haloStencil \
+mpirun -np N buildCPU/benchmarks/haloStencil \
   --nx 512 --ny 512 --nz 512 --iters 20
 ```
 

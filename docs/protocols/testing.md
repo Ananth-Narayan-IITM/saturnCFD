@@ -135,11 +135,11 @@ ctest --preset cli
 ctest --preset mpi           # partition/halo + FVM on 1/2/4 ranks
 ctest --preset fv            # CellField, halo and MMS
 ctest --preset petsc         # PETSc Poisson/nullspace on 1/2/4 ranks
-ctest --preset gpu           # GPU-labelled tests in build-gpu
+ctest --preset gpu           # GPU-labelled tests in buildGPU
 ctest --preset benchmark     # benchmark smoke tests
 ```
 
-`ctest --test-dir build-cpu -L regression --output-on-failure` still works.
+`ctest --test-dir buildCPU -L regression --output-on-failure` still works.
 
 ## Rules
 

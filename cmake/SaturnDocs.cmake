@@ -6,7 +6,7 @@ find_package(Doxygen QUIET)
 
 if(DOXYGEN_FOUND)
   add_custom_target(docHtml
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${SATURN_SOURCE_DIR}/build-cpu
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${SATURN_SOURCE_DIR}/buildCPU
     COMMAND ${DOXYGEN_EXECUTABLE} ${SATURN_SOURCE_DIR}/docs/Doxyfile
     WORKING_DIRECTORY ${SATURN_SOURCE_DIR}
     COMMENT "Generating Doxygen HTML and LaTeX"
@@ -16,7 +16,7 @@ if(DOXYGEN_FOUND)
   if(SATURN_LATEXMK)
     add_custom_target(docPdf
       COMMAND ${SATURN_LATEXMK} -pdf refman.tex
-      WORKING_DIRECTORY ${SATURN_SOURCE_DIR}/build-cpu/doxygen/latex
+      WORKING_DIRECTORY ${SATURN_SOURCE_DIR}/buildCPU/doxygen/latex
       COMMENT "Building Doxygen PDF"
       VERBATIM)
     add_dependencies(docPdf docHtml)

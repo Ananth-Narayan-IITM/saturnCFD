@@ -64,13 +64,13 @@ CMake fixes the compiler and backend at configure time. CPU and GPU must be
 different build directories:
 
 ```bash
-cmake --preset cpu        # build-cpu, OpenMP
+cmake --preset cpu        # buildCPU, OpenMP
 cmake --build --preset cpu -j
-cmake --install build-cpu --prefix "$HOME/.local"
+cmake --install buildCPU --prefix "$HOME/.local"
 
-cmake --preset gpu        # build-gpu, CUDA
+cmake --preset gpu        # buildGPU, CUDA
 cmake --build --preset gpu -j
-cmake --install build-gpu --prefix "$HOME/.local"
+cmake --install buildGPU --prefix "$HOME/.local"
 ```
 
 The installed `saturnCFD` carries the backend it was compiled with. Install the

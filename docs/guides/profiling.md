@@ -41,12 +41,12 @@ SATURN_ENABLE_KOKKOS=ON
 Small serial or one-rank case first:
 
 ```bash
-cmake -S . -B build-cpu-dbg -DCMAKE_BUILD_TYPE=Debug -DSATURN_BUILD_TESTS=ON
-cmake --build build-cpu-dbg -j
+cmake -S . -B buildCPU-dbg -DCMAKE_BUILD_TYPE=Debug -DSATURN_BUILD_TESTS=ON
+cmake --build buildCPU-dbg -j
 valgrind --tool=memcheck \
   --leak-check=full --show-leak-kinds=definite \
   --track-origins=yes --error-exitcode=1 \
-  ./build-cpu-dbg/testSaturn
+  ./buildCPU-dbg/testSaturn
 ```
 
 One MPI rank:
@@ -54,7 +54,7 @@ One MPI rank:
 ```bash
 mpirun -np 1 valgrind --log-file=valgrind.%p.log \
   --leak-check=full --track-origins=yes \
-  ./build-cpu-dbg/testSaturn
+  ./buildCPU-dbg/testSaturn
 ```
 
 Two ranks:
@@ -62,7 +62,7 @@ Two ranks:
 ```bash
 mpirun --oversubscribe -np 2 valgrind --log-file=valgrind.%p.log \
   --leak-check=full --track-origins=yes \
-  ./build-cpu-dbg/testSaturn
+  ./buildCPU-dbg/testSaturn
 ```
 
 Caveats:
@@ -79,11 +79,11 @@ Caveats:
 Planned build:
 
 ```bash
-cmake -S . -B build-cpu-asan \
+cmake -S . -B buildCPU-asan \
   -DCMAKE_BUILD_TYPE=Debug \
   -DSATURN_ENABLE_SANITIZERS=ON
-cmake --build build-cpu-asan -j
-ctest --test-dir build-cpu-asan --output-on-failure
+cmake --build buildCPU-asan -j
+ctest --test-dir buildCPU-asan --output-on-failure
 ```
 
 ASan catches stack/heap buffer overflows and use-after-free. UBSan catches
@@ -95,7 +95,7 @@ Valgrind and should run in CI on the unit tests.
 Sampling:
 
 ```bash
-perf record -g ./build-cpu/saturnCFD case.yaml
+perf record -g ./buildCPU/saturnCFD case.yaml
 perf report
 ```
 
@@ -103,7 +103,7 @@ Callgrind:
 
 ```bash
 valgrind --tool=callgrind --callgrind-out-file=callgrind.out \
-  ./build-cpu/saturnCFD case.yaml
+  ./buildCPU/saturnCFD case.yaml
 kcachegrind callgrind.out
 ```
 
@@ -113,7 +113,7 @@ interleaving distorts the profile. Use one thread for the first callgrind run.
 Memory growth:
 
 ```bash
-valgrind --tool=massif ./build-cpu/saturnCFD case.yaml
+valgrind --tool=massif ./buildCPU/saturnCFD case.yaml
 ms_print massif.out.*
 ```
 
@@ -139,21 +139,21 @@ asynchronous completion.
 Correctness:
 
 ```bash
-compute-sanitizer --tool memcheck ./build-cpu/saturnCFD case.yaml
-compute-sanitizer --tool racecheck ./build-cpu/saturnCFD case.yaml
+compute-sanitizer --tool memcheck ./buildCPU/saturnCFD case.yaml
+compute-sanitizer --tool racecheck ./buildCPU/saturnCFD case.yaml
 ```
 
 Timeline:
 
 ```bash
-nsys profile -o report ./build-cpu/saturnCFD case.yaml
+nsys profile -o report ./buildCPU/saturnCFD case.yaml
 nsys stats report.nsys-rep
 ```
 
 Kernel metrics:
 
 ```bash
-ncu --set full ./build-cpu/saturnCFD case.yaml
+ncu --set full ./buildCPU/saturnCFD case.yaml
 ```
 
 For MPI + GPU, run `nsys` around `mpirun -np 1` first. Multi-rank GPU

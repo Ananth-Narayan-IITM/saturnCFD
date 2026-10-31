@@ -43,10 +43,10 @@ Solver physics starts in Phase 2.
 ## Building the docs
 
 ```bash
-mkdir -p build-cpu
+mkdir -p buildCPU
 doxygen docs/Doxyfile
-# HTML: build-cpu/doxygen/html/index.html
-# PDF:  make -C build-cpu/doxygen/latex
+# HTML: buildCPU/doxygen/html/index.html
+# PDF:  make -C buildCPU/doxygen/latex
 ```
 
 The GitHub Pages site is published from the `docs.yml` workflow.

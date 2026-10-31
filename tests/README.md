@@ -55,8 +55,8 @@ ctest --preset mpi              # 1/2/4-rank MPI tests
 ctest --preset fv               # LocalMesh, operators and MMS
 
 # equivalent fallback
-ctest --test-dir build-cpu --output-on-failure
-ctest --test-dir build-cpu -L fv --output-on-failure
+ctest --test-dir buildCPU --output-on-failure
+ctest --test-dir buildCPU -L fv --output-on-failure
 ```
 
 ## Rules

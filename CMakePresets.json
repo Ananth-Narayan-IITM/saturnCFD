@@ -9,7 +9,7 @@
     {
       "name": "cpu",
       "displayName": "CPU (OpenMP) release build with tests and docs",
-      "binaryDir": "${sourceDir}/build-cpu",
+      "binaryDir": "${sourceDir}/buildCPU",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "SATURN_BUILD_TESTS": "ON",
@@ -28,7 +28,7 @@
     {
       "name": "gpu",
       "displayName": "GPU (CUDA) release build; requires KOKKOS_ROOT",
-      "binaryDir": "${sourceDir}/build-gpu",
+      "binaryDir": "${sourceDir}/buildGPU",
       "toolchainFile": "${sourceDir}/cmake/toolchains/cuda-kokkos.cmake",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
@@ -169,7 +169,7 @@
     },
     {
       "name": "gpu",
-      "displayName": "GPU tests in build-gpu",
+      "displayName": "GPU tests in buildGPU",
       "configurePreset": "gpu",
       "output": {
         "outputOnFailure": true

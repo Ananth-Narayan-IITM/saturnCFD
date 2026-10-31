@@ -37,15 +37,15 @@ ctest --preset default             # all tests, output on failure
 Equivalent without presets:
 
 ```bash
-cmake -S . -B build-cpu -DCMAKE_BUILD_TYPE=Release
-cmake --build build-cpu -j
-ctest --test-dir build-cpu --output-on-failure
+cmake -S . -B buildCPU -DCMAKE_BUILD_TYPE=Release
+cmake --build buildCPU -j
+ctest --test-dir buildCPU --output-on-failure
 ```
 
 Install the binary so the command is simply `saturnCFD`:
 
 ```bash
-cmake --install build-cpu --prefix "$HOME/.local"
+cmake --install buildCPU --prefix "$HOME/.local"
 # ~/.local/bin must be on PATH
 ```
 
@@ -94,8 +94,8 @@ saturnCFD -help test
 ```
 
 `CMAKE_BUILD_TYPE=Release` is an optimised, no-debug-symbols build. The
-compilation database is `build-cpu/compile_commands.json`. Clean with
-`cmake --build build-cpu --target clean` or by removing the build directory.
+compilation database is `buildCPU/compile_commands.json`. Clean with
+`cmake --build buildCPU --target clean` or by removing the build directory.
 
 Enable completion once per shell:
 
@@ -163,10 +163,10 @@ Accepted so far:
 - Math: Markdown uses `$...$` and `$$...$$`; the Doxygen filter converts them.
 
 ```bash
-mkdir -p build-cpu
+mkdir -p buildCPU
 doxygen docs/Doxyfile
-# HTML: build-cpu/doxygen/html/index.html
-# PDF:  make -C build-cpu/doxygen/latex
+# HTML: buildCPU/doxygen/html/index.html
+# PDF:  make -C buildCPU/doxygen/latex
 ```
 
 The docs workflow publishes the HTML to the `gh-pages` branch. Enable Pages
@@ -251,8 +251,8 @@ apps/main.cpp
 saturnCFDSolver burgers myBurgers
 # add: addSolver(myBurgers)   to src/solvers/CMakeLists.txt
 # edit src/solvers/myBurgers/createFields.cpp and equations.cpp
-cmake -S . -B build-cpu
-cmake --build build-cpu -j
+cmake -S . -B buildCPU
+cmake --build buildCPU -j
 saturnCFD -listSolvers
 saturnCFD -dumpConfig myBurgers -writeTemplate myBurgers.yaml
 ```

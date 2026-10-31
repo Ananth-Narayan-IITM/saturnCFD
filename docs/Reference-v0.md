@@ -35,7 +35,7 @@ git worktree add ../saturnCFD-v0 v0-archive   # full v0 tree side by side
 | `src/amr/BoxArray.*` | **do not port** | no block-structured AMR in v1.0 |
 | `src/amr/DistributionMapping.*` | **do not port** | no AMR; MPI distribution is a later concern |
 | `src/amr/MultiFab.*` | **do not port** | structured mesh with `CellField`/`FaceField` replaces it |
-| `src/comm/HaloExchange.*` | **reference only** | the two-phase build-cpu/execute idea is useful for MPI later |
+| `src/comm/HaloExchange.*` | **reference only** | the two-phase buildCPU/execute idea is useful for MPI later |
 | `src/mesh/Geometry.hpp` | **reference only** | v1 has a `StructuredMesh` with volumes/areas/face vectors |
 | `src/linalg/Poisson.*` | **replace** | PETSc; no home-grown CG |
 | `src/linalg/VecOps.hpp` | **reference only** | v1 uses PETSc vectors and explicit field kernels |

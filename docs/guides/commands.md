@@ -10,7 +10,7 @@ authoritative CLI reference.
 cmake --preset default
 ```
 
-This creates `build-cpu/` with tests and docs enabled.
+This creates `buildCPU/` with tests and docs enabled.
 
 ## Build
 
@@ -22,7 +22,7 @@ Incremental builds are the same command.
 
 ### What compilation does
 
-`cmake --preset default` configures `build-cpu/` and selects:
+`cmake --preset default` configures `buildCPU/` and selects:
 
 ```text
 SATURN_ENABLE_MPI=ON      link MPI, define SATURN_USE_MPI, build MPI tests
@@ -39,19 +39,19 @@ GCC/Clang) with no debug symbols. `Debug` is unoptimised with symbols;
 `RelWithDebInfo` is optimised with symbols.
 
 Configure and build are two separate commands: `cmake --preset default`
-writes `build-cpu/`, and `cmake --build --preset default -j` compiles it.
+writes `buildCPU/`, and `cmake --build --preset default -j` compiles it.
 
 `cmake --build --preset default -j` compiles:
 
 ```text
-src/**            -> build-cpu/src/libsaturn_core.a
-src/linalg/**     -> build-cpu/src/libsaturnLinAlg.a
-apps/main.cpp     -> build-cpu/saturnCFD
-tests/*           -> build-cpu/testSaturn
-tests/TestMpi*    -> build-cpu/testSaturnMPI
-tests/TestFv*     -> build-cpu/testSaturnFV
-tests/TestLocalMesh* -> build-cpu/testSaturnFV
-tests/TestPetsc*  -> build-cpu/testSaturnPETSc
+src/**            -> buildCPU/src/libsaturn_core.a
+src/linalg/**     -> buildCPU/src/libsaturnLinAlg.a
+apps/main.cpp     -> buildCPU/saturnCFD
+tests/*           -> buildCPU/testSaturn
+tests/TestMpi*    -> buildCPU/testSaturnMPI
+tests/TestFv*     -> buildCPU/testSaturnFV
+tests/TestLocalMesh* -> buildCPU/testSaturnFV
+tests/TestPetsc*  -> buildCPU/testSaturnPETSc
 ```
 
 MPI and Kokkos are linked into `saturn_core`. Kokkos is pinned by default;
@@ -63,32 +63,32 @@ found with `pkg-config` when `find_package(PETSc)` fails. Use
 Optional serial-only build (MPI off):
 
 ```bash
-cmake -S . -B build-cpu-serial -DSATURN_ENABLE_MPI=OFF -DCMAKE_BUILD_TYPE=Release
-cmake --build build-cpu-serial -j
+cmake -S . -B buildCPU-serial -DSATURN_ENABLE_MPI=OFF -DCMAKE_BUILD_TYPE=Release
+cmake --build buildCPU-serial -j
 ```
 
 This is a diagnostic variant, not a daily tree. Remove it when finished so the
-repository keeps only the two standard directories, `build-cpu` and
-`build-gpu`.
+repository keeps only the two standard directories, `buildCPU` and
+`buildGPU`.
 
 Compilation database:
 
 ```text
-build-cpu/compile_commands.json    # CMake/clangd standard
+buildCPU/compile_commands.json    # CMake/clangd standard
 ```
 
 CPU/GPU builds are separate build directories because CMake fixes the compiler
 and backend at configure time:
 
 ```bash
-cmake --preset cpu        # build-cpu, Kokkos OpenMP
+cmake --preset cpu        # buildCPU, Kokkos OpenMP
 cmake --build --preset cpu -j
-cmake --install build-cpu --prefix "$HOME/.local"
+cmake --install buildCPU --prefix "$HOME/.local"
 
 export KOKKOS_ROOT=/path/to/cuda-kokkos
-cmake --preset gpu        # build-gpu, CUDA, system Kokkos + nvcc_wrapper
+cmake --preset gpu        # buildGPU, CUDA, system Kokkos + nvcc_wrapper
 cmake --build --preset gpu -j
-cmake --install build-gpu --prefix "$HOME/.local"
+cmake --install buildGPU --prefix "$HOME/.local"
 ```
 
 The GPU preset needs an installed CUDA-enabled Kokkos because the compiler must
@@ -98,7 +98,7 @@ for the target architecture (for example `PASCAL61` for the Quadro P620).
 They do not coexist in one build directory. Install puts one `saturnCFD` on
 `PATH`; the installed binary carries the backend it was compiled with. Install
 the CPU or GPU build last to choose which one `saturnCFD` runs. Do not call
-`build-cpu/saturnCFD` or `build-gpu/saturnCFD` directly.
+`buildCPU/saturnCFD` or `buildGPU/saturnCFD` directly.
 
 Then the run is always:
 
@@ -110,9 +110,9 @@ mpirun -np 1 saturnCFD case.yaml
 ## Clean
 
 ```bash
-cmake --build build-cpu --target clean   # remove compiled objects and binaries
-rm -rf build-cpu                         # remove the CPU build tree
-rm -rf build-cpu build-gpu               # both backend trees
+cmake --build buildCPU --target clean   # remove compiled objects and binaries
+rm -rf buildCPU                         # remove the CPU build tree
+rm -rf buildCPU buildGPU               # both backend trees
 ```
 
 There is no `wclean`; `cmake --build <dir> --target clean` is the per-build
@@ -131,23 +131,23 @@ ctest --preset cli
 ctest --preset mpi           # partition/halo + FVM, 1/2/4 ranks
 ctest --preset fv            # fields, halo, LocalMesh, operators, MMS
 ctest --preset petsc         # PETSc Poisson/nullspace on 1/2/4 ranks
-ctest --preset gpu           # GPU-labelled tests in build-gpu
+ctest --preset gpu           # GPU-labelled tests in buildGPU
 ```
 
 Direct FVM runs:
 
 ```bash
-./build-cpu/testSaturnFV
-mpirun -np 2 build-cpu/testSaturnFV
-mpirun -np 4 build-cpu/testSaturnFV
+./buildCPU/testSaturnFV
+mpirun -np 2 buildCPU/testSaturnFV
+mpirun -np 4 buildCPU/testSaturnFV
 ```
 
 Direct PETSc runs:
 
 ```bash
-./build-cpu/testSaturnPETSc
-mpirun -np 2 build-cpu/testSaturnPETSc
-mpirun -np 4 build-cpu/testSaturnPETSc
+./buildCPU/testSaturnPETSc
+mpirun -np 2 buildCPU/testSaturnPETSc
+mpirun -np 4 buildCPU/testSaturnPETSc
 ```
 
 The MMS tests print the observed orders; a failure on any rank fails the run.
@@ -163,11 +163,11 @@ ctest --list-presets
 ## Install the command
 
 ```bash
-cmake --install build-cpu --prefix "$HOME/.local"
+cmake --install buildCPU --prefix "$HOME/.local"
 ```
 
 `~/.local/bin` must be on `PATH`. After that, use `saturnCFD`, not
-`./build-cpu/saturnCFD`.
+`./buildCPU/saturnCFD`.
 
 ## Run
 
@@ -217,15 +217,15 @@ saturnCFD -checkMesh tests<Tab> -> tests/
 ## Documentation
 
 ```bash
-cmake --build build-cpu --target docHtml
-cmake --build build-cpu --target docPdf
+cmake --build buildCPU --target docHtml
+cmake --build buildCPU --target docPdf
 ```
 
 Outputs:
 
 ```text
-build-cpu/doxygen/html/index.html
-build-cpu/doxygen/latex/refman.pdf
+buildCPU/doxygen/html/index.html
+buildCPU/doxygen/latex/refman.pdf
 ```
 
 The hosted site is built by the `docs` workflow.
@@ -233,7 +233,7 @@ The hosted site is built by the `docs` workflow.
 ## Format
 
 ```bash
-cmake --build build-cpu --target formatCode
+cmake --build buildCPU --target formatCode
 ```
 
 The CI check runs `clang-format --dry-run --Werror`.
@@ -245,9 +245,9 @@ The MPI partition/halo layer is implemented. Run its tests with:
 ```bash
 ctest --preset mpi
 # equivalent:
-mpirun -np 1 build-cpu/testSaturnMPI
-mpirun -np 2 build-cpu/testSaturnMPI
-mpirun -np 4 build-cpu/testSaturnMPI
+mpirun -np 1 buildCPU/testSaturnMPI
+mpirun -np 2 buildCPU/testSaturnMPI
+mpirun -np 4 buildCPU/testSaturnMPI
 ```
 
 This PC has enough cores for the current 1/2/4-rank tests; no
@@ -255,7 +255,7 @@ This PC has enough cores for the current 1/2/4-rank tests; no
 available slots. To make it the default for a test build:
 
 ```bash
-cmake -S . -B build-cpu -DSATURN_MPI_PREFLAGS=--oversubscribe
+cmake -S . -B buildCPU -DSATURN_MPI_PREFLAGS=--oversubscribe
 ```
 
 On the cluster, use `srun`/`mpirun` with the allocated tasks and one rank per

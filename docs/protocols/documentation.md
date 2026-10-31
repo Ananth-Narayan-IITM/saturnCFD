@@ -50,7 +50,7 @@ Every public class and function has a Doxygen comment:
 - HTML uses MathJax; PDF uses Doxygen's LaTeX output.
 - `tools/doxygenMathFilter.py` converts Markdown `$...$` / `$$...$$` to
   Doxygen `\f$...\f$` / `\f[...\f]` and `[@key]` to `\cite{key}`.
-- `.github/workflows/docs.yml` publishes `build-cpu/doxygen/html` to the
+- `.github/workflows/docs.yml` publishes `buildCPU/doxygen/html` to the
   `gh-pages` branch; Pages must be set to deploy from that branch once.
 - PDF is a `workflow_dispatch` artifact.
 - `.clang-format` is the single style file; `format.yml` is a blocking check.

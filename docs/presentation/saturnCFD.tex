@@ -252,7 +252,7 @@ time:
     \item Kokkos selects the backend at \textbf{build} time:
           Serial/OpenMP or CUDA/HIP.
     \item CPU and GPU are separate build directories:
-          \texttt{build-cpu} and \texttt{build-gpu}.
+          \texttt{buildCPU} and \texttt{buildGPU}.
     \item \texttt{mpirun} launches MPI ranks; the compiled backend decides
           whether a rank uses a CPU or a GPU.
     \item Performance model: \textbf{one rank per GPU}.
@@ -420,14 +420,14 @@ time:
 # CPU build
 cmake --preset cpu
 cmake --build --preset cpu -j
-cmake --install build-cpu \
+cmake --install buildCPU \
   --prefix "$HOME/.local"
 
 # GPU build (installed Kokkos)
 export KOKKOS_ROOT=/path/to/kokkos
 cmake --preset gpu
 cmake --build --preset gpu -j
-cmake --install build-gpu \
+cmake --install buildGPU \
   --prefix "$HOME/.local"
 \end{lstlisting}
     \end{column}
@@ -451,8 +451,8 @@ ctest --preset gpu
   \small
   The installed binary carries the backend it was compiled with. CPU and GPU
   are separate build directories; install the one you want to run. The
-  \texttt{cpu} preset builds \texttt{build-cpu} with Kokkos OpenMP. The
-  \texttt{gpu} preset builds \texttt{build-gpu} and needs an installed
+  \texttt{cpu} preset builds \texttt{buildCPU} with Kokkos OpenMP. The
+  \texttt{gpu} preset builds \texttt{buildGPU} and needs an installed
   CUDA-enabled Kokkos in \texttt{KOKKOS\_ROOT}. Test binaries:
   \texttt{testSaturn}, \texttt{testSaturnMPI}, \texttt{testSaturnFV},
   \texttt{testSaturnPETSc}.
@@ -470,8 +470,8 @@ saturnCFD -help clean
 
 source <(saturnCFD -completion bash)
 
-cmake --build build-cpu --target clean
-rm -rf build-cpu build-gpu
+cmake --build buildCPU --target clean
+rm -rf buildCPU buildGPU
 \end{lstlisting}
 
   \begin{block}{No memorisation}

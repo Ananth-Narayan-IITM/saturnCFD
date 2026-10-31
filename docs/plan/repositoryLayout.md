@@ -10,7 +10,7 @@ new contributor can tell where a file belongs without reading the build.
 ```text
 saturnCFD/
   CMakeLists.txt
-  CMakePresets.json             # configure/build-cpu/test presets
+  CMakePresets.json             # configure/buildCPU/test presets
   cmake/
     SaturnDependencies.cmake    # Kokkos, PETSc, yaml-cpp, doctest
     SaturnOptions.cmake         # backend, precision, warnings
