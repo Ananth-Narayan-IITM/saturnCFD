@@ -83,7 +83,7 @@ saturnCFD -completion bash
 `-checkMesh` writes `<prefix>.vtu` and `<prefix>.json` by default;
 `-writeVTK` adds `.vtp` patches and a `.pvd`. Open the `.pvd` in ParaView.
 The binary is installed under `$HOME/.local/saturnCFD/cpu` and linked as
-`saturnCFD-cpu` (or `saturnCFD`), not called as `./buildCPU/saturnCFD`. `-completion` prints
+`saturnCPU` (or `saturnCFD`), not called as `./buildCPU/saturnCFD`. `-completion` prints
 bash/zsh/fish completion; `ctest --preset regression` is the short test command.
 The full option list is in `docs/protocols/cli.md`.
 

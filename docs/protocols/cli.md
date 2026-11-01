@@ -133,7 +133,7 @@ saturnCFD -completion fish | source
 ```
 
 Completion requires `saturnCFD` to be on `PATH`; install it with
-`tools/installBackends.sh cpu` (or install under
+`tools/compileSaturnCFD cpu` (or install under
 `$HOME/.local/saturnCFD/cpu` and link it).
 
 ## Units

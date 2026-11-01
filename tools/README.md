@@ -4,6 +4,7 @@ Cross-platform C++ and Python tools. No Bash-only workflow.
 
 | tool | purpose |
 |---|---|
+| `compileSaturnCFD` | builds CPU/GPU and installs to `~/.local/saturnCFD/{cpu,gpu}` |
 | `saturnCFDSolver.cpp` | build target `saturnCFDSolver`; copies a solver and prints `addSolver(name)` |
 | `doxygenMathFilter.py` | converts Markdown `$...$` / `$$...$$` to Doxygen `\f$...\f$` / `\f[...\f]` |
 

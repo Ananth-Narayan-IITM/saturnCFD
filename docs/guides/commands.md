@@ -106,20 +106,31 @@ not overwrite the GPU install, and vice versa:
 The helper builds, installs and refreshes the command links:
 
 ```bash
-# both backends; CPU becomes the plain "saturnCFD" default
-tools/installBackends.sh both --default cpu
+# both backends; CPU is the plain "saturnCFD" default
+tools/compileSaturnCFD both
+
+# same, but make GPU the plain "saturnCFD" default
+tools/compileSaturnCFD both --default gpu
 
 # only one backend; the other install stays untouched
-tools/installBackends.sh cpu
-tools/installBackends.sh gpu
+tools/compileSaturnCFD cpu
+tools/compileSaturnCFD gpu
+
+# remove buildCPU/buildGPU after a successful install
+tools/compileSaturnCFD both --clean
 ```
+
+The build directories are only needed for compiling and running CTest. Once a
+backend is installed, `saturnCPU`/`saturnGPU` do not need them. Keeping them
+makes the next incremental build fast; `--clean` removes them when you want a
+minimal tree.
 
 It creates:
 
 ```text
-~/.local/bin/saturnCFD-cpu -> ~/.local/saturnCFD/cpu/bin/saturnCFD
-~/.local/bin/saturnCFD-gpu -> ~/.local/saturnCFD/gpu/bin/saturnCFD
-~/.local/bin/saturnCFD     -> CPU (only with --default cpu)
+~/.local/bin/saturnCPU -> ~/.local/saturnCFD/cpu/bin/saturnCFD
+~/.local/bin/saturnGPU -> ~/.local/saturnCFD/gpu/bin/saturnCFD
+~/.local/bin/saturnCFD     -> CPU unless --default gpu
 ```
 
 Make sure the command directory is on `PATH`:
@@ -127,8 +138,8 @@ Make sure the command directory is on `PATH`:
 ```bash
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
 source "$HOME/.bashrc"
-which saturnCFD-cpu
-which saturnCFD-gpu
+which saturnCPU
+which saturnGPU
 ```
 
 ### KOKKOS_ROOT
@@ -165,9 +176,9 @@ cmake --install buildGPU --prefix "$HOME/.local/saturnCFD/gpu"
 ```bash
 mkdir -p "$HOME/.local/bin"
 ln -sfn "$HOME/.local/saturnCFD/cpu/bin/saturnCFD" \
-        "$HOME/.local/bin/saturnCFD-cpu"
+        "$HOME/.local/bin/saturnCPU"
 ln -sfn "$HOME/.local/saturnCFD/gpu/bin/saturnCFD" \
-        "$HOME/.local/bin/saturnCFD-gpu"
+        "$HOME/.local/bin/saturnGPU"
 ln -sfn "$HOME/.local/saturnCFD/cpu/bin/saturnCFD" \
         "$HOME/.local/bin/saturnCFD"
 ```
@@ -177,9 +188,9 @@ ln -sfn "$HOME/.local/saturnCFD/cpu/bin/saturnCFD" \
 Now the case can be anywhere and the backend is explicit:
 
 ```bash
-saturnCFD-cpu /path/to/case.yaml
-saturnCFD-gpu /path/to/case.yaml
-saturnCFD     /path/to/case.yaml   # whichever --default you installed
+saturnCPU /path/to/case.yaml
+saturnGPU /path/to/case.yaml
+saturnCFD     /path/to/case.yaml   # CPU unless installed with --default gpu
 ```
 
 Each run prints the backend before the time loop:
@@ -193,11 +204,11 @@ The installed binaries are independent of the build trees:
 
 ```bash
 rm -rf buildCPU buildGPU
-saturnCFD-cpu case.yaml      # still works
-saturnCFD-gpu case.yaml      # still works
+saturnCPU case.yaml      # still works
+saturnGPU case.yaml      # still works
 ```
 
-`which saturnCFD-cpu` / `which saturnCFD-gpu` show the symlinks. The
+`which saturnCPU` / `which saturnGPU` show the symlinks. The
 build-tree binaries (`buildCPU/saturnCFD`, `buildGPU/saturnCFD`) also work, but
 they disappear when the build tree is cleaned, so they are not the recommended
 command-line interface. If you really want them on `PATH`:
@@ -284,12 +295,12 @@ ctest --list-presets
 ## Install only one backend
 
 ```bash
-tools/installBackends.sh cpu
-# or: tools/installBackends.sh gpu
+tools/compileSaturnCFD cpu
+# or: tools/compileSaturnCFD gpu
 ```
 
-That leaves the other backend install untouched. To make the selected one the
-plain `saturnCFD` command:
+That leaves the other backend install untouched. The plain `saturnCFD` is CPU
+by default (pass `--default gpu` to change it).
 
 ```bash
 ln -sfn "$HOME/.local/saturnCFD/cpu/bin/saturnCFD" \
@@ -301,8 +312,8 @@ Then run from anywhere:
 
 ```bash
 saturnCFD /path/to/case.yaml
-saturnCFD-cpu /path/to/case.yaml
-saturnCFD-gpu /path/to/case.yaml
+saturnCPU /path/to/case.yaml
+saturnGPU /path/to/case.yaml
 ```
 
 ## Run

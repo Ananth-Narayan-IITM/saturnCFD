@@ -202,5 +202,5 @@ cmake --preset default
 cmake --build --preset default -j
 ctest --preset regression
 cmake --install buildCPU --prefix "$HOME/.local/saturnCFD/cpu"
-saturnCFD-cpu -help
+saturnCPU -help
 ```

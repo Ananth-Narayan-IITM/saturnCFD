@@ -42,7 +42,7 @@ cmake --build --preset gpu -j
 ```
 
 `KOKKOS_ROOT` is only needed when configuring/building the GPU preset; it is
-not needed to run `saturnCFD-gpu`. You can put it in `~/.bashrc` if you
+not needed to run `saturnGPU`. You can put it in `~/.bashrc` if you
 configure the GPU preset manually:
 
 ```bash
@@ -52,11 +52,12 @@ export KOKKOS_ROOT="$HOME/.local/kokkos-cuda"
 The recommended installation helper does this for you and keeps both backends:
 
 ```bash
-tools/installBackends.sh both --default cpu
+tools/compileSaturnCFD both        # CPU is the default saturnCFD
+tools/compileSaturnCFD both --default gpu
 ```
 
 It installs to `~/.local/saturnCFD/cpu` and `~/.local/saturnCFD/gpu` and creates
-`~/.local/bin/saturnCFD-cpu` / `saturnCFD-gpu`; see
+`~/.local/bin/saturnCPU` / `saturnGPU`; see
 [`commands.md`](commands.md).
 
 Use the architecture that matches the card (`Kokkos_ARCH_...`), for example
@@ -68,8 +69,8 @@ The recommended path-independent commands are created by installing the two
 backends into separate prefixes and symlinking them:
 
 ```bash
-saturnCFD-cpu /path/to/case.yaml
-saturnCFD-gpu /path/to/case.yaml
+saturnCPU /path/to/case.yaml
+saturnGPU /path/to/case.yaml
 ```
 
 See [`commands.md`](commands.md) for the install/symlink setup. The raw
@@ -101,13 +102,13 @@ The same string is stored as `"backend"` in the JSON summary. The GPU
 For one GPU, use one MPI rank:
 
 ```bash
-mpirun -np 1 saturnCFD-gpu case.yaml
+mpirun -np 1 saturnGPU case.yaml
 ```
 
 For four GPUs, one rank per GPU:
 
 ```bash
-mpirun -np 4 saturnCFD-gpu case.yaml
+mpirun -np 4 saturnGPU case.yaml
 ```
 
 `mpirun` is not CPU-only; each rank's compiled Kokkos backend decides whether

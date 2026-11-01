@@ -113,7 +113,7 @@ saturnCFD/
   tools/
     validateBurgers.py           # convergence table + validation figure
     benchmarkBurgers.py          # CPU vs GPU wall-clock comparison
-    installBackends.sh           # build/install CPU+GPU into ~/.local/saturnCFD
+    compileSaturnCFD           # build/install CPU+GPU into ~/.local/saturnCFD
 
   external/                     # pinned dependencies or FetchContent cache
   .github/workflows/

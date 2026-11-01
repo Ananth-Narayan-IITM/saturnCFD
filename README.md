@@ -89,7 +89,7 @@ ln -sfn "$HOME/.local/saturnCFD/cpu/bin/saturnCFD" \
 # ~/.local/bin must be on PATH
 ```
 
-For CPU+GPU in one install root, use `tools/installBackends.sh both`; see
+For CPU+GPU in one install root, use `tools/compileSaturnCFD both`; see
 [`docs/guides/commands.md`](docs/guides/commands.md).
 
 yaml-cpp, doctest and Kokkos are fetched automatically when not installed.

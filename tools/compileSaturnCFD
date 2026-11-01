@@ -1,0 +1,159 @@
+#!/usr/bin/env python3
+"""Build and install the saturnCFD CPU and GPU backends.
+
+Installs into one root:
+
+  ~/.local/saturnCFD/cpu/bin/saturnCFD
+  ~/.local/saturnCFD/gpu/bin/saturnCFD
+
+and creates path-independent commands:
+
+  ~/.local/bin/saturnCPU
+  ~/.local/bin/saturnGPU
+  ~/.local/bin/saturnCFD   (CPU unless --default gpu)
+
+Examples:
+
+  tools/compileSaturnCFD both
+  tools/compileSaturnCFD both --default gpu
+  tools/compileSaturnCFD cpu
+  tools/compileSaturnCFD gpu
+  tools/compileSaturnCFD both --clean
+
+KOKKOS_ROOT is only used for the GPU configure step. The script takes it from
+KOKKOS_CUDA_ROOT (default: ~/.local/kokkos-cuda).
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+HOME = Path.home()
+PREFIX = Path(os.environ.get("SATURN_PREFIX", HOME / ".local/saturnCFD"))
+BIN_DIR = Path(os.environ.get("SATURN_BIN", HOME / ".local/bin"))
+KOKKOS_CUDA_ROOT = Path(
+    os.environ.get("KOKKOS_CUDA_ROOT", HOME / ".local/kokkos-cuda")
+)
+
+
+def run(command: list[str], env: dict[str, str] | None = None) -> None:
+    print("+", " ".join(command))
+    subprocess.run(command, cwd=ROOT, env=env, check=True)
+
+
+def link(target: Path, name: str) -> None:
+    path = BIN_DIR / name
+    path.unlink(missing_ok=True)
+    path.symlink_to(target)
+    print(f"linked : {path} -> {target}")
+
+
+def install_cpu() -> None:
+    print("== CPU build ==")
+    run(["cmake", "--preset", "cpu"])
+    run(["cmake", "--build", "--preset", "cpu", "-j"])
+    run([
+        "cmake", "--install", "buildCPU",
+        "--prefix", str(PREFIX / "cpu"),
+    ])
+    link(PREFIX / "cpu/bin/saturnCFD", "saturnCPU")
+    print(f"installed: {PREFIX / 'cpu/bin/saturnCFD'}")
+
+
+def install_gpu() -> None:
+    print("== GPU build ==")
+    wrapper = KOKKOS_CUDA_ROOT / "bin/nvcc_wrapper"
+    if not wrapper.is_file():
+        print(
+            f"error: CUDA-enabled Kokkos not found at {KOKKOS_CUDA_ROOT}",
+            file=sys.stderr,
+        )
+        print(
+            "       set KOKKOS_CUDA_ROOT to the Kokkos install prefix",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+    env = os.environ.copy()
+    env["KOKKOS_ROOT"] = str(KOKKOS_CUDA_ROOT)
+    run(["cmake", "--preset", "gpu"], env=env)
+    run(["cmake", "--build", "--preset", "gpu", "-j"], env=env)
+    run([
+        "cmake", "--install", "buildGPU",
+        "--prefix", str(PREFIX / "gpu"),
+    ], env=env)
+    link(PREFIX / "gpu/bin/saturnCFD", "saturnGPU")
+    print(f"installed: {PREFIX / 'gpu/bin/saturnCFD'}")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "target", nargs="?", default="both", choices=("cpu", "gpu", "both"),
+        help="backend(s) to build (default: both)",
+    )
+    parser.add_argument(
+        "--default", choices=("cpu", "gpu"),
+        default=os.environ.get("SATURN_DEFAULT", "cpu"),
+        help="backend used by the plain saturnCFD command (default: cpu)",
+    )
+    parser.add_argument(
+        "--clean", action="store_true",
+        help="remove buildCPU/buildGPU after a successful install",
+    )
+    args = parser.parse_args()
+
+    PREFIX.mkdir(parents=True, exist_ok=True)
+    BIN_DIR.mkdir(parents=True, exist_ok=True)
+
+    if args.target in ("cpu", "both"):
+        install_cpu()
+    if args.target in ("gpu", "both"):
+        install_gpu()
+
+    # Remove command names from the older install layout.
+    for old in ("saturnCFD-cpu", "saturnCFD-gpu"):
+        (BIN_DIR / old).unlink(missing_ok=True)
+
+    default_bin = PREFIX / args.default / "bin/saturnCFD"
+    if default_bin.is_file():
+        link(default_bin, "saturnCFD")
+        print(f"default : {BIN_DIR / 'saturnCFD'} -> {args.default}")
+    else:
+        print(
+            f"warning: default backend '{args.default}' is not installed; "
+            "saturnCFD was not linked",
+            file=sys.stderr,
+        )
+
+    if args.clean:
+        for build in ("buildCPU", "buildGPU"):
+            path = ROOT / build
+            if path.is_dir():
+                shutil.rmtree(path)
+                print(f"cleaned : {path}")
+
+    print()
+    print(f"install root: {PREFIX}")
+    print(f"commands    : {BIN_DIR / 'saturnCPU'}")
+    print(f"              {BIN_DIR / 'saturnGPU'}")
+    print(f"default     : {BIN_DIR / 'saturnCFD'}")
+
+    path_entries = os.environ.get("PATH", "").split(os.pathsep)
+    if str(BIN_DIR) not in path_entries:
+        print()
+        print(f"warning: {BIN_DIR} is not on PATH. Add it once:")
+        print(f"  echo 'export PATH=\"{BIN_DIR}:$PATH\"' >> \"$HOME/.bashrc\"")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
