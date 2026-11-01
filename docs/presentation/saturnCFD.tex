@@ -108,13 +108,13 @@
           all-Neumann nullspace tests.
     \item Solver interface, registry, \texttt{TimeControl} and explicit
           Simulation loop (forward Euler, SSPRK2/3).
-    \item 1D/2D \texttt{saturnBurger}: MUSCL/Rusanov flux, diffusion,
+    \item 1D/2D/3D \texttt{saturnBurger}: MUSCL/Rusanov flux, diffusion,
           Dirichlet and periodic boundaries.
     \item \texttt{output.vtkEvery}: \texttt{.vtu} frames plus a ParaView
           \texttt{.pvd} collection.
     \item Periodic Laplacian, gradient and divergence MMS at order 2 on
           1/2/4 ranks.
-    \item 30 CTest cases, regression tests, Doxygen HTML/PDF.
+    \item 33 CTest cases, regression tests, Doxygen HTML/PDF.
   \end{itemize}
 
   \begin{block}{Status}
@@ -466,6 +466,24 @@ time:
   \end{block}
 \end{frame}
 
+\begin{frame}{3D Burgers validation and restart}
+  \begin{columns}[T]
+    \begin{column}{0.55\textwidth}
+      \includegraphics[width=\textwidth]{burgers3DValidation.png}
+    \end{column}
+    \begin{column}{0.42\textwidth}
+      \begin{itemize}
+        \item 3D conservative flux F(u)=(u$^2$/2,u$^2$/2,u$^2$/2).
+        \item Exact diagonal plane wave.
+        \item 32$^3$ example: L$^2=8.97\times10^{-4}$.
+        \item Coarse 3D plane-wave order 1.37; dense cluster run next.
+        \item \texttt{output.checkpointEvery}: binary restart files.
+        \item \texttt{restart.file}: resumes at the checkpoint step/time.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
 \section{Commands and tests}
 
 \begin{frame}[fragile]{Build and run}
@@ -611,7 +629,7 @@ rm -rf buildCPU buildGPU
       \toprule
       Suite & Result \\
       \midrule
-      CTest total & 30/30 passing \\
+      CTest total & 33/33 passing \\
       MPI distribution \& halo & 1, 2, 4 ranks passing \\
       Kokkos field + halo & 2 ghosts, 26 directions, 1/2/4 ranks \\
       LocalMesh + operators & linear exactness, 1/2/4 ranks \\
@@ -659,8 +677,9 @@ rm -rf buildCPU buildGPU
           \item Laplacian/gradient/divergence/advection MMS
           \item PETSc \texttt{saturnLinAlg} + Poisson tests
           \item Solver registry, \texttt{TimeControl}, SSP-RK loop
-          \item 1D/2D \texttt{saturnBurger} + traveling-wave/shock tests
-          \item Registered YAML case + analytic validation figure
+          \item 1D/2D/3D \texttt{saturnBurger} + traveling-wave/shock tests
+          \item VTK field output + checkpoint/restart
+          \item Registered YAML cases + analytic validation figures
           \item 1/2/4-rank tests
           \item Doxygen HTML/PDF
         \end{itemize}

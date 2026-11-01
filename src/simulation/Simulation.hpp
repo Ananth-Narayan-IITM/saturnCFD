@@ -29,6 +29,15 @@ class Simulation {
     mStepCallback = std::move(callback);
   }
 
+  /// Resume at `step` and `time`. `restore` must fill the solver state from a
+  /// checkpoint; the time loop refreshes the boundary ghosts afterwards.
+  void setRestart(int step, Real time, std::function<void()> restore) {
+    mRestart = true;
+    mRestartStep = step;
+    mRestartTime = time;
+    mRestore = std::move(restore);
+  }
+
   // Public only because nvcc rejects an extended __host__ __device__ lambda
   // inside a private member function. They are internal to run().
   void rkUpdate(CellField& out, const CellField& base, const CellField& stage,
@@ -49,6 +58,10 @@ class Simulation {
   CellField mStage2;
   CellField mRate;
   StepCallback mStepCallback;
+  bool mRestart = false;
+  int mRestartStep = 0;
+  Real mRestartTime = 0;
+  std::function<void()> mRestore;
 
   void allocateWorkspaces();
   void explicitStep(Real dt);

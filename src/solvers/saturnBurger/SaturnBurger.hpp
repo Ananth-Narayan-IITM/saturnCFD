@@ -18,15 +18,15 @@
 
 namespace saturn {
 
-/// Options for the scalar Burgers solver (1D or 2D).
+/// Options for the scalar Burgers solver (1D, 2D or 3D).
 ///
 /// The solver advances
 ///
 ///   du/dt + d/dx(u^2/2) = nu d2u/dx2 + source
 ///
-/// on a structured 1D/2D block. The initial and Dirichlet callbacks receive the
-/// physical point; Dirichlet also receives time so a moving exact solution can
-/// be imposed.
+/// on a structured 1D/2D/3D block. The initial and Dirichlet callbacks receive
+/// the physical point; Dirichlet also receives time so a moving exact solution
+/// can be imposed.
 struct BurgersOptions {
   Real nu = 1e-2;
   Real source = 0;
@@ -61,11 +61,11 @@ struct ExactError {
   BigIndex samples = 0;
 };
 
-/// Scalar Burgers solver for 1D and 2D structured blocks.
+/// Scalar Burgers solver for 1D, 2D and 3D structured blocks.
 ///
 /// This is the first production solver. The spatial operators are the shared
-/// FVM layer; the time loop is `Simulation`. The 2D case uses the conservative
-/// flux vector F(u) = (u^2/2, u^2/2).
+/// FVM layer; the time loop is `Simulation`. The multi-D case uses the
+/// conservative flux vector F(u) = (u^2/2, u^2/2, u^2/2).
 class SaturnBurger : public Solver {
  public:
   SaturnBurger(Mesh mesh, BurgersOptions options);
@@ -97,6 +97,13 @@ class SaturnBurger : public Solver {
 
   /// Global error norms against `BurgersOptions::exact`.
   ExactError exactError(Real time) const;
+
+  /// Global field in mesh cell order. Used by checkpoint output.
+  std::vector<Real> globalState() const;
+
+  /// Replace the owned state from a global field in mesh cell order.
+  /// The caller is responsible for refreshing ghosts afterwards.
+  void setGlobalState(const std::vector<Real>& values);
 
  private:
   Mesh mMesh;

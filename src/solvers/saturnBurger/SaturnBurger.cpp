@@ -44,7 +44,8 @@ SaturnBurger::SaturnBurger(Mesh mesh, BurgersOptions options)
     : mMesh(std::move(mesh)),
       mOptions(std::move(options)),
       mPart(mMesh.nx, mMesh.ny, mMesh.nz, mOptions.periodic && mMesh.nx > 1,
-            mOptions.periodic && mMesh.dimension >= 2 && mMesh.ny > 1, false),
+            mOptions.periodic && mMesh.dimension >= 2 && mMesh.ny > 1,
+            mOptions.periodic && mMesh.dimension >= 3 && mMesh.nz > 1),
       mLocal(mMesh, mPart, 2),
       mHalo(mPart, 2, 1),
       mFieldHalo(mHalo, 1),
@@ -54,11 +55,13 @@ SaturnBurger::SaturnBurger(Mesh mesh, BurgersOptions options)
       mDiv(mPart, 2, 1, "saturnBurger::div"),
       mLap(mPart, 2, 1, "saturnBurger::lap"),
       mGrad(mPart, 2, 3, "saturnBurger::grad") {
-  if (!mMesh.structured || (mMesh.dimension != 1 && mMesh.dimension != 2) ||
-      (mMesh.dimension == 1 && (mMesh.ny != 1 || mMesh.nz != 1)) ||
-      (mMesh.dimension == 2 && mMesh.nz != 1))
+  if (!mMesh.structured || mMesh.dimension < 1 || mMesh.dimension > 3)
     throw std::invalid_argument(
-        "saturnBurger: expected a structured 1D or 2D mesh (nz = 1)");
+        "saturnBurger: expected a structured 1D, 2D or 3D mesh");
+  if (mMesh.dimension == 1 && (mMesh.ny != 1 || mMesh.nz != 1))
+    throw std::invalid_argument("saturnBurger: 1D requires ny = nz = 1");
+  if (mMesh.dimension == 2 && mMesh.nz != 1)
+    throw std::invalid_argument("saturnBurger: 2D requires nz = 1");
   if (mMesh.nx < 1 || mMesh.ny < 1 || mMesh.nz < 1)
     throw std::invalid_argument("saturnBurger: empty mesh");
   if (mOptions.nu < 0)
@@ -259,6 +262,42 @@ ExactError SaturnBurger::exactError(Real time) const {
       static_cast<Real>(std::sqrt(l2 / static_cast<double>(points.size())));
   out.linf = static_cast<Real>(linf);
   return out;
+}
+
+std::vector<Real> SaturnBurger::globalState() const {
+  std::vector<Real> values(mMesh.cells.size(), 0);
+  const std::vector<ProfilePoint> points = profile(0, false);
+  for (const ProfilePoint& point : points) {
+    if (point.cell >= 0 && static_cast<std::size_t>(point.cell) < values.size())
+      values[static_cast<std::size_t>(point.cell)] = point.numerical;
+  }
+  return values;
+}
+
+void SaturnBurger::setGlobalState(const std::vector<Real>& values) {
+  if (values.size() != mMesh.cells.size())
+    throw std::invalid_argument(
+        "saturnBurger: checkpoint field size does not match the mesh");
+
+  auto host = mU.hostView();
+  const int gi0 = mU.origin(0) - mU.nGrow();
+  const int gj0 = mU.origin(1) - mU.nGrow();
+  const int gk0 = mU.origin(2) - mU.nGrow();
+  for (int k = mPart.localOrigin(2);
+       k < mPart.localOrigin(2) + mPart.localExtent(2); ++k) {
+    for (int j = mPart.localOrigin(1);
+         j < mPart.localOrigin(1) + mPart.localExtent(1); ++j) {
+      for (int i = mPart.localOrigin(0);
+           i < mPart.localOrigin(0) + mPart.localExtent(0); ++i) {
+        const int cell = mMesh.cellAt(i, j, k);
+        if (cell < 0)
+          throw std::runtime_error("saturnBurger: missing owned cell");
+        host(i - gi0, j - gj0, k - gk0, 0) =
+            values[static_cast<std::size_t>(cell)];
+      }
+    }
+  }
+  mU.syncFromHost(host);
 }
 
 Real SaturnBurger::maxWaveSpeed() const {

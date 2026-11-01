@@ -251,7 +251,9 @@ ctest --preset mpi           # partition/halo + FVM, 1/2/4 ranks
 ctest --preset fv            # fields, LocalMesh, operators, MMS, Burgers
 ctest --preset burgers       # YAML Burgers validation on 1/2/4 ranks
 ctest --preset burgers2d     # 2D Burgers YAML validation
+ctest --preset burgers3d     # 3D Burgers YAML validation
 ctest --preset vtk           # VTK field-export test
+ctest --preset checkpoint    # checkpoint/restart test
 ctest --preset petsc         # PETSc Poisson/nullspace on 1/2/4 ranks
 ctest --preset gpu           # GPU-labelled tests in buildGPU
 ```
@@ -367,6 +369,21 @@ results/burgers/run.pvd          # ParaView collection
 Open the `.pvd` in ParaView to animate the sequence. VTK field output is
 currently available for `saturnBurger`.
 
+### Checkpoint and restart
+
+```yaml
+output:
+  checkpointEvery: 100        # 0 = off
+
+restart:
+  file: results/burgers/run_000500.chk
+```
+
+Checkpoints are written at step 0, every N steps and the final state. A restart
+case resumes at the checkpoint step/time and continues to its `time.end`. The
+solver name, dimension and mesh must match. `ctest --preset checkpoint` verifies
+that a restarted run matches an uninterrupted reference run.
+
 ## Help and completion
 
 ```bash
@@ -467,6 +484,10 @@ python3 compareAnalytic.py
 
 cd ../saturnBurger2D
 saturnCFD saturnBurger2D.yaml
+python3 compareAnalytic.py
+
+cd ../saturnBurger3D
+saturnCFD saturnBurger3D.yaml
 python3 compareAnalytic.py
 ```
 

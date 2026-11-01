@@ -14,6 +14,10 @@ examples/
       saturnBurger2D.yaml
       compareAnalytic.py
       README.md
+    saturnBurger3D/        # 3D diagonal traveling wave
+      saturnBurger3D.yaml
+      compareAnalytic.py
+      README.md
   heat/                    # later
   saturnStokes/            # later
   saturnIncompressible/    # later
@@ -43,6 +47,11 @@ python3 compareAnalytic.py
 # 2D
 cd ../saturnBurger2D
 saturnCFD saturnBurger2D.yaml
+python3 compareAnalytic.py
+
+# 3D
+cd ../saturnBurger3D
+saturnCFD saturnBurger3D.yaml
 python3 compareAnalytic.py
 ```
 

@@ -104,10 +104,23 @@ added by the solver.
 
 ## Checkpoint / restart
 
-The checkpoint contains the mesh identity, solver name, config hash, step,
-time and field data. Restart requires the same solver, mesh and precision.
-Bitwise reproducibility is not promised across backends; document the
-tolerance.
+Implemented for `saturnBurger`:
+
+- `output.checkpointEvery: N` writes `<prefix>_<step>.chk` at step 0, every N
+  steps and the final state; `0` disables it.
+- `restart.file: <checkpoint>` resumes at the stored step and time and
+  continues to the case `time.end`.
+- The binary file stores the solver name, dimension, grid extents, step, time
+  and the global cell field. Rank 0 writes; rank 0 reads and broadcasts on
+  restart.
+- The solver name, dimension and mesh must match. Restart is tested by
+  `burgers_checkpoint`, which compares the restarted final norms with an
+  uninterrupted reference run.
+
+The generic contract remains: the checkpoint contains the mesh identity,
+solver name, config hash, step, time and field data. The config hash and
+cross-backend reproducibility are later additions; bitwise reproducibility is
+not promised across backends.
 
 ## Invariants
 

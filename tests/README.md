@@ -18,10 +18,12 @@ tests/
   TestSimulation.cpp
   TestSaturnBurger.cpp
   TestSaturnBurger2D.cpp
+  TestSaturnBurger3D.cpp
   TestParallel.cpp
   UniformMesh.hpp
   checkBurgers.cmake
   checkBurgersVtk.cmake
+  checkBurgersCheckpoint.py
   core/
   config/
   mesh/
@@ -60,7 +62,9 @@ ctest --preset mpi              # 1/2/4-rank MPI tests
 ctest --preset fv               # LocalMesh, operators and MMS
 ctest --preset burgers          # 1D YAML Burgers case on 1/2/4 ranks
 ctest --preset burgers2d        # 2D YAML Burgers regression
+ctest --preset burgers3d        # 3D YAML Burgers regression
 ctest --preset vtk              # VTK field-export regression
+ctest --preset checkpoint       # checkpoint/restart round trip
 
 # equivalent fallback
 ctest --test-dir buildCPU --output-on-failure

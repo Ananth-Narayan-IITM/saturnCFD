@@ -9,6 +9,7 @@ set(SATURN_CORE_SOURCES
   mesh/MeshFactory.cpp
   mesh/CheckMesh.cpp
   mesh/VtuWriter.cpp
+  io/Checkpoint.cpp
   comm/Partition.cpp
   comm/HaloExchange.cpp
 )

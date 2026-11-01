@@ -207,6 +207,32 @@
       }
     },
     {
+      "name": "burgers3d",
+      "displayName": "3D Burgers YAML validation",
+      "configurePreset": "default",
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "label": "burgers3d"
+        }
+      }
+    },
+    {
+      "name": "checkpoint",
+      "displayName": "Checkpoint/restart tests",
+      "configurePreset": "default",
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "label": "checkpoint"
+        }
+      }
+    },
+    {
       "name": "gpu",
       "displayName": "GPU tests in buildGPU",
       "configurePreset": "gpu",

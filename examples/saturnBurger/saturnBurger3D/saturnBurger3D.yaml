@@ -1,0 +1,61 @@
+# saturnBurger 3D standalone example
+#
+# 3D scalar Burgers in conservative form:
+#   du/dt + d/dx(u^2/2) + d/dy(u^2/2) + d/dz(u^2/2)
+#         = nu (d2u/dx2 + d2u/dy2 + d2u/dz2)
+#
+# Exact diagonal traveling wave:
+#   u(x,y,z,t) = U/2 * (1 - tanh(U*(x+y+z-x0-y0-z0-3*U*t/2)/(4*nu)))
+# with U = 1, nu = 0.2, x0 = y0 = z0 = 0.
+#
+# Run and compare:
+#   saturnCFD saturnBurger3D.yaml
+#   python3 compareAnalytic.py
+
+solver: saturnBurger
+
+units:
+  system: SI
+
+mesh:
+  type: box
+  nx: 32
+  ny: 32
+  nz: 32
+  box:
+    xmin: -1.0
+    xmax: 1.0
+    ymin: -1.0
+    ymax: 1.0
+    zmin: -1.0
+    zmax: 1.0
+
+time:
+  start: 0.0
+  end: 0.25
+  scheme: ssprk3
+  adaptive: true
+  cfl: 0.3
+  dtMax: 0.01
+  maxSteps: 100000
+
+burgers:
+  nu: 0.2
+  velocity: 1.0
+  x0: 0.0
+  y0: 0.0
+  z0: 0.0
+  source: 0.0
+  periodic: false
+  initial: travelingWave
+
+numerics:
+  convection: muscl
+  limiter: vanLeer
+
+output:
+  prefix: results/saturnBurger3D/traveling
+  csv: true
+  json: true
+  exact: true
+  vtkEvery: 0

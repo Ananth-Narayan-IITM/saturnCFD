@@ -87,8 +87,8 @@ through the loop on 1/2/4 ranks.
 
 ## Phase 2 — Burgers
 
-**Status:** 1D and 2D scalar `saturnBurger` implemented and tested. 3D and
-implicit diffusion are next.
+**Status:** 1D/2D/3D scalar `saturnBurger` implemented and tested, with VTK
+and checkpoint/restart. Implicit diffusion is next.
 
 **Start with 1D scalar conservative Burgers:**
 
@@ -99,7 +99,7 @@ $$
 
 Implemented:
 
-- `src/solvers/saturnBurger/` target `saturnBurger` for 1D and 2D;
+- `src/solvers/saturnBurger/` target `saturnBurger` for 1D, 2D and 3D;
 - 2D conservative form with flux vector $\mathbf{F}(u)=(u^2/2,u^2/2)$;
 - `burgersFlux` with canonical face orientation and Rusanov/local
   Lax–Friedrichs;
@@ -124,6 +124,8 @@ Validation (viscous traveling wave, `U=1`, `nu=0.02`, `t=0.5`):
 | 2D diagonal wave, N=32/64/128 | L2 9.909e-3 -> 2.555e-3 -> 5.968e-4, orders 1.96/2.10 |
 | 2D example | `examples/saturnBurger/saturnBurger2D` L2 5.968e-4 with an independent analytic script |
 | VTK output | `output.vtkEvery` writes `.vtu` frames plus `.pvd`; `ctest --preset vtk` |
+| 3D example | `examples/saturnBurger/saturnBurger3D` L2 8.967e-4 at 32^3 |
+| checkpoint/restart | `output.checkpointEvery` + `restart.file`; `ctest --preset checkpoint` |
 
 The earlier rank-dependent traveling-wave error was a test-diagnostic bug: the
 test divided by the local owned-cell count. The solver was already rank
@@ -135,13 +137,12 @@ Still to add:
 - limiter comparison table (upwind/minmod/MC/van Leer/superbee);
 - shock-speed error in cells;
 - Neumann boundary condition;
-- 3D scalar Burgers;
 - vector Burgers before Navier–Stokes;
 - IMEX BE/CN with implicit diffusion through `saturnLinAlg`.
 
-Exit for the 1D/2D slice is met: traveling waves and the 1D shock pass on
-1/2/4 ranks, the YAML regressions run, and the analytic comparisons are
-plotted. The full Phase 2 exit waits for 3D.
+Exit for the 1D/2D/3D scalar slice is met: traveling waves and the 1D shock
+pass on 1/2/4 ranks, YAML regressions run, and analytic comparisons are
+plotted. The remaining Phase 2 items are vector Burgers and implicit diffusion.
 
 ## Phase 3 — Heat equation
 

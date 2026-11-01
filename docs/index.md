@@ -10,9 +10,9 @@ the CPU Kokkos FVM slice (`CellField`, `FaceField`, `LocalMesh`, interpolation,
 gradient, divergence, non-orthogonal Laplacian, boundary ghosts,
 upwind/Rusanov/MUSCL convection, MMS and a simplified Rhie–Chow flux), the
 Phase 0 PETSc `saturnLinAlg` layer, the explicit solver/time loop and the 1D
-`saturnBurger` solver are in place. The 1D and 2D Burgers solver is registered
-in the CLI and validated against exact traveling waves (second order; 1D rank
-independent). 3D Burgers, implicit time schemes and the heat solver follow.
+`saturnBurger` solver are in place. The 1D/2D/3D Burgers solver is registered
+in the CLI and validated against exact traveling waves, with VTK output and
+checkpoint/restart. Implicit time schemes and the heat solver follow.
 
 ## Where to start
 

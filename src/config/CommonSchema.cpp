@@ -36,6 +36,9 @@ ConfigSchema commonSchema() {
   s.addBool("output.csv", false, "write a final profile as CSV");
   s.addBool("output.json", true, "write a JSON run summary");
   s.addBool("output.exact", false, "compare against the solver's exact data");
+  s.addInt("output.checkpointEvery", 0, "write a checkpoint every N steps", 0,
+           1000000000);
+  s.addString("restart.file", "", "checkpoint file to resume from");
   s.require("solver");
   return s;
 }

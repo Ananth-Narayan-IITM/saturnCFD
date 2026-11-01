@@ -17,6 +17,7 @@
 #include "config/ConfigSchema.hpp"
 #include "core/Error.hpp"
 #include "core/Units.hpp"
+#include "io/Checkpoint.hpp"
 #include "mesh/CheckMesh.hpp"
 #include "mesh/Mesh.hpp"
 #include "mesh/MeshFactory.hpp"
@@ -586,6 +587,8 @@ void printTopic(const std::string& topic) {
            "  ctest --preset fv            LocalMesh, operators, MMS, Burgers\n"
            "  ctest --preset burgers       1D Burgers YAML validation\n"
            "  ctest --preset burgers2d     2D Burgers YAML validation\n"
+           "  ctest --preset burgers3d     3D Burgers YAML validation\n"
+           "  ctest --preset checkpoint   checkpoint/restart tests\n"
            "  ctest --preset vtk          VTK field-export tests\n"
            "  ctest --preset petsc         PETSc Poisson/nullspace tests\n"
            "  ctest --preset gpu           GPU-labelled FV tests\n"
@@ -878,6 +881,8 @@ int runCase(const Cli& cli) {
   const bool wantCsv = cfg.getBool("output.csv", false);
   const bool wantJson = cfg.getBool("output.json", true);
   const int vtkEvery = cfg.getInt("output.vtkEvery", 0);
+  const int checkpointEvery = cfg.getInt("output.checkpointEvery", 0);
+  const std::string restartFile = cfg.getString("restart.file", "");
 
   auto* burgers = dynamic_cast<SaturnBurger*>(solver.get());
   const bool exactAvailable = burgers != nullptr && burgers->hasExact();
@@ -885,6 +890,10 @@ int runCase(const Cli& cli) {
     throw ConfigError(
         "output.exact/output.csv requested, but this solver has no analytic "
         "solution configured");
+
+  const bool wantCheckpoint = checkpointEvery > 0;
+  Checkpoint restart;
+  const bool haveRestart = !restartFile.empty();
 
   TimeControl control;
   control.t0 = cfg.getDouble("time.start", 0.0);
@@ -899,6 +908,24 @@ int runCase(const Cli& cli) {
   if (!isExplicit(scheme))
     throw ConfigError(
         "time.scheme: implicit schemes are not implemented by this solver");
+
+  if (haveRestart) {
+    if (burgers == nullptr)
+      throw ConfigError(
+          "restart.file is currently supported by saturnBurger only");
+    restart = readCheckpoint(restartFile);
+    const Mesh& mesh = burgers->mesh();
+    if (restart.solver != solverName)
+      throw ConfigError("checkpoint solver '" + restart.solver +
+                        "' does not match '" + solverName + "'");
+    if (restart.dimension != mesh.dimension || restart.nx != mesh.nx ||
+        restart.ny != mesh.ny || restart.nz != mesh.nz)
+      throw ConfigError("checkpoint mesh does not match the case mesh");
+    if (restart.values.size() != mesh.cells.size())
+      throw ConfigError("checkpoint field size does not match the mesh");
+    if (restart.time >= control.tEnd)
+      throw ConfigError("checkpoint time is not before time.end");
+  }
 
   if (worldRank() == 0)
     std::cout << "backend : " << backendDescription() << "\n";
@@ -928,10 +955,42 @@ int runCase(const Cli& cli) {
     vtkFrames.emplace_back(time, file.str());
   };
 
-  if (wantVtk) {
+  int checkpointFrames = 0;
+  if (wantCheckpoint && burgers == nullptr)
+    throw ConfigError(
+        "output.checkpointEvery is currently supported by saturnBurger only");
+
+  auto writeCheckpointFrame = [&](int step, Real time) {
+    const std::vector<Real> values = burgers->globalState();
+    if (worldRank() != 0)
+      return;
+    Checkpoint checkpoint;
+    checkpoint.solver = solverName;
+    checkpoint.dimension = burgers->dimension();
+    checkpoint.nx = burgers->mesh().nx;
+    checkpoint.ny = burgers->mesh().ny;
+    checkpoint.nz = burgers->mesh().nz;
+    checkpoint.step = step;
+    checkpoint.time = time;
+    checkpoint.values = values;
+    std::ostringstream file;
+    file << prefix << '_' << std::setw(6) << std::setfill('0') << step
+         << ".chk";
+    writeCheckpoint(file.str(), checkpoint);
+    ++checkpointFrames;
+  };
+
+  if (haveRestart) {
+    simulation.setRestart(restart.step, restart.time,
+                          [&]() { burgers->setGlobalState(restart.values); });
+  }
+
+  if (wantVtk || wantCheckpoint) {
     simulation.setStepCallback([&](int step, Real time) {
-      if (step % vtkEvery == 0)
+      if (wantVtk && step % vtkEvery == 0)
         writeVtkFrame(step, time);
+      if (wantCheckpoint && step % checkpointEvery == 0)
+        writeCheckpointFrame(step, time);
     });
   }
 
@@ -951,6 +1010,8 @@ int runCase(const Cli& cli) {
 
   if (wantVtk && result.final.step % vtkEvery != 0)
     writeVtkFrame(result.final.step, result.final.time);
+  if (wantCheckpoint && result.final.step % checkpointEvery != 0)
+    writeCheckpointFrame(result.final.step, result.final.time);
   if (wantVtk && worldRank() == 0 && !vtkFrames.empty())
     writePvd(prefix + ".pvd", vtkFrames);
 
@@ -985,15 +1046,20 @@ int runCase(const Cli& cli) {
     os << std::setprecision(17);
     if (dim == 1)
       os << "x,u_numerical,u_exact,error\n";
-    else
+    else if (dim == 2)
       os << "x,y,u_numerical,u_exact,error\n";
+    else
+      os << "x,y,z,u_numerical,u_exact,error\n";
     for (const ProfilePoint& p : points) {
       if (dim == 1)
         os << p.x << ',' << p.numerical << ',' << p.exact << ',' << p.error
            << '\n';
-      else
+      else if (dim == 2)
         os << p.x << ',' << p.y << ',' << p.numerical << ',' << p.exact << ','
            << p.error << '\n';
+      else
+        os << p.x << ',' << p.y << ',' << p.z << ',' << p.numerical << ','
+           << p.exact << ',' << p.error << '\n';
     }
     if (worldRank() == 0)
       writeTextFile(prefix + ".csv", os.str());
@@ -1017,6 +1083,14 @@ int runCase(const Cli& cli) {
     if (wantVtk) {
       os << ",\n  \"vtkEvery\": " << vtkEvery
          << ",\n  \"vtkFrames\": " << vtkFrames.size();
+    }
+    if (wantCheckpoint) {
+      os << ",\n  \"checkpointEvery\": " << checkpointEvery
+         << ",\n  \"checkpointFrames\": " << checkpointFrames;
+    }
+    if (haveRestart) {
+      os << ",\n  \"restartedFrom\": \"" << restartFile << "\""
+         << ",\n  \"restartStep\": " << restart.step;
     }
     if (haveExact) {
       os << ",\n  \"exact\": {\"l1\": " << exact.l1 << ", \"l2\": " << exact.l2

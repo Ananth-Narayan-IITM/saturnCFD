@@ -76,6 +76,17 @@ $$
 is exact. The front is the line $x+y=x_0+y_0+Ut$; this tests the x and y
 flux components together.
 
+For the 3D conservative form, the diagonal plane wave is
+
+$$
+u(x,y,z,t) = \frac{U}{2}\left[
+1 - \tanh\left(
+\frac{U(x+y+z-x_0-y_0-z_0-\frac32Ut)}{4\nu}
+\right)\right].
+$$
+
+The front is the plane $x+y+z=x_0+y_0+z_0+\frac32Ut$.
+
 For the inviscid equation, use a smooth periodic initial condition such as
 
 $$
@@ -168,7 +179,9 @@ on a structured 1D or 2D block. It uses:
 - `setTime` so Dirichlet data at a moving exact boundary is refreshed after
   every RK stage;
 - `output.vtkEvery` writes the `u` field every N steps plus a `.pvd`
-  collection for ParaView.
+  collection for ParaView;
+- `output.checkpointEvery` writes binary restart files and `restart.file`
+  resumes from them.
 
 The face flux is stored with a **canonical orientation** (lower-coordinate
 cell on the left), then multiplied by the outward normal component. In 2D the
@@ -203,6 +216,11 @@ For the 2D diagonal wave on $[-1,1]^2$:
 | 32x32 | 9.909e-3 | — |
 | 64x64 | 2.555e-3 | 1.96 |
 | 128x128 | 5.968e-4 | 2.10 |
+
+For the 3D diagonal example at $32^3$, $\nu=0.2$, $t=0.25$:
+$L^2=8.967\times10^{-4}$. The 3D plane-wave unit test gives
+$L^2=3.363\times10^{-3}\to1.303\times10^{-3}$ at $8^3\to16^3$
+(observed order 1.37 on coarse grids); dense cluster runs are the next step.
 
 At $N=256$, 1, 2 and 4 MPI ranks give **bitwise-identical** norms:
 

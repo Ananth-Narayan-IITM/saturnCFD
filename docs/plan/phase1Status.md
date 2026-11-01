@@ -55,7 +55,8 @@ verification are next. The parallel design is in
 | simulation tests in `testSaturnFV` | done on 1/2/4 ranks |
 | `saturnBurger` 1D scalar Burgers | done |
 | Burgers traveling wave and periodic shock | done on 1/2/4 ranks |
-| 3D Burgers and implicit diffusion | next |
+| 3D Burgers, VTK, checkpoint/restart | done |
+| implicit diffusion | next |
 | GPU-labelled FV regression cases | verified on the local Quadro P620 CUDA build |
 
 ## Pending
@@ -63,11 +64,11 @@ verification are next. The parallel design is in
 | area | pending item |
 |---|---|
 | `src/fv` | pressure Poisson/SIMPLE-PISO coupling, persistent face flux, Rhie–Chow coefficient from the momentum diagonal |
-| `src/simulation` | output cadence, checkpoint, implicit time schemes |
-| `src/solvers` | 3D `saturnBurger`, `saturnCFDSolver` tool, Neumann BC; 1D/2D CLI/YAML wiring is done |
+| `src/simulation` | output cadence, implicit time schemes |
+| `src/solvers` | `saturnCFDSolver` tool, Neumann BC, vector Burgers; 1D/2D/3D CLI/YAML done |
 | `src/config` | `boundary` and `fields` schemas; `saturnBurger` supplies its own schema |
 | `src/linalg` | FV Poisson matrix assembly, block/multi-RHS, fieldsplit/Schur |
-| `src/io` | CSV diagnostics, run manifest, checkpoint |
+| `src/io` | CSV diagnostics, run manifest |
 | `tests/parallel` | cross-run 1/2/4-rank equality, GPU execution on a CUDA host |
 | `benchmarks` | halo/stencil strong/weak scaling harness |
 | tooling | ASan/UBSan options, Valgrind/Compute Sanitizer targets |
@@ -143,8 +144,8 @@ Navier–Stokes. The list below is the repository build-out order.
    - next: block/multi-RHS and fieldsplit/Schur.
 
 5. **I/O completion**
-   - CSV diagnostics, run manifest, checkpoint.
-   - checkpoint/restart test.
+   - CSV diagnostics and run manifest are next.
+   - checkpoint/restart is implemented and tested (`burgers_checkpoint`).
 
 Then Phase 2: Burgers physics and the `traveling64` analytic regression.
 
@@ -171,13 +172,13 @@ Then Phase 2: Burgers physics and the `traveling64` analytic regression.
   all-Neumann tests pass on 1/2/4 ranks.
 - **Done:** `Solver`, `SolverRegistry`, `TimeControl` and the explicit
   `Simulation` loop; constant/cosine/sine cases pass on 1/2/4 ranks.
-- **Done:** `saturnBurger` 1D/2D scalar; 1D traveling wave N=32->1024 with
+- **Done:** `saturnBurger` 1D/2D/3D scalar; 1D traveling wave N=32->1024 with
   orders 1.98/2.11/2.10/2.06/2.03, periodic shock bounded/conservative,
-  bitwise identical 1/2/4-rank results at N=256, and a 2D diagonal wave with
-  orders 1.96/2.10.
+  bitwise identical 1/2/4-rank results at N=256, 2D diagonal orders
+  1.96/2.10, 3D example L2 8.967e-4, VTK and checkpoint/restart.
 - **Done:** YAML CLI path (`saturnCFD case.yaml`), CSV profile and JSON
   summary; `ctest --preset burgers` passes on 1/2/4 ranks.
-- Pending: FV Poisson matrix assembly, implicit BE/CN/BDF2, 3D Burgers and
+- Pending: FV Poisson matrix assembly, implicit BE/CN/BDF2, vector Burgers and
   heat solvers.
 - Pending: pressure Poisson/SIMPLE-PISO with PETSc.
 - 1/2/4-rank *cross-run* results agree; a CUDA build reproduces the CPU

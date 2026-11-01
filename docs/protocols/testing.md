@@ -112,11 +112,16 @@ device tests. The CUDA build is verified on the local Quadro P620; see
 - `fv: Burgers constant flux` separately checks the $-0.5/+0.5$ face sign
   and zero divergence;
 - `burgers_vtk` checks `output.vtkEvery`: `.vtu` frames and a `.pvd`
-  collection.
+  collection;
+- `burgers_3d_traveling16` checks the 3D YAML and norms;
+- `burgers_checkpoint` checks checkpoint/restart against an uninterrupted run.
 
 `tests/TestSaturnBurger2D.cpp` checks the 2D diagonal plane wave on
 $[-1,1]^2$: $L^2=9.909\times10^{-3}$ at $32^2$ and
 $2.555\times10^{-3}$ at $64^2$, observed order 1.96.
+`tests/TestSaturnBurger3D.cpp` checks a 3D x-plane wave and the 3D diagonal
+example. The 3D coarse-grid orders are lower than 2; dense cluster runs are
+needed for the asymptotic value.
 
 The stable YAML regressions are `tests/regression/burgers/traveling64.yaml`
 and `tests/regression/burgers2d/traveling64.yaml`; they use
@@ -125,13 +130,15 @@ and `tests/regression/burgers2d/traveling64.yaml`; they use
 `examples/saturnBurger/saturnBurger1D/` and `examples/saturnBurger/saturnBurger2D/` are schema-checked by
 CTest and have their own independent `compareAnalytic.py` scripts.
 
-The VTK slice is `ctest --preset vtk`.
+The VTK slice is `ctest --preset vtk`; the 3D slice is
+`ctest --preset burgers3d`; checkpoint/restart is
+`ctest --preset checkpoint`.
 
 MPI test targets set `OMP_NUM_THREADS=1`. Without it, four ranks each request
 the Kokkos default 12 threads on a 24-core node, and `fv_np4` took about 370 s
 instead of 2-3 s.
 
-The 3D extension and shock-speed table are next. See
+The shock-speed table and dense 3D cluster validation are next. See
 [`../validation/burgers.md`](../validation/burgers.md),
 [`../theory/burgers.md`](../theory/burgers.md) and
 [`../../src/solvers/saturnBurger/README.md`](../../src/solvers/saturnBurger/README.md).

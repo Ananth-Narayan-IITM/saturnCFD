@@ -175,14 +175,23 @@ SimulationResult Simulation::run() {
         "use forwardEuler, ssprk2 or ssprk3 for now");
 
   mSolver.initialize();
-  mTime = mControl.t0;
-  mSolver.setTime(mTime);
-  mSolver.applyInitialConditions();
-  mSolver.applyBoundaryConditions();
+  if (mRestart) {
+    if (!mRestore)
+      throw std::runtime_error(
+          "Simulation: restart without a restore callback");
+    mTime = mRestartTime;
+    mStep = mRestartStep;
+    mSolver.setTime(mTime);
+    mRestore();
+    mSolver.applyBoundaryConditions();
+  } else {
+    mTime = mControl.t0;
+    mSolver.setTime(mTime);
+    mSolver.applyInitialConditions();
+    mSolver.applyBoundaryConditions();
+    mStep = 0;
+  }
   allocateWorkspaces();
-
-  mTime = mControl.t0;
-  mStep = 0;
   mLastDt = 0;
 
   SimulationResult result;

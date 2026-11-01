@@ -140,12 +140,12 @@ schemes, 3D Burgers, heat and pressure coupling remain. The detailed checklist i
 
 ## Phase 2 — Burgers
 
-**Status:** 1D and 2D scalar `saturnBurger` done. 3D and implicit diffusion
-next.
+**Status:** 1D/2D/3D scalar `saturnBurger` done, with VTK and
+checkpoint/restart. Implicit diffusion and vector Burgers next.
 
 **Deliverables**
 
-- `src/solvers/saturnBurger`: 1D and 2D scalar done; 3D and vector next.
+- `src/solvers/saturnBurger`: 1D/2D/3D scalar done; vector next.
 - Rusanov flux, MUSCL/TVD, SSP-RK2/3 — done.
 - Explicit diffusion — done; implicit option later.
 - Exact traveling-wave validation and inviscid shock validation — done for 1D;
@@ -153,8 +153,9 @@ next.
 - `docs/validation/burgers.md` with the convergence tables, rank-independence
   table, validation figure and reproduction commands — done.
 - Registered CLI solver with `tests/regression/burgers/traveling64.yaml`,
-  `tests/regression/burgers2d/traveling64.yaml`, `ctest --preset burgers` and
-  `ctest --preset burgers2d` — done.
+  `tests/regression/burgers2d/traveling64.yaml`,
+  `tests/regression/burgers3d/traveling16.yaml`, `ctest --preset burgers`,
+  `burgers2d`, `burgers3d` and `checkpoint` — done.
 
 **Exit criterion**
 

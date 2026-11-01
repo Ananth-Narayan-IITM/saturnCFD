@@ -1,4 +1,4 @@
-# saturnBurger — 1D/2D scalar Burgers solver
+# saturnBurger — 1D/2D/3D scalar Burgers solver
 
 **Target:** `saturnBurger`
 
@@ -6,7 +6,7 @@
 
 **Registered name:** `saturnBurger`
 
-**Equation:** 1D/2D scalar Burgers
+**Equation:** 1D/2D/3D scalar Burgers
 
 $$
 \frac{\partial u}{\partial t}
@@ -16,9 +16,9 @@ $$
 
 This is the first production solver and is fully registered in the CLI:
 `saturnCFD -listSolvers` prints `saturnBurger`, and a case file runs with
-`saturnCFD case.yaml`. The solver supports structured 1D and 2D blocks; the
-2D form uses the conservative flux vector F(u) = (u^2/2, u^2/2). A 3D extension
-would add the third component.
+`saturnCFD case.yaml`. The solver supports structured 1D, 2D and 3D blocks;
+the multi-dimensional form uses the conservative flux vector
+F(u) = (u^2/2, u^2/2, u^2/2).
 
 ## Files
 
@@ -106,6 +106,18 @@ The first frame is step 0, then every `N` steps, plus the final state. Open the
 `.pvd` collection in ParaView. `vtkEvery: 0` disables field output. VTK output
 is currently supported by `saturnBurger` only.
 
+Set `output.checkpointEvery: N` to write binary checkpoints
+`<prefix>_<step>.chk` (step 0, every N steps, final state). Resume with:
+
+```yaml
+restart:
+  file: results/burgers/traveling64_000010.chk
+```
+
+The checkpoint stores the solver, dimension, grid, step, time and the global
+cell field. The restart run uses the checkpoint time and step and continues to
+`time.end`. The mesh and solver name must match.
+
 With MPI, the CLI chooses `OMP_NUM_THREADS = max(1, cores/ranks)` unless it is
 already set, and passes it explicitly to Kokkos; this avoids oversubscription
 when several ranks share a node.
@@ -122,7 +134,8 @@ when several ranks share a node.
 | `burgers.nu` | kinematic viscosity |
 | `burgers.velocity` | traveling-wave speed $U$ |
 | `burgers.x0` | traveling-wave x centre at $t=0$ |
-| `burgers.y0` | traveling-wave y centre at $t=0$ (2D) |
+| `burgers.y0` | traveling-wave y centre at $t=0$ (2D/3D) |
+| `burgers.z0` | traveling-wave z centre at $t=0$ (3D) |
 | `burgers.source` | constant source |
 | `burgers.periodic` | periodic x boundaries |
 | `burgers.initial` | `travelingWave`, `sine` or `constant` |
@@ -131,12 +144,14 @@ when several ranks share a node.
 | `output.prefix` | output path without extension |
 | `output.csv/json/exact` | profile, summary and analytic comparison |
 | `output.vtkEvery` | write the `u` cell field every N steps plus a PVD |
+| `output.checkpointEvery` | write a restart checkpoint every N steps |
+| `restart.file` | checkpoint to resume from |
 
 ## Mesh and layout
 
 Requirements:
 
-- a structured 1D block (`ny = nz = 1`) or 2D block (`nz = 1`);
+- a structured 1D (`ny = nz = 1`), 2D (`nz = 1`) or 3D block;
 - `computeGeometry()` and `detectStructured()` already called;
 - at least two cells per rank when `nGrow = 2`.
 
@@ -165,8 +180,8 @@ f(u) = \frac{u^2}{2}, \qquad f'(u)=u.
 $$
 
 `burgersFlux` in `src/fv/Convection.cpp` computes the **outward normal flux**.
-In 1D that is f(u)n_x. In 2D the flux vector is F(u)=(f(u),f(u)), so the face
-flux is f(u)(n_x+n_y). The canonical face orientation is "lower-coordinate cell
+In 1D that is f(u)n_x. In 2D/3D the flux vector is F(u)=(f(u),f(u),f(u)), so the face
+flux is f(u)(n_x+n_y+n_z). The canonical face orientation is "lower-coordinate cell
 on the left, higher-coordinate cell on the right", independent of which cell
 owns the face. That makes the flux antisymmetric across a shared face, which is
 required for conservation.
@@ -241,8 +256,8 @@ The YAML factory provides three initial states:
 
 | `burgers.initial` | initial state | boundaries | exact reference | use |
 |---|---|---|---|---|
-| `travelingWave` | 1D: $\frac{U}{2}[1-\tanh(\frac{U(x-x_0)}{4\nu})]$; 2D diagonal: $\frac{U}{2}[1-\tanh(\frac{U(x+y-x_0-y_0)}{4\nu})]$ | time-dependent Dirichlet from the exact solution | yes | quantitative validation |
-| `sine` | 1D $u_0=-\sin(\pi x)$; 2D $u_0=-\sin(\pi x)\sin(\pi y)$ | periodic only | no | shock, TVD/boundedness |
+| `travelingWave` | 1D: $\frac{U}{2}[1-\tanh(\frac{U(x-x_0)}{4\nu})]$; 2D: $\frac{U}{2}[1-\tanh(\frac{U(x+y-x_0-y_0)}{4\nu})]$; 3D adds $z-z_0$ and $\frac32Ut$ | time-dependent Dirichlet from the exact solution | yes | quantitative validation |
+| `sine` | 1D $u_0=-\sin(\pi x)$; 2D product; 3D product of three sines | periodic only | no | shock, TVD/boundedness |
 | `constant` | $u_0=v$ (`burgers.value`) | constant Dirichlet (or periodic) | no | flux/conservation sanity |
 
 `travelingWave` is the default because it is the only preset with a known
@@ -271,7 +286,15 @@ u(x,y,t)=\frac{U}{2}\left[
 1-\tanh\left(\frac{U(x+y-x_0-y_0-Ut)}{4\nu}\right)\right]
 $$
 
-in 2D. The 2D front is the line $x+y=x_0+y_0+Ut$.
+in 2D, and
+
+$$
+u(x,y,z,t)=\frac{U}{2}\left[
+1-\tanh\left(\frac{U(x+y+z-x_0-y_0-z_0-\frac32Ut)}{4\nu}\right)\right]
+$$
+
+in 3D. The 2D front is the line $x+y=x_0+y_0+Ut$; the 3D front is the plane
+$x+y+z=x_0+y_0+z_0+\frac32Ut$.
 
 `tools/validateBurgers.py` runs the real YAML case at several resolutions and
 rank counts, writes `convergence.csv` and `rankIndependence.csv`, and produces
@@ -321,6 +344,8 @@ count; the solver itself was already rank independent.
 |---|---|
 | 1D viscous traveling wave, $N=32/64/128/256$, $\nu=0.02$, $t=0.5$ | monotone convergence, orders 1.98/2.11/2.10 |
 | 2D diagonal wave, $N=32/64$, $\nu=0.02$, $t=0.5$ | $L^2$ 9.909e-3 -> 2.555e-3, order 1.96 |
+| 3D x-plane wave, $N=8/16$, $\nu=0.2$, $t=0.25$ | $L^2$ 3.363e-3 -> 1.303e-3, order 1.37 |
+| 3D diagonal example, $N=32^3$, $\nu=0.2$, $t=0.25$ | $L^2=8.967e-4$ |
 | constant field, periodic, inviscid | stays exactly 1 |
 | periodic inviscid shock, $u_0=-\sin(\pi x)$, $t=0.5$ | bounds $[-0.9954, 0.9954]$, integral $1.5\times10^{-16}$ |
 | Burgers constant flux | zero divergence, face flux $-0.5/+0.5$ |
@@ -339,7 +364,7 @@ actual CLI path, including the CSV and JSON output.
 
 ## Limitations and next steps
 
-- 1D and 2D only; 2D requires `nz = 1`.
+- 1D, 2D and 3D; 2D requires `nz = 1`.
 - Constant source only.
 - Explicit diffusion; implicit/IMEX BE/CN/BDF2 waits for the FV Poisson matrix
   assembler and `saturnLinAlg`.

@@ -18,9 +18,10 @@ ConfigSchema burgersSchema();
 /// Supported `burgers.initial` values:
 ///
 /// - `travelingWave`: exact viscous wave; Dirichlet data follow the wave and
-///   the analytic solution is available for validation output. In 2D this is
-///   the diagonal wave u(x,y,t) = U/2 [1 - tanh(U(x+y-x0-y0-Ut)/(4 nu))].
-/// - `sine`: 1D `-sin(pi x)` or 2D `-sin(pi x) sin(pi y)`; periodic only;
+///   the analytic solution is available for validation output. 1D uses
+///   U(x-x0-Ut/2), 2D uses x+y-x0-y0-Ut, and 3D uses
+///   x+y+z-x0-y0-z0-3Ut/2 inside the tanh argument.
+/// - `sine`: product of sines in 1D/2D/3D; periodic only;
 /// - `constant`: `u0 = burgers.value`; Dirichlet data hold that value.
 std::unique_ptr<Solver> makeSaturnBurger(const Config& cfg);
 

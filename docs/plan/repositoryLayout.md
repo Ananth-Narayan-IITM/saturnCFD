@@ -78,8 +78,14 @@ saturnCFD/
         vtk.yaml
       burgers2d/
         traveling64.yaml
+      burgers3d/
+        traveling16.yaml
+      burgers/restartFull.yaml
+      burgers/restartCheckpoint.yaml
+      burgers/restartTemplate.yaml.in
     checkBurgers.cmake           # CLI + analytic-norm regression
     checkBurgersVtk.cmake        # VTK frame + PVD regression
+    checkBurgersCheckpoint.py    # checkpoint/restart round trip
 
   docs/
     Doxyfile
@@ -109,6 +115,10 @@ saturnCFD/
         README.md
       saturnBurger2D/
         saturnBurger2D.yaml      # standalone 2D diagonal-wave case
+        compareAnalytic.py
+        README.md
+      saturnBurger3D/
+        saturnBurger3D.yaml      # standalone 3D diagonal-wave case
         compareAnalytic.py
         README.md
 
@@ -178,6 +188,8 @@ then the manual copy works.
 - `tests/regression/burgers/traveling64.yaml` — 1D case.
 - `tests/regression/burgers/vtk.yaml` — VTK field export.
 - `tests/regression/burgers2d/traveling64.yaml` — 2D case.
+- `tests/regression/burgers3d/traveling16.yaml` — 3D case.
+- `tests/regression/burgers/restart*.yaml` — checkpoint/restart.
 - `tests/checkBurgers.cmake` — runs the CLI and checks the analytic norms,
   CSV rows and JSON summary.
 - MPI test targets set `OMP_NUM_THREADS=1` to avoid oversubscription.

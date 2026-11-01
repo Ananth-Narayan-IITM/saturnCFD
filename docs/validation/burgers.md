@@ -124,7 +124,48 @@ unchanged. `python3 examples/saturnBurger/saturnBurger2D/compareAnalytic.py` rec
 
 ![2D Burgers validation figure](figures/burgers2DValidation.png)
 
+## 3D diagonal wave
+
+The 3D conservative form is
+
+$$
+u_t + (u^2/2)_x + (u^2/2)_y + (u^2/2)_z
+= \nu(u_{xx}+u_{yy}+u_{zz}),
+$$
+
+with the exact diagonal plane wave
+
+$$
+u(x,y,z,t)=\frac{U}{2}\left[
+1-\tanh\left(
+\frac{U(x+y+z-x_0-y_0-z_0-\frac32Ut)}{4\nu}
+\right)\right].
+$$
+
+The 3D example uses $32^3$ cells, $\nu=0.2$, $t=0.25$ and reports
+$L^2=8.967\times10^{-4}$; the plane-wave unit test gives
+$L^2=3.363\times10^{-3}\to1.303\times10^{-3}$ at $8^3\to16^3$ (observed
+order 1.37 on these coarse grids). A dense cluster run is the next step for
+the asymptotic 3D order.
+
+![3D Burgers validation figure](figures/burgers3DValidation.png)
+
+## Checkpoint and restart
+
+`output.checkpointEvery: N` writes `<prefix>_<step>.chk` at step 0, every N
+steps and the final state. A restart case sets:
+
+```yaml
+restart:
+  file: results/burgers/checkpoint_000005.chk
+```
+
+The restart resumes at the checkpoint step and time and continues to
+`time.end`. `burgers_checkpoint` verifies that the restarted final norms match
+an uninterrupted reference run.
+
 ## Reproduce
+
 
 ```bash
 cmake --preset default

@@ -50,6 +50,7 @@ if(SATURN_ENABLE_KOKKOS)
     TestSimulation.cpp
     TestSaturnBurger.cpp
     TestSaturnBurger2D.cpp
+    TestSaturnBurger3D.cpp
   )
   set_target_properties(testSaturnFV PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
@@ -203,6 +204,45 @@ add_test(NAME burgers_vtk
 set_tests_properties(burgers_vtk PROPERTIES
   LABELS "burgers;vtk;regression" RUN_SERIAL TRUE
   ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
+
+set(SATURN_BURGERS3D_EXAMPLE
+    "${SATURN_SOURCE_DIR}/examples/saturnBurger/saturnBurger3D/saturnBurger3D.yaml")
+add_test(NAME cli_checkConfig_example_burgers3d
+  COMMAND saturnCFD -checkConfig ${SATURN_BURGERS3D_EXAMPLE})
+set_tests_properties(cli_checkConfig_example_burgers3d
+  PROPERTIES LABELS "cli;config;burgers;burgers3d;regression")
+
+set(SATURN_BURGERS3D_CASE
+    "${CMAKE_CURRENT_SOURCE_DIR}/regression/burgers3d/traveling16.yaml")
+add_test(NAME burgers_3d_traveling16
+  COMMAND ${CMAKE_COMMAND}
+          -DCLI=$<TARGET_FILE:saturnCFD>
+          -DCASE=${SATURN_BURGERS3D_CASE}
+          -DOUT=${CMAKE_CURRENT_BINARY_DIR}/burgers3d_traveling16
+          -DPREFIX=results/burgers3d/traveling16
+          -DROWS=4097
+          -DL2_MIN=1.5e-3
+          -DL2_MAX=4.0e-3
+          -DLINF_MAX=2.0e-2
+          -P ${CMAKE_CURRENT_SOURCE_DIR}/checkBurgers.cmake)
+set_tests_properties(burgers_3d_traveling16 PROPERTIES
+  LABELS "burgers;burgers3d;regression" RUN_SERIAL TRUE
+  ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
+
+find_package(Python3 COMPONENTS Interpreter QUIET)
+if(Python3_Interpreter_FOUND)
+  add_test(NAME burgers_checkpoint
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/checkBurgersCheckpoint.py
+            --cli $<TARGET_FILE:saturnCFD>
+            --out ${CMAKE_CURRENT_BINARY_DIR}/burgers_checkpoint
+            --full ${CMAKE_CURRENT_SOURCE_DIR}/regression/burgers/restartFull.yaml
+            --checkpoint ${CMAKE_CURRENT_SOURCE_DIR}/regression/burgers/restartCheckpoint.yaml
+            --template ${CMAKE_CURRENT_SOURCE_DIR}/regression/burgers/restartTemplate.yaml.in)
+  set_tests_properties(burgers_checkpoint PROPERTIES
+    LABELS "burgers;checkpoint;regression" RUN_SERIAL TRUE
+    ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
+endif()
 
 if(SATURN_ENABLE_MPI)
   foreach(ranks 1 2 4)

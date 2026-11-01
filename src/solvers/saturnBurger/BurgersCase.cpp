@@ -25,16 +25,24 @@ constexpr Real kPi = Real(3.14159265358979323846264338327950288);
 /// 2D:  u_t + (u^2/2)_x + (u^2/2)_y = nu (u_xx + u_yy)
 ///      u = U/2 [1 - tanh(U (x+y - x0-y0 - U t)/(4 nu))]
 ///
+/// 3D:  u_t + (u^2/2)_x + (u^2/2)_y + (u^2/2)_z
+///          = nu (u_xx + u_yy + u_zz)
+///      u = U/2 [1 - tanh(U (x+y+z - x0-y0-z0 - 3 U t/2)/(4 nu))]
+///
 /// This is a physical case preset, not a test helper: the YAML option
 /// `burgers.initial: travelingWave` uses it for the initial state, the
 /// time-dependent Dirichlet data and the `output.exact` reference.
 Real travelingWave(const Vec3& p, Real t, int dim, Real speed, Real nu, Real x0,
-                   Real y0) {
+                   Real y0, Real z0) {
   Real coordinate = p.x - x0;
   Real waveSpeed = Real(0.5) * speed;
-  if (dim == 2) {
+  if (dim >= 2) {
     coordinate += p.y - y0;
     waveSpeed = speed;
+  }
+  if (dim >= 3) {
+    coordinate += p.z - z0;
+    waveSpeed = Real(1.5) * speed;
   }
   return Real(0.5) * speed *
          (Real(1) -
@@ -53,6 +61,8 @@ ConfigSchema burgersSchema() {
               Dimension::Length);
   s.addDouble("burgers.y0", 0.0, "traveling-wave y centre at t=0 [m]",
               Dimension::Length);
+  s.addDouble("burgers.z0", 0.0, "traveling-wave z centre at t=0 [m]",
+              Dimension::Length);
   s.addDouble("burgers.source", 0.0, "constant source [m/s2]");
   s.addDouble("burgers.value", 1.0, "constant initial value [m/s]",
               Dimension::Velocity);
@@ -68,9 +78,10 @@ ConfigSchema burgersSchema() {
 
 std::unique_ptr<Solver> makeSaturnBurger(const Config& cfg) {
   Mesh mesh = makeMeshFromConfig(cfg);
-  if (mesh.dimension != 1 && mesh.dimension != 2)
-    throw ConfigError(
-        "saturnBurger supports structured 1D and 2D meshes (nz = 1)");
+  if (mesh.dimension < 1 || mesh.dimension > 3)
+    throw ConfigError("saturnBurger supports structured 1D, 2D and 3D meshes");
+  if (mesh.dimension == 2 && mesh.nz != 1)
+    throw ConfigError("saturnBurger 2D requires nz = 1");
 
   BurgersOptions options;
   options.nu = cfg.getDouble("burgers.nu", 0.02);
@@ -85,6 +96,7 @@ std::unique_ptr<Solver> makeSaturnBurger(const Config& cfg) {
   const Real speed = cfg.getDouble("burgers.velocity", 1.0);
   const Real x0 = cfg.getDouble("burgers.x0", 0.0);
   const Real y0 = cfg.getDouble("burgers.y0", 0.0);
+  const Real z0 = cfg.getDouble("burgers.z0", 0.0);
   const int dim = mesh.dimension;
 
   if (initial == "travelingWave") {
@@ -92,14 +104,15 @@ std::unique_ptr<Solver> makeSaturnBurger(const Config& cfg) {
       throw ConfigError(
           "burgers.initial: travelingWave requires burgers.nu > 0");
     const Real nu = options.nu;
-    options.initial = [dim, speed, nu, x0, y0](const Vec3& x) {
-      return travelingWave(x, 0, dim, speed, nu, x0, y0);
+    options.initial = [dim, speed, nu, x0, y0, z0](const Vec3& x) {
+      return travelingWave(x, 0, dim, speed, nu, x0, y0, z0);
     };
-    options.dirichlet = [dim, speed, nu, x0, y0](const Vec3& x, Real t, int) {
-      return travelingWave(x, t, dim, speed, nu, x0, y0);
+    options.dirichlet = [dim, speed, nu, x0, y0, z0](const Vec3& x, Real t,
+                                                     int) {
+      return travelingWave(x, t, dim, speed, nu, x0, y0, z0);
     };
-    options.exact = [dim, speed, nu, x0, y0](const Vec3& x, Real t) {
-      return travelingWave(x, t, dim, speed, nu, x0, y0);
+    options.exact = [dim, speed, nu, x0, y0, z0](const Vec3& x, Real t) {
+      return travelingWave(x, t, dim, speed, nu, x0, y0, z0);
     };
   } else if (initial == "sine") {
     if (!options.periodic)
@@ -107,9 +120,13 @@ std::unique_ptr<Solver> makeSaturnBurger(const Config& cfg) {
           "burgers.initial: sine requires burgers.periodic: true");
     if (dim == 1) {
       options.initial = [](const Vec3& x) { return -std::sin(kPi * x.x); };
-    } else {
+    } else if (dim == 2) {
       options.initial = [](const Vec3& x) {
         return -std::sin(kPi * x.x) * std::sin(kPi * x.y);
+      };
+    } else {
+      options.initial = [](const Vec3& x) {
+        return -std::sin(kPi * x.x) * std::sin(kPi * x.y) * std::sin(kPi * x.z);
       };
     }
   } else if (initial == "constant") {
