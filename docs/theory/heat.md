@@ -119,12 +119,13 @@ MUSCL/van Leer, SSPRK3:
 
 | $N^3$ | $L^2$ | order |
 |---:|---:|---:|
-| 16 | 1.932e-2 | — |
-| 32 | 3.973e-3 | 2.28 |
-| 64 | 7.365e-4 | 2.43 |
+| 16 | 1.943e-2 | — |
+| 32 | 3.991e-3 | 2.28 |
+| 48 | 1.479e-3 | 2.44 |
 
-These are the `TestSaturnHeat.cpp` values (`dtMax = 0.01`). The 48$^3$
-user example uses `dtMax = 0.002` and reaches $L^2=1.479\times10^{-3}$.
+These are the YAML regression/example values (`dtMax = 0.005` for 16/32,
+`0.002` for 48). The unit test uses 16$^3$/24$^3$/32$^3$ at $t=0.05$ and
+measures orders 2.30 and 2.33.
 
 ### Periodic Fourier convergence, 2D, $t=0.2$ s
 

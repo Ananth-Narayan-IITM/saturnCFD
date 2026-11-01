@@ -37,7 +37,7 @@ T=A\sin\!\left(\mathbf{k}\cdot\mathbf{x}-(\mathbf{a}\cdot\mathbf{k})t\right)
 \exp\!\left(-\alpha|\mathbf{k}|^2t\right)
 $$
 
-with 3D orders 2.28 and 2.43 at 16^3/32^3/64^3 (48^3 example
+with 3D orders 2.30 and 2.33 at 16^3/24^3/32^3 (48^3 example
 $L^2=1.48\times10^{-3}$), 2D orders 2.37 and 2.20, and identical norms on
 1/2/4 ranks. See
 [`docs/validation/heat.md`](docs/validation/heat.md) and

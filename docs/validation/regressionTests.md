@@ -172,8 +172,8 @@ If the change is not understood, it is a bug, not a new baseline.
 | `burgers3d/traveling16` | 3D diagonal wave, $L^2\approx2.577e-3$ | implemented (`tests/regression/burgers3d/traveling16.yaml`) |
 | `burgers/checkpoint` | checkpoint/restart matches uninterrupted run | implemented (`checkBurgersCheckpoint.py`) |
 | `heat2d/fourier64` | periodic 2D Fourier mode, $L^2\approx1.112e-3$ | implemented (`tests/regression/heat2d/fourier64.yaml`, `checkHeat.cmake`) |
-| `heat3d/fourier32` | periodic 3D Fourier mode, $L^2\approx3.973e-3$ | implemented (`tests/regression/heat3d/fourier32.yaml`) |
-| `heat/dimension` | 3D Fourier order 2.28/2.43 at 16^3/32^3/64^3 | implemented in `TestSaturnHeat` |
+| `heat3d/fourier32` | periodic 3D Fourier mode, $L^2\approx3.991e-3$ | implemented (`tests/regression/heat3d/fourier32.yaml`) |
+| `heat/dimension` | 3D Fourier order 2.30/2.33 at 16^3/24^3/32^3 | implemented in `TestSaturnHeat` |
 | `heat/example` | 2D/3D Fourier examples and `compareAnalytic.py` | implemented (`examples/saturnHeat/`) |
 | `heat/checkpoint` | scalar restart matches uninterrupted heat run | implemented (`checkHeatCheckpoint.py`) |
 | `stokes/poiseuille2d` | 2D channel, analytic parabola | planned with `saturnStokes` |

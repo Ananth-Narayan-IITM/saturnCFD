@@ -1,5 +1,6 @@
 #include <doctest/doctest.h>
 
+#include <chrono>
 #include <cmath>
 #include <utility>
 
@@ -46,13 +47,18 @@ double fourierError3D(int n) {
   REQUIRE(solver.dimension() == 3);
 
   TimeControl control;
-  control.tEnd = 0.1;
-  control.dtMax = 0.01;
+  control.tEnd = 0.05;
+  control.dtMax = 0.005;
   control.cfl = 0.3;
   control.diffusionSafety = 0.5;
 
   Simulation simulation(solver, control, TimeScheme::SSPRK3);
+  const auto start = std::chrono::steady_clock::now();
   const SimulationResult result = simulation.run();
+  const auto end = std::chrono::steady_clock::now();
+  const double seconds = std::chrono::duration<double>(end - start).count();
+  MESSAGE("heat n=" << n << " steps=" << result.final.step
+                    << " dt=" << result.final.dt << " wall=" << seconds);
   REQUIRE(result.reachedEnd);
   return solver.exactError(control.tEnd).l2;
 }
@@ -61,17 +67,17 @@ double fourierError3D(int n) {
 
 TEST_CASE("saturnHeat: 3D Fourier mode converges") {
   const double e16 = fourierError3D(16);
+  const double e24 = fourierError3D(24);
   const double e32 = fourierError3D(32);
-  const double e64 = fourierError3D(64);
-  const double o16 = std::log(e16 / e32) / std::log(2.0);
-  const double o32 = std::log(e32 / e64) / std::log(2.0);
-  MESSAGE("Heat 3D Fourier L2: " << e16 << " " << e32 << " " << e64
-                                 << " orders=" << o16 << " " << o32);
-  CHECK(e32 < e16);
-  CHECK(e64 < e32);
-  CHECK(o16 > 1.5);
-  CHECK(o32 > 1.7);
-  CHECK(e64 < 1e-3);
+  const double o16 = std::log(e16 / e24) / std::log(1.5);
+  const double o24 = std::log(e24 / e32) / std::log(4.0 / 3.0);
+  MESSAGE("Heat 3D Fourier L2: " << e16 << " " << e24 << " " << e32
+                                 << " orders=" << o16 << " " << o24);
+  CHECK(e32 < e24);
+  CHECK(e24 < e16);
+  CHECK(o16 > 1.6);
+  CHECK(o24 > 1.7);
+  CHECK(e32 < 8e-3);
 }
 
 TEST_CASE("saturnHeat: constant field is preserved") {

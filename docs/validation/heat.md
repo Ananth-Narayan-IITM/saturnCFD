@@ -45,8 +45,9 @@ reference is analytic. It tests the phase (convection) and the amplitude
 | 32 | 3.125e-3 | 3.991e-3 | 9.468e-3 | 2.28 |
 | 48 | 1.184e-3 | 1.479e-3 | 4.083e-3 | 2.44 (48/32) |
 
-The unit test runs the same mode with `dtMax = 0.01`; its 16^3/32^3/64^3
-$L^2$ values are 1.932e-2/3.973e-3/7.365e-4 (orders 2.28/2.43).
+The unit test runs the same mode at $t=0.05$ with 16^3/24^3/32^3 and
+`dtMax = 0.005`; its $L^2$ values are
+1.397e-2/5.491e-3/2.812e-3 (orders 2.30/2.33).
 
 2D, $t=0.2$ s:
 
