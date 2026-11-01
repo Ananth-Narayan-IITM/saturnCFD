@@ -13,7 +13,7 @@ expected files are maintained.
 |---|---|---|
 | [`burgers.md`](burgers.md) | 1D/2D/3D scalar `saturnBurger` | implemented; 1D order 2.03, 2D 2.10, 3D example |
 | [`heat.md`](heat.md) | 1D/2D/3D `saturnHeat` | implemented; 3D order 2.28/2.44, 2D 2.37/2.20 |
-| [`stokes.md`](stokes.md) | 2D/3D `saturnStokes` | implemented; 2D 1/2/4 ranks, 3D serial |
+| [`stokes.md`](stokes.md) | 2D/3D `saturnStokes` | implemented; 1/2/4 ranks |
 | `incompressible.md` | incompressible Navier–Stokes | waiting for Phase 5 |
 | `mesh.md` | `checkMesh` | waiting for Phase 1 |
 | `config.md` | YAML validation | waiting for Phase 1 |

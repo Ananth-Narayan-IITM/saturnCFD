@@ -21,9 +21,12 @@ namespace saturn {
 ///   -mu lap(u) + grad(p) = f,
 ///   div(u) - beta lap(p) = 0,
 ///
-/// where the pressure term is the stabilisation that replaces the
-/// checkerboard-prone raw collocated divergence. `stabilization` scales
-/// beta = stabilization * h^2 / mu.
+/// where the pressure term is the Brezzi-Pitkaranta stabilisation that damps
+/// the checkerboard mode of the raw collocated divergence. `stabilization`
+/// sets the physical coefficient beta = stabilization * h_min^2 / mu; the
+/// assembly is per unit volume, so the discrete Laplacian uses beta / h^2.
+/// All four equations use the same per-volume scaling, which keeps the
+/// pressure physical and the Schur complement well conditioned.
 struct StokesOptions {
   Real mu = 1.0;
   Vec3 force{0, 0, 0};
@@ -45,7 +48,10 @@ struct StokesOptions {
 /// The current core uses a PETSc DMDA with four cell-centred degrees of
 /// freedom (u,v,w,p). A 2D case uses the same core with nz = 1; the w rows are
 /// identity rows and w = 0. The coupled saddle-point matrix is solved with
-/// GMRES/FGMRES and a fieldsplit/Schur preconditioner.
+/// either a direct LU (validation reference) or GMRES/FGMRES and a
+/// fieldsplit/Schur preconditioner. The matrix is assembled with
+/// MatSetValuesStencil so the DMDA global numbering is respected on any
+/// multi-rank layout.
 class SaturnStokes : public SteadySolver {
  public:
   SaturnStokes(Mesh mesh, StokesOptions options);

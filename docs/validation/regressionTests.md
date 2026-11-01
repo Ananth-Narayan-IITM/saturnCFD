@@ -178,8 +178,8 @@ If the change is not understood, it is a bug, not a new baseline.
 | `heat/checkpoint` | scalar restart matches uninterrupted heat run | implemented (`checkHeatCheckpoint.py`) |
 | `stokes/poiseuille2d` | 2D channel, second order, $L^2$ 4.88e-4 -> 1.22e-4 | implemented (`TestSaturnStokes`) |
 | `stokes/couette2d` | 2D moving-wall linear profile | implemented (`TestSaturnStokes`) |
-| `stokes/poiseuille3d` | 3D extruded channel, $L^2$ 2.17e-4 | implemented serial (`TestSaturnStokes`) |
-| `stokes/couette3d` | 3D extruded Couette | implemented serial (`TestSaturnStokes`) |
+| `stokes/poiseuille3d` | 3D extruded channel, $L^2$ 2.17e-4 | implemented on 1/2/4 ranks (`TestSaturnStokes`) |
+| `stokes/couette3d` | 3D extruded Couette | implemented on 1/2/4 ranks (`TestSaturnStokes`) |
 | `stokes/mms2d` | coupled velocity/pressure order | planned |
 | `stokes/mms3d` | coupled velocity/pressure order | planned |
 | `stokes/fieldsplit` | fieldsplit/Schur linear-algebra block | implemented (`petsc/saddlePoint`) |

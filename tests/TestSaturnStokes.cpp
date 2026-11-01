@@ -3,8 +3,6 @@
 #include <cmath>
 #include <utility>
 
-#include <mpi.h>
-
 #include "simulation/SteadySolver.hpp"
 #include "solvers/saturnStokes/SaturnStokes.hpp"
 
@@ -13,12 +11,6 @@
 using namespace saturn;
 
 namespace {
-
-int worldSize() {
-  int size = 1;
-  MPI_Comm_size(MPI_COMM_WORLD, &size);
-  return size;
-}
 
 struct StokesCase {
   Mesh mesh;
@@ -82,23 +74,17 @@ TEST_CASE("saturnStokes: 2D Couette is exact") {
 }
 
 TEST_CASE("saturnStokes: 3D Poiseuille on a periodic extrusion") {
-  if (worldSize() > 1) {
-    MESSAGE("3D validation is serial in the current core; MPI 3D is pending");
-    return;
-  }
   const VectorError e16 = solve(poiseuille(16, 16, 4, 1.0, 1.0));
   const VectorError e24 = solve(poiseuille(24, 24, 4, 1.0, 1.0));
   MESSAGE("Stokes 3D Poiseuille L2: " << e16.l2 << " " << e24.l2);
   CHECK(e24.l2 < e16.l2);
   CHECK(e16.l2 < 1e-3);
   CHECK(e24.l2 < 5e-4);
+  CHECK(e16.pL2 < 1e-10);
+  CHECK(e24.pL2 < 1e-10);
 }
 
 TEST_CASE("saturnStokes: 3D Couette is exact") {
-  if (worldSize() > 1) {
-    MESSAGE("3D validation is serial in the current core; MPI 3D is pending");
-    return;
-  }
   const VectorError e = solve(couette(12, 12, 4, 1.0, 1.0));
   MESSAGE("Stokes 3D Couette L2: " << e.l2 << " pL2 " << e.pL2);
   CHECK(e.l2 < 1e-10);

@@ -124,8 +124,8 @@
   \begin{block}{Status}
     The mesh/config/comm, CPU Kokkos operators, PETSc Phase 0, explicit
     solver-loop and the 1D/2D/3D Burgers, heat and coupled Stokes solvers are
-    working. Stokes is validated in 2D/3D (2D on 1/2/4 ranks). Implicit
-    BE/CN/BDF2, production fieldsplit and 3D multi-rank assembly follow.
+    working. Stokes is validated in 2D/3D on 1/2/4 ranks. Implicit
+    BE/CN/BDF2 and production fieldsplit tuning follow.
   \end{block}
 \end{frame}
 
@@ -406,8 +406,8 @@ time:
   \end{center}
 
   \begin{block}{Status}
-    Poiseuille and Couette pass in 2D/3D; 2D runs on 1/2/4 ranks. The 3D
-    multi-rank DMDA assembly, MMS and exit-boundary cases follow.
+    Poiseuille and Couette pass in 2D/3D on 1/2/4 ranks; the DMDA assembly
+    now uses PETSc stencil insertion. MMS and exit-boundary cases follow.
   \end{block}
 \end{frame}
 

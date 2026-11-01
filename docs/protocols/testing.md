@@ -189,12 +189,12 @@ CTest and ship independent `compareAnalytic.py` scripts.
   `output.vtkEvery: 1` writes one `.vtu` with
   `u,v,w,p`.
 
-The coupled direct PETSc solve is used for the validation core. The
-linear-algebra fieldsplit/Schur path is tested separately by
+The coupled direct PETSc solve is used for the validation core, with
+SuperLU_DIST preferred for parallel LU. The linear-algebra fieldsplit/Schur
+path is tested separately by
 `petsc: coupled saddle-point fieldsplit solves a 2-field block` on 1/2/4
-ranks; production tuning is a follow-up. 2D Stokes tests run on 1/2/4 ranks;
-3D tests run serially, with a message on higher rank counts. See
-[`../validation/stokes.md`](../validation/stokes.md).
+ranks; production tuning is a follow-up. Both 2D and 3D Stokes tests run on
+1/2/4 ranks. See [`../validation/stokes.md`](../validation/stokes.md).
 
 ## PETSc tests
 

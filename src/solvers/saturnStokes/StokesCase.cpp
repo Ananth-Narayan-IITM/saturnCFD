@@ -66,7 +66,8 @@ ConfigSchema stokesSchema() {
   s.addBool("stokes.periodicY", false,
             "periodic y boundaries (MMS only); otherwise walls");
   s.addEnum("stokes.linearSolver", "direct", {"direct", "fieldsplit"},
-            "coupled PETSc linear solve");
+            "coupled PETSc linear solve: direct LU for validation, "
+            "fieldsplit/Schur for production (being tuned)");
   s.addDouble("stokes.stabilization", 1.0,
               "pressure-stabilisation factor (0 disables)");
   return s;

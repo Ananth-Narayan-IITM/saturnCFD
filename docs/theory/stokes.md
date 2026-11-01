@@ -1,7 +1,6 @@
 # Stokes
 
-**Status:** implemented for 2D/3D serial and 2D MPI (1/2/4 ranks). The 3D
-multi-rank DMDA path is a documented follow-up. Independent examples are in
+**Status:** implemented for 2D and 3D on 1/2/4 MPI ranks. Independent examples are in
 `examples/saturnStokes/`.
 
 ## 1. Governing equations
@@ -49,13 +48,16 @@ B & 0
 \end{array}\right].
 $$
 
-The derivation, collocated Rhie–Chow stabilisation, PETSc fieldsplit/Schur
-preconditioner and Navier–Stokes extension are in
+The derivation, collocated pressure-Laplacian stabilisation, PETSc
+fieldsplit/Schur preconditioner and Navier–Stokes extension are in
 [`coupledSaddlePoint.md`](coupledSaddlePoint.md).
 
-The current validation core uses PETSc's coupled direct LU solve
-(`stokes.linearSolver: direct`). The fieldsplit/Schur path is implemented as
-`stokes.linearSolver: fieldsplit` but still needs tuning for larger meshes.
+The reference path uses PETSc's coupled direct LU
+(`stokes.linearSolver: direct`), preferring SuperLU_DIST when the PETSc build
+provides it. Fieldsplit/Schur (`stokes.linearSolver: fieldsplit`) is the
+intended production default because it needs only `O(N)` memory; it is being
+tuned before the schema default changes. Direct LU is retained for validation
+and for users with enough memory.
 SIMPLE and SIMPLEC are deliberately not the Stokes default; they remain an
 optional segregated path for incompressible Navier–Stokes.
 
@@ -64,9 +66,15 @@ optional segregated path for incompressible Navier–Stokes.
 - Cell-centred velocity and pressure on the structured `LocalMesh`.
 - Component-wise viscous Laplacian with Dirichlet wall data.
 - Cell-centred pressure gradient.
-- Rhie–Chow face-normal velocity in the continuity row to suppress the
+- Brezzi–Pitkäranta pressure Laplacian in the continuity row to suppress the
   collocated odd–even pressure mode.
-- PETSc `MPIAIJ` matrix with `u,v,w,p` degrees of freedom per cell.
+- PETSc `MPIAIJ` matrix with `u,v,w,p` degrees of freedom per cell, inserted
+  through `MatSetValuesStencil` so the DMDA global numbering is respected on
+  any rank layout.
+- All equations are assembled per unit volume: `mu/h^2` diffusion, `0.5/h`
+  pressure gradient and divergence, `beta/h^2` stabilisation with
+  `beta = stabilization * h_min^2 / mu`. This keeps the pressure physical and
+  the Schur complement well conditioned.
 - PETSc coupled direct LU for the validation cases; GMRES/FGMRES + fieldsplit
   as the production path being tuned.
 - One pressure reference row fixes the constant gauge for the direct solve.
@@ -130,7 +138,7 @@ finite-volume coupled saddle-point discretisation, not BEM.
 | MMS 2D/3D | velocity/pressure order | second order in $h$ |
 | null space | mean pressure | stable, no drift |
 | continuity | discrete divergence | below solver tolerance |
-| checkerboard | pressure field | no odd–even mode with Rhie–Chow |
+| checkerboard | pressure field | no odd–even mode with pressure-Laplacian stabilisation |
 | exit boundary | BEM paper cases | quantitative comparison |
 
 ## 7. Implemented results
@@ -144,8 +152,7 @@ finite-volume coupled saddle-point discretisation, not BEM.
 | Poiseuille 3D | 24$^2	imes8$ | 2.17e-4 | extruded channel |
 | Couette 3D | 24$^2	imes8$ | 5.7e-12 | exact line |
 
-The 3D core is serial-validated; 3D MPI on 4 ranks remains a follow-up. 2D
-cases pass on 1/2/4 ranks.
+Both 2D and 3D cases pass on 1/2/4 ranks.
 
 ## 8. Next steps
 

@@ -62,22 +62,21 @@ The first implementation keeps the existing cell-centred fields:
 - $\mathbf{u}_P$ and $p_P$ live at cell centres;
 - momentum rows use the component-wise Laplacian on `LocalMesh`;
 - the pressure gradient is the cell-centred Gauss gradient;
-- the continuity row uses a **Rhie–Chow** face-normal velocity:
+- the continuity row uses the centred divergence plus a **Brezzi–Pitkäranta
+  pressure Laplacian**:
   $$
-  u_{f} = \overline{\mathbf{u}}_f\cdot\mathbf{n}_f
-  - d_f\left[
-  \frac{p_N-p_P}{d_{PN}}
-  - \overline{\nabla p}_f\cdot\mathbf{n}_f
-  \right].
+  \nabla\cdot\mathbf{u} - \beta\nabla^2 p = 0,
+  \qquad
+  \beta = \mathrm{stabilization}\,\frac{h_{\min}^2}{\mu}.
   $$
 
-The Rhie–Chow correction removes the odd–even pressure mode of a collocated
-grid and supplies the pressure coupling needed by the saddle-point system. The
-correction coefficient $d_f$ is based on the momentum diagonal (or a documented
-scalar approximation in the first version). The resulting discrete system is a
-**stabilised saddle-point system**: its continuity block is not exactly $B$ of
-the continuous problem, but its pressure null space and the velocity/pressure
-block structure are retained.
+The pressure Laplacian removes the odd–even pressure mode of a collocated grid
+and gives the Schur complement a well-defined pressure block. The resulting
+discrete system is a **stabilised saddle-point system**: its continuity block
+is not exactly $B$ of the continuous problem, but its pressure null space and
+the velocity/pressure block structure are retained. Every row is assembled per
+unit volume, so the discrete gradient is the negative transpose of the
+discrete divergence and the pressure is physical.
 
 Boundary conditions:
 
@@ -96,11 +95,20 @@ and is still being tuned for refined meshes.
 
 ### Matrix and vectors
 
-- `MPIAIJ` matrix assembled from the `LocalMesh` face coefficients.
+- `MPIAIJ` matrix created by `DMCreateMatrix` on the `DMDA`; entries are
+  inserted with `MatSetValuesStencil` using global logical `(i,j,k,c)`
+  indices. Building PETSc ids from `i + nx*(j + ny*k)` is only valid when the
+  DMDA is split along `x`.
 - Four degrees of freedom per cell in 3D (`u`, `v`, `w`, `p`), three in 2D.
-- A local-to-global map covers owned cells and one ghost layer, so boundary and
-  partition faces can be assembled with `MatSetValues` and `VecSetValues`.
-- The pressure block reuses the scalar Laplacian sparsity pattern.
+- Every equation is assembled per unit volume. This makes the discrete
+  gradient the negative transpose of the discrete divergence, keeps the
+  pressure physical, and scales the Schur complement as `1/mu` rather than
+  `1/(mu h^3)`.
+- The pressure block reuses the scalar Laplacian sparsity pattern; the
+  stabilisation coefficient is `beta/h^2` with `beta = stabilization *
+  h_min^2 / mu`.
+- The fieldsplit index sets are built from the matrix block ownership range,
+  not from the natural cell ordering.
 - Matrix and preconditioner setup are reused when the coefficients do not
   change. For Navier–Stokes the matrix is rebuilt or updated each outer
   iteration.
@@ -153,7 +161,7 @@ approximation. GMRES handles the remaining coupling.
 | coupled outer | GMRES/FGMRES | fieldsplit | explicit `rtol`, `atol`, `max_it` |
 | velocity split | preonly | GAMG or ILU | vector Laplacian, one V-cycle |
 | pressure split | preonly | GAMG or HYPRE BoomerAMG | scalar pressure Laplacian |
-| small validation | preonly | LU / MUMPS / SuperLU | direct reference solution |
+| small validation | preonly | LU (SuperLU_DIST preferred) | direct reference solution |
 
 Typical options:
 
@@ -161,7 +169,7 @@ Typical options:
 -pc_type fieldsplit
 -pc_fieldsplit_type schur
 -pc_fieldsplit_schur_fact_type full
--pc_fieldsplit_schur_precondition self
+-pc_fieldsplit_schur_precondition selfp
 -fieldsplit_velocity_ksp_type preonly
 -fieldsplit_velocity_pc_type gamg
 -fieldsplit_pressure_ksp_type preonly
@@ -170,9 +178,20 @@ Typical options:
 -ksp_rtol 1e-10
 ```
 
-For all-Neumann pressure, create `MatNullSpace` with the constant vector and
-attach it with `KSPSetNullSpace`; do not guess a reference cell. The pressure
-mean is removed for error norms and reported separately.
+The pressure stabilisation gives a genuine pressure Laplacian, so `selfp`
+(use the `(1,1)` block as the Schur preconditioner) is the natural choice; the
+older `a11` option has the wrong size because the velocity block is `3N` and
+the pressure block is `N`. For the direct path a single pressure reference row
+fixes the gauge. For a fully iterative all-Neumann pressure path, create a
+`MatNullSpace` with the constant vector and attach it to both the outer matrix
+and the pressure sub-block. The pressure mean is removed for error norms and
+reported separately.
+
+The current `fieldsplit` implementation is `FGMRES + PC_COMPOSITE_SCHUR`,
+`fact_type full`, `selfp`, ILU on both blocks. It converges in 2–3 outer
+iterations on the validation meshes in 3D on 1/2/4 ranks and in 2D on 1/2
+ranks; the 2D four-rank Schur setup still needs a pressure-nullspace treatment
+before it becomes the default.
 
 ## 5. Navier–Stokes extension
 
@@ -223,7 +242,7 @@ The practical path is:
 | divergence | discrete continuity | `||div u||` below solver tolerance |
 | MMS 2D/3D | velocity and pressure order | second order in $h$ |
 | pressure null space | constant mode and mean | no drift, mean reported |
-| checkerboard | odd–even pressure | suppressed by Rhie–Chow |
+| checkerboard | odd–even pressure | suppressed by pressure-Laplacian stabilisation |
 | fieldsplit | Schur preconditioner | GMRES converges on 1/2/4 ranks |
 | exit boundary | BEM paper cases | quantitative comparison |
 

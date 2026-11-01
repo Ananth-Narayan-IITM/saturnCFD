@@ -1,7 +1,6 @@
 # Stokes validation
 
-**Status:** implemented for 2D/3D serial and 2D MPI (1/2/4 ranks). The 3D
-multi-rank DMDA path is a documented follow-up. Results below are measured.
+**Status:** implemented for 2D and 3D on 1/2/4 MPI ranks. Results below are measured.
 
 Solver: `saturnStokes`, coupled pressure–velocity saddle-point formulation with
 PETSc fieldsplit/Schur. Theory:
@@ -27,7 +26,7 @@ cases verify the formal order. The exit-boundary case is the bridge to the
 ## 2. Numerics
 
 - Cell-centred finite volume on a structured hexahedral box.
-- Coupled $u,v,w,p$ saddle-point matrix; Rhie–Chow face flux.
+- Coupled $u,v,w,p$ saddle-point matrix; Brezzi–Pitkäranta pressure stabilisation.
 - PETSc `MPIAIJ`, GMRES/FGMRES, fieldsplit/Schur preconditioner.
 - Velocity block: GAMG/ILU; pressure block: GAMG/HYPRE.
 - Pressure nullspace for all-Neumann cases.
@@ -60,7 +59,7 @@ $$
 | MMS pressure | observed order $p\ge 1.8$ on the finest pair |
 | continuity | $\|D\|_2$ below the linear-solve tolerance scale |
 | nullspace | mean pressure stable; no drift with iterations |
-| rank parity | 2D norms agree on 1/2/4 ranks |
+| rank parity | 2D and 3D norms agree on 1/2/4 ranks |
 | fieldsplit | GMRES converges without manual per-case tuning |
 
 ## 4a. Measured results
@@ -74,9 +73,20 @@ $$
 | Poiseuille 3D | 24$^2\times8$ | 2.17e-4 | 2.17e-4 |
 | Couette 3D | 24$^2\times8$ | 5.7e-12 | 6.6e-11 |
 
-The 2D cases pass on 1/2/4 ranks. The 3D cases are serial-validated; 4-rank
-3D DMDA assembly is the open follow-up. MMS and the Sankhla & Das exit-boundary
-cases remain planned.
+Multi-rank parity after the DMDA assembly fix:
+
+| case | 1 rank | 2 ranks | 4 ranks |
+|---|---:|---:|---:|
+| Poiseuille 2D $64^2$ | 3.0518e-5 | 3.0518e-5 | 3.0518e-5 |
+| Couette 2D $64^2$ | 5.04e-13 | 5.06e-13 | 5.06e-13 |
+| Poiseuille 3D $24^2\times8$ | 2.1701e-4 | 2.1701e-4 | 2.1701e-4 |
+| Couette 3D $24^2\times8$ | 3.19e-13 | 4.85e-13 | 2.29e-14 |
+
+Both dimensions now run on 1/2/4 ranks. The `z`-dependent body-force sampling
+and the per-volume row scaling were also fixed: the old momentum rows were
+volume-integrated while the continuity rows were per-volume, which scaled the
+solved pressure by the cell volume and made the Schur complement
+`O(1/(mu h^3))`. MMS and the Sankhla & Das exit-boundary cases remain planned.
 
 ## 5. Test/CTest plan
 
@@ -88,10 +98,9 @@ cli_checkConfig_example_stokes2d
 cli_checkConfig_example_stokes3d
 ```
 
-The `testSaturnStokes` binary covers Poiseuille and Couette in 2D/3D, with 3D
-skipped on more than one rank in the current core. Each example writes `u`,
-`v`, `w`, `p`, the analytic comparison and the PETSc iteration diagnostics.
-The CTest label is `solver`.
+The `testSaturnStokes` binary covers Poiseuille and Couette in 2D/3D on
+1/2/4 ranks. Each example writes `u`, `v`, `w`, `p`, the analytic comparison
+and the PETSc iteration diagnostics. The CTest label is `solver`.
 
 ## 6. Reproduction
 
@@ -119,8 +128,8 @@ and their error.
 
 To be filled from the first runs:
 
-- fieldsplit iteration counts versus mesh, viscosity and the Rhie–Chow
-  coefficient;
+- fieldsplit iteration counts versus mesh, viscosity and the pressure
+  stabilisation coefficient;
 - velocity/pressure orders for MMS;
 - pressure mean and nullspace behaviour;
 - divergence after the coupled solve;

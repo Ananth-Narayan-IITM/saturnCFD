@@ -31,17 +31,33 @@ src/solvers/saturnStokes/
 - Collocated cell-centred `u,v,w,p` on a PETSc `DMDA`.
 - Coupled saddle-point matrix:
   $$
-  \left[\begin{array}{cc} A & B^{T}\\ B & 0\end{array}\right]
+  \left[\begin{array}{cc} A & -B^{T}\\ B & C\end{array}\right]
   \left[\begin{array}{cc}\mathbf{u}\\p\end{array}\right]
   =
   \left[\begin{array}{cc}\mathbf{f}\\0\end{array}\right].
   $$
-- A compact pressure stabilisation replaces the raw collocated divergence;
-  one pressure reference row fixes the constant gauge.
+- A Brezzi-Pitkaranta pressure Laplacian `C = beta lap(p)` replaces the raw
+  collocated divergence; one pressure reference row fixes the constant gauge.
+- **Row scaling:** every equation is assembled per unit volume. Momentum
+  diffusion is `mu/h^2`, the pressure gradient and divergence are `0.5/h`, and
+  the stabilisation is `beta/h^2` with `beta = stabilization * h_min^2 / mu`.
+  This makes the discrete gradient the negative transpose of the divergence,
+  keeps `p` physical, and gives a Schur complement of order `1/mu` instead of
+  `1/(mu h^3)`.
+- **Matrix numbering:** the matrix is inserted with `MatSetValuesStencil`.
+  Hand-built PETSc ids from `i + nx*(j + ny*k)` are only correct when the DMDA
+  is split along `x`; on `y`/`z` splits they disagree with the DA global
+  ordering. The fieldsplit index sets are built from the matrix block owner
+  range for the same reason.
 - The validation core uses `stokes.linearSolver: direct` (PETSc
-  `preonly` + `lu`). The `fieldsplit` option configures GMRES/FGMRES with a
-  Schur fieldsplit but still needs tuning for refined meshes.
+  `preonly` + `lu`, preferring SuperLU_DIST when available; MUMPS can report a
+  false zero pivot on small multi-periodic saddle-point systems). The
+  `fieldsplit` option configures FGMRES with a Schur fieldsplit
+  (`selfp` + ILU) and is being tuned for production; it currently passes 3D on
+  1/2/4 ranks and 2D on 1/2 ranks.
 - 2D cases use the 3D core with `nz = 1`; `w` is constrained to zero.
+- 2D runs on 1/2/4 ranks and 3D on 1/2/4 ranks; the 3D tests no longer skip
+  multi-rank runs.
 
 ## Cases
 
@@ -73,7 +89,7 @@ Output is CSV (`x,y,z,u,v,w,p,u_exact,v_exact,w_exact,p_exact,error`) and JSON
 - `tests/TestSaturnStokes.cpp` — 2D Poiseuille order 2, 2D Couette exact,
   3D Poiseuille, 3D Couette.
 - `tests/CMakeLists.txt` — `stokes_np1/2/4` under the `solver` label.
-- 2D runs on 1/2/4 ranks; 3D is serial in the current core.
+- Both 2D and 3D run on 1/2/4 ranks.
 
 ## Examples and validation
 

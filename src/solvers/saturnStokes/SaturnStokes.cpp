@@ -27,12 +27,6 @@ MatStencil stencil(PetscInt i, PetscInt j, PetscInt k, PetscInt c) {
   return s;
 }
 
-int wrapIndex(int i, int n) {
-  if (n <= 0)
-    return 0;
-  return (i % n + n) % n;
-}
-
 }  // namespace
 
 SaturnStokes::SaturnStokes(Mesh mesh, StokesOptions options)
@@ -155,6 +149,16 @@ void SaturnStokes::createSolver() {
   PetscInt xs = 0, ys = 0, zs = 0, xm = 0, ym = 0, zm = 0;
   SATURN_PETSC_CHECK(DMDAGetCorners(mDa, &xs, &ys, &zs, &xm, &ym, &zm));
   const PetscInt nodes = xm * ym * zm;
+  // DMCreateMatrix uses a block size of kDof and assigns each rank a
+  // contiguous row range, so local node q maps to global node
+  // firstNode + q. Building ids from the natural i + nx*(j + ny*k)
+  // formula is wrong on y/z-split layouts.
+  PetscInt rowStart = 0, rowEnd = 0, blockSize = 0;
+  SATURN_PETSC_CHECK(MatGetOwnershipRange(mA, &rowStart, &rowEnd));
+  SATURN_PETSC_CHECK(MatGetBlockSize(mA, &blockSize));
+  if (blockSize != kDof || (rowEnd - rowStart) / kDof != nodes)
+    throw PetscError("saturnStokes: unexpected DMDA matrix ownership layout");
+  const PetscInt firstNode = rowStart / kDof;
   std::vector<PetscInt> velocity;
   std::vector<PetscInt> pressure;
   velocity.reserve(static_cast<std::size_t>(nodes) * 3);
@@ -162,7 +166,8 @@ void SaturnStokes::createSolver() {
   for (PetscInt k = zs; k < zs + zm; ++k) {
     for (PetscInt j = ys; j < ys + ym; ++j) {
       for (PetscInt i = xs; i < xs + xm; ++i) {
-        const PetscInt node = i + mNx * (j + mNy * k);
+        const PetscInt q = (i - xs) + xm * ((j - ys) + ym * (k - zs));
+        const PetscInt node = firstNode + q;
         velocity.push_back(kDof * node + 0);
         velocity.push_back(kDof * node + 1);
         velocity.push_back(kDof * node + 2);
@@ -183,6 +188,14 @@ void SaturnStokes::createSolver() {
     PC directPc = nullptr;
     SATURN_PETSC_CHECK(KSPGetPC(mKsp, &directPc));
     SATURN_PETSC_CHECK(PCSetType(directPc, PCLU));
+    // SuperLU_DIST is more robust than MUMPS on the small, unsymmetric,
+    // multi-periodic saddle-point matrices that appear in the refinement
+    // tests; MUMPS can report a false zero pivot there. Fall back to the
+    // PETSc default when SuperLU_DIST is not part of the build.
+#if defined(PETSC_HAVE_SUPERLU_DIST)
+    SATURN_PETSC_CHECK(
+        PCFactorSetMatSolverType(directPc, MATSOLVERSUPERLU_DIST));
+#endif
     SATURN_PETSC_CHECK(KSPSetOperators(mKsp, mA, mA));
     SATURN_PETSC_CHECK(KSPSetTolerances(mKsp, 1e-12, 1e-14, PETSC_DEFAULT, 50));
     return;
@@ -192,12 +205,17 @@ void SaturnStokes::createSolver() {
   SATURN_PETSC_CHECK(KSPGetPC(mKsp, &pc));
   SATURN_PETSC_CHECK(PCSetType(pc, PCFIELDSPLIT));
   SATURN_PETSC_CHECK(PCFieldSplitSetType(pc, PC_COMPOSITE_SCHUR));
+  SATURN_PETSC_CHECK(
+      PCFieldSplitSetSchurFactType(pc, PC_FIELDSPLIT_SCHUR_FACT_FULL));
   SATURN_PETSC_CHECK(PCFieldSplitSetIS(pc, "velocity", mVelocityIS));
   SATURN_PETSC_CHECK(PCFieldSplitSetIS(pc, "pressure", mPressureIS));
 
   SATURN_PETSC_CHECK(KSPSetOptionsPrefix(mKsp, "stokes_"));
+  // The velocity block is 3x3 per cell and the pressure block is 1x1, so the
+  // a11 Schur preconditioner has the wrong size. The pressure stabilisation
+  // gives a genuine pressure Laplacian; use it (selfp) instead.
   PetscOptionsSetValue(nullptr, "-stokes_pc_fieldsplit_schur_precondition",
-                       "a11");
+                       "selfp");
   PetscOptionsSetValue(nullptr, "-stokes_fieldsplit_velocity_ksp_type",
                        "preonly");
   PetscOptionsSetValue(nullptr, "-stokes_fieldsplit_velocity_pc_type", "ilu");
@@ -223,28 +241,37 @@ void SaturnStokes::assemble() {
   PetscScalar**** bv = nullptr;
   SATURN_PETSC_CHECK(DMDAVecGetArrayDOF(mDa, mB, &bv));
 
-  const Real volume = mHx * mHy * mHz;
-  const Real ax = mHy * mHz;
-  const Real ay = mHx * mHz;
-  const Real az = mHx * mHy;
-  const Real cx = mOptions.mu * ax / mHx;
-  const Real cy = mOptions.mu * ay / mHy;
-  const Real cz = (mDim == 3) ? mOptions.mu * az / mHz : Real(0);
-  const Real faceBeta = mOptions.stabilization / mOptions.mu;
+  // Every equation is assembled per unit volume. The momentum diffusion
+  // coefficient is mu/h^2, the pressure gradient is centred on 0.5/h, and the
+  // divergence is centred on 0.5/h, so the discrete gradient is the negative
+  // transpose of the discrete divergence and the pressure is physical.
+  const Real cx = mOptions.mu / (mHx * mHx);
+  const Real cy = mOptions.mu / (mHy * mHy);
+  const Real cz = (mDim == 3) ? mOptions.mu / (mHz * mHz) : Real(0);
+  // beta = stabilization * h^2 / mu is the physical Brezzi-Pitkaranta
+  // coefficient; per unit volume the discrete Laplacian uses beta/h^2.
+  const Real hMin =
+      (mDim == 3) ? std::min(mHx, std::min(mHy, mHz)) : std::min(mHx, mHy);
+  const Real beta = mOptions.stabilization * hMin * hMin / mOptions.mu;
+  const Real betaX = beta / (mHx * mHx);
+  const Real betaY = beta / (mHy * mHy);
+  const Real betaZ = (mDim == 3) ? beta / (mHz * mHz) : Real(0);
   const bool periodicX = mOptions.periodicX && mNx > 1;
   const bool periodicY = mOptions.periodicY && mNy > 1;
   const bool periodicZ = (mDim == 3) && mOptions.periodicZ && mNz > 1;
 
-  auto px = [&](int i) { return periodicX ? wrapIndex(i, mNx) : i; };
-  auto py = [&](int j) { return periodicY ? wrapIndex(j, mNy) : j; };
-  auto pz = [&](int k) { return periodicZ ? wrapIndex(k, mNz) : k; };
+  // MatSetValuesStencil applies the DMDA periodic wrap itself, so keep the
+  // logical neighbour index unwrapped (i-1 and i+1 may fall outside [0,M)).
+  auto px = [&](int i) { return i; };
+  auto py = [&](int j) { return j; };
+  auto pz = [&](int k) { return k; };
 
   for (PetscInt k = zs; k < zs + zm; ++k) {
     for (PetscInt j = ys; j < ys + ym; ++j) {
       for (PetscInt i = xs; i < xs + xm; ++i) {
         const Real xc = mXmin + (static_cast<Real>(i) + Real(0.5)) * mHx;
         const Real yc = mYmin + (static_cast<Real>(j) + Real(0.5)) * mHy;
-        const Real zc = mZmin + Real(0.5) * mHz;
+        const Real zc = mZmin + (static_cast<Real>(k) + Real(0.5)) * mHz;
         const Vec3 f = mOptions.bodyForce ? mOptions.bodyForce({xc, yc, zc})
                                           : mOptions.force;
         const bool bottom = (!periodicY && j == 0);
@@ -254,15 +281,14 @@ void SaturnStokes::assemble() {
                                const std::vector<PetscScalar>& vals) {
           if (cols.empty())
             return;
-          const PetscInt row = kDof * (i + mNx * (j + mNy * k)) + c;
-          std::vector<PetscInt> colIds(cols.size());
-          for (std::size_t q = 0; q < cols.size(); ++q)
-            colIds[q] =
-                kDof * (cols[q].i + mNx * (cols[q].j + mNy * cols[q].k)) +
-                cols[q].c;
-          SATURN_PETSC_CHECK(
-              MatSetValues(mA, 1, &row, static_cast<PetscInt>(cols.size()),
-                           colIds.data(), vals.data(), ADD_VALUES));
+          // MatSetValuesStencil maps the global logical (i,j,k,c) indices
+          // through the DMDA local-to-global map. Hand-building PETSc global
+          // row ids from i,j,k is only correct when the DA is distributed
+          // along x, which is why it broke on y-split 3D layouts.
+          MatStencil row = stencil(i, j, k, c);
+          SATURN_PETSC_CHECK(MatSetValuesStencil(
+              mA, 1, &row, static_cast<PetscInt>(cols.size()), cols.data(),
+              vals.data(), ADD_VALUES));
         };
 
         // ---------------- u momentum ----------------
@@ -320,7 +346,7 @@ void SaturnStokes::assemble() {
           if (periodicX || i + 1 < mNx)
             add(px(i + 1), j, k, 3, Real(0.5) / mHx);
           add(i, j, k, 0, diag);
-          bv[k][j][i][0] += volume * f.x;
+          bv[k][j][i][0] += f.x;
           addMomentum(0, cols, vals);
         }
 
@@ -380,7 +406,7 @@ void SaturnStokes::assemble() {
             add(i, py(j + 1), k, 3, Real(0.5) / mHy);
           }
           add(i, j, k, 1, diag);
-          bv[k][j][i][1] += volume * f.y;
+          bv[k][j][i][1] += f.y;
           addMomentum(1, cols, vals);
         }
 
@@ -432,7 +458,7 @@ void SaturnStokes::assemble() {
           if (periodicZ || k + 1 < mNz)
             add(i, j, pz(k + 1), 3, Real(0.5) / mHz);
           add(i, j, k, 2, diag);
-          bv[k][j][i][2] += volume * f.z;
+          bv[k][j][i][2] += f.z;
           addMomentum(2, cols, vals);
         } else {
           std::vector<MatStencil> cols{stencil(i, j, k, 2)};
@@ -474,30 +500,30 @@ void SaturnStokes::assemble() {
           // pressure stabilisation -beta lap(p), Neumann at y walls
           Real diag = 0;
           if (periodicX || i > 0) {
-            add(px(i - 1), j, k, 3, -faceBeta);
-            diag += faceBeta;
+            add(px(i - 1), j, k, 3, -betaX);
+            diag += betaX;
           }
           if (periodicX || i + 1 < mNx) {
-            add(px(i + 1), j, k, 3, -faceBeta);
-            diag += faceBeta;
+            add(px(i + 1), j, k, 3, -betaX);
+            diag += betaX;
           }
           if (!bottom && !top) {
-            add(i, py(j - 1), k, 3, -faceBeta);
-            add(i, py(j + 1), k, 3, -faceBeta);
-            diag += 2 * faceBeta;
+            add(i, py(j - 1), k, 3, -betaY);
+            add(i, py(j + 1), k, 3, -betaY);
+            diag += 2 * betaY;
           } else if (periodicY) {
-            add(i, py(j - 1), k, 3, -faceBeta);
-            add(i, py(j + 1), k, 3, -faceBeta);
-            diag += 2 * faceBeta;
+            add(i, py(j - 1), k, 3, -betaY);
+            add(i, py(j + 1), k, 3, -betaY);
+            diag += 2 * betaY;
           }
           if (mDim == 3) {
             if (periodicZ || k > 0) {
-              add(i, j, pz(k - 1), 3, -faceBeta);
-              diag += faceBeta;
+              add(i, j, pz(k - 1), 3, -betaZ);
+              diag += betaZ;
             }
             if (periodicZ || k + 1 < mNz) {
-              add(i, j, pz(k + 1), 3, -faceBeta);
-              diag += faceBeta;
+              add(i, j, pz(k + 1), 3, -betaZ);
+              diag += betaZ;
             }
           }
           add(i, j, k, 3, diag);

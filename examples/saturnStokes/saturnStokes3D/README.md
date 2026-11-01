@@ -47,10 +47,10 @@ Couette   : L2 ≈ 5.7e-12,  Linf ≈ 6.6e-11
 
 ## Parallel note
 
-The 3D core is validated serially. Its multi-rank DMDA assembly is a known
-follow-up item; the 2D cases are validated on 1/2/4 ranks. The CTest
-`stokes_np2` and `stokes_np4` therefore run the 2D cases and skip the 3D cases
-with a message.
+The 3D core is validated on 1/2/4 ranks. Matrix entries are inserted with
+`MatSetValuesStencil`, so PETSc's DMDA global ordering is respected on any
+`x`, `y` or `z` split; the previous hand-built id formula only worked when the
+DA was split along `x`. The CTest `stokes_np1/2/4` runs both 2D and 3D.
 
 ## Files
 
