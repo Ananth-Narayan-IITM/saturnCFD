@@ -160,6 +160,13 @@ Validation: 1D erf solution, 2D/3D MMS, boundary-layer profile, 1/2/4 ranks.
 
 Exit: second-order heat tests; `ctest --preset heat` passes.
 
+**Status:** the explicit slice is done. `saturnHeat` is registered and
+validated against the periodic Fourier mode in 2D and 3D (orders 2.20-2.44),
+with periodic and Dirichlet boundaries, closed/open profiles, VTK and
+checkpoint/restart; `ctest --preset heat` passes on 1/2/4 ranks. Still open:
+implicit BE/CN/BDF2 diffusion, Neumann boundaries and the 1D
+erf/boundary-layer cases.
+
 ## Phase 4 — Stokes and pressure–velocity coupling
 
 $$

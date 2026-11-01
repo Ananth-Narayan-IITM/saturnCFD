@@ -2,9 +2,10 @@
 
 **Status:** mesh, configuration, CLI, the MPI partition/halo substrate, the
 CPU finite-volume operator slice, the Phase 0 PETSc linear-algebra layer and
-the explicit solver/time-loop layer are implemented. The FV Poisson matrix
-assembler, implicit BE/CN/BDF2, Burgers/heat solvers and GPU execution
-verification are next. The parallel design is in
+the explicit solver/time-loop layer, the 1D/2D/3D Burgers solver and the
+`saturnHeat` scalar convection–diffusion solver are implemented. The FV
+Poisson matrix assembler, implicit BE/CN/BDF2, Stokes coupling and GPU
+execution verification are next. The parallel design is in
 [`mpiGpuDesign.md`](mpiGpuDesign.md); the solver sequence is in
 [`solverSequence.md`](solverSequence.md).
 
@@ -179,8 +180,12 @@ Then Phase 2: Burgers physics and the `traveling64` analytic regression.
   1.96/2.10, 3D example L2 8.967e-4, VTK and checkpoint/restart.
 - **Done:** YAML CLI path (`saturnCFD case.yaml`), CSV profile and JSON
   summary; `ctest --preset burgers` passes on 1/2/4 ranks.
-- Pending: FV Poisson matrix assembly, implicit BE/CN/BDF2, vector Burgers and
-  heat solvers.
+- **Done:** `saturnHeat` 1D/2D/3D scalar convection–diffusion; periodic Fourier
+  validation gives 3D L2 1.932e-2/3.973e-3/7.365e-4 at 16^3/32^3/64^3
+  (orders 2.28/2.43; the 48^3 example is 1.479e-3) and 2D L2
+  5.733e-3/1.112e-3/2.425e-4 at 32^2/64^2/128^2 (orders 2.37/2.20);
+  `ctest --preset heat` passes on 1/2/4 ranks, including restart.
+- Pending: FV Poisson matrix assembly, implicit BE/CN/BDF2 and vector Burgers.
 - Pending: pressure Poisson/SIMPLE-PISO with PETSc.
 - 1/2/4-rank *cross-run* results agree; a CUDA build reproduces the CPU
   reference within precision.

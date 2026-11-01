@@ -18,7 +18,15 @@ examples/
       saturnBurger3D.yaml
       compareAnalytic.py
       README.md
-  heat/                    # later
+  saturnHeat/
+    saturnHeat2D/          # 2D periodic Fourier convection–diffusion mode
+      saturnHeat2D.yaml
+      compareAnalytic.py
+      README.md
+    saturnHeat3D/          # 3D periodic Fourier convection–diffusion mode
+      saturnHeat3D.yaml
+      compareAnalytic.py
+      README.md
   saturnStokes/            # later
   saturnIncompressible/    # later
 ```
@@ -58,3 +66,21 @@ python3 compareAnalytic.py
 Each script recomputes the analytic solution from the case parameters and
 prints L1/L2/Linf, a PASS/FAIL check and a comparison plot. See the README in
 each dimension directory.
+
+## Running the heat examples
+
+```bash
+# 2D periodic Fourier mode
+cd saturnHeat/saturnHeat2D
+saturnCFD saturnHeat2D.yaml
+python3 compareAnalytic.py
+
+# 3D periodic Fourier mode
+cd ../saturnHeat3D
+saturnCFD saturnHeat3D.yaml
+python3 compareAnalytic.py
+```
+
+The heat scripts compare against
+`T = A sin(k.x - (a.k)t) exp(-alpha |k|^2 t)` and draw the numerical field,
+the analytic field, the error and a cut/diagonal profile.

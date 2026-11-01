@@ -145,6 +145,27 @@ The shock-speed table and dense 3D cluster validation are next. See
 [`../theory/burgers.md`](../theory/burgers.md) and
 [`../../src/solvers/saturnBurger/README.md`](../../src/solvers/saturnBurger/README.md).
 
+## Heat solver tests
+
+`tests/TestSaturnHeat.cpp` checks the periodic Fourier mode
+`T = A sin(k.x - (a.k)t) exp(-alpha |k|^2 t)`:
+
+- 3D, `alpha = 0.01`, `a = (1, 0.5, 0.25)`, `k = 2*pi*(1,1,1)`, `t = 0.1`:
+  L2 1.932e-2 -> 3.973e-3 -> 7.365e-4 at 16^3/32^3/64^3, observed orders
+  2.28 and 2.43;
+- a constant field is preserved exactly (Linf equal to the initial value);
+- the same binary runs under `mpirun -np 1/2/4`, covering periodic halos and
+  the rank-0 mesh distribution;
+- `heat_checkpoint` checks the generic scalar checkpoint/restart path: the
+  resumed run matches the uninterrupted run to roundoff.
+
+The stable YAML regressions are `tests/regression/heat2d/fourier64.yaml` and
+`tests/regression/heat3d/fourier32.yaml`, checked by `tests/checkHeat.cmake`.
+`ctest --preset heat` runs the heat slice; in an MPI build it runs the 3D case
+on 1/2/4 ranks. The user-facing examples
+`examples/saturnHeat/saturnHeat2D/` and `saturnHeat3D/` are schema-checked by
+CTest and ship independent `compareAnalytic.py` scripts.
+
 ## PETSc tests
 
 `tests/TestPetsc.cpp` currently checks:

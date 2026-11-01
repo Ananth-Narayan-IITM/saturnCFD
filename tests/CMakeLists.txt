@@ -51,11 +51,12 @@ if(SATURN_ENABLE_KOKKOS)
     TestSaturnBurger.cpp
     TestSaturnBurger2D.cpp
     TestSaturnBurger3D.cpp
+    TestSaturnHeat.cpp
   )
   set_target_properties(testSaturnFV PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
   target_link_libraries(testSaturnFV PRIVATE
-    saturn::Core saturn::Simulation saturn::Burger doctest::doctest)
+    saturn::Core saturn::Simulation saturn::Burger saturn::Heat doctest::doctest)
 
   set(SATURN_FV_LABELS "fv;regression;parity")
   if(SATURN_BACKEND STREQUAL "cuda")
@@ -229,6 +230,56 @@ set_tests_properties(burgers_3d_traveling16 PROPERTIES
   LABELS "burgers;burgers3d;regression" RUN_SERIAL TRUE
   ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
 
+# YAML-driven heat (scalar convection–diffusion) validation. The exact data is
+# the periodic Fourier mode T = A sin(k.x - (a.k)t) exp(-alpha |k|^2 t).
+set(SATURN_HEAT2D_EXAMPLE
+    "${SATURN_SOURCE_DIR}/examples/saturnHeat/saturnHeat2D/saturnHeat2D.yaml")
+add_test(NAME cli_checkConfig_example_heat2d
+  COMMAND saturnCFD -checkConfig ${SATURN_HEAT2D_EXAMPLE})
+set_tests_properties(cli_checkConfig_example_heat2d
+  PROPERTIES LABELS "cli;config;heat;heat2d;regression")
+
+set(SATURN_HEAT3D_EXAMPLE
+    "${SATURN_SOURCE_DIR}/examples/saturnHeat/saturnHeat3D/saturnHeat3D.yaml")
+add_test(NAME cli_checkConfig_example_heat3d
+  COMMAND saturnCFD -checkConfig ${SATURN_HEAT3D_EXAMPLE})
+set_tests_properties(cli_checkConfig_example_heat3d
+  PROPERTIES LABELS "cli;config;heat;heat3d;regression")
+
+set(SATURN_HEAT2D_CASE
+    "${CMAKE_CURRENT_SOURCE_DIR}/regression/heat2d/fourier64.yaml")
+add_test(NAME heat_2d_fourier64
+  COMMAND ${CMAKE_COMMAND}
+          -DCLI=$<TARGET_FILE:saturnCFD>
+          -DCASE=${SATURN_HEAT2D_CASE}
+          -DOUT=${CMAKE_CURRENT_BINARY_DIR}/heat2d_fourier64
+          -DPREFIX=results/heat2d/fourier64
+          -DROWS=4097
+          -DL2_MIN=9.0e-4
+          -DL2_MAX=1.3e-3
+          -DLINF_MAX=3.0e-3
+          -P ${CMAKE_CURRENT_SOURCE_DIR}/checkHeat.cmake)
+set_tests_properties(heat_2d_fourier64 PROPERTIES
+  LABELS "heat;heat2d;regression" RUN_SERIAL TRUE
+  ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
+
+set(SATURN_HEAT3D_CASE
+    "${CMAKE_CURRENT_SOURCE_DIR}/regression/heat3d/fourier32.yaml")
+add_test(NAME heat_3d_fourier32
+  COMMAND ${CMAKE_COMMAND}
+          -DCLI=$<TARGET_FILE:saturnCFD>
+          -DCASE=${SATURN_HEAT3D_CASE}
+          -DOUT=${CMAKE_CURRENT_BINARY_DIR}/heat3d_fourier32
+          -DPREFIX=results/heat3d/fourier32
+          -DROWS=32769
+          -DL2_MIN=3.0e-3
+          -DL2_MAX=5.0e-3
+          -DLINF_MAX=1.5e-2
+          -P ${CMAKE_CURRENT_SOURCE_DIR}/checkHeat.cmake)
+set_tests_properties(heat_3d_fourier32 PROPERTIES
+  LABELS "heat;heat3d;regression" RUN_SERIAL TRUE
+  ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
+
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
   add_test(NAME burgers_checkpoint
@@ -241,6 +292,18 @@ if(Python3_Interpreter_FOUND)
             --template ${CMAKE_CURRENT_SOURCE_DIR}/regression/burgers/restartTemplate.yaml.in)
   set_tests_properties(burgers_checkpoint PROPERTIES
     LABELS "burgers;checkpoint;regression" RUN_SERIAL TRUE
+    ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
+
+  add_test(NAME heat_checkpoint
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/checkHeatCheckpoint.py
+            --cli $<TARGET_FILE:saturnCFD>
+            --out ${CMAKE_CURRENT_BINARY_DIR}/heat_checkpoint
+            --full ${CMAKE_CURRENT_SOURCE_DIR}/regression/heat3d/restartFull.yaml
+            --checkpoint ${CMAKE_CURRENT_SOURCE_DIR}/regression/heat3d/restartCheckpoint.yaml
+            --template ${CMAKE_CURRENT_SOURCE_DIR}/regression/heat3d/restartTemplate.yaml.in)
+  set_tests_properties(heat_checkpoint PROPERTIES
+    LABELS "heat;checkpoint;regression" RUN_SERIAL TRUE
     ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
 endif()
 
@@ -267,4 +330,22 @@ else()
             -P ${CMAKE_CURRENT_SOURCE_DIR}/checkBurgers.cmake)
   set_tests_properties(burgers_traveling64
     PROPERTIES LABELS "burgers;regression")
+endif()
+
+# The heat case is periodic, so the MPI variants also exercise periodic halos
+# and the rank-0 mesh distribution.
+if(SATURN_ENABLE_MPI)
+  foreach(ranks 1 2 4)
+    add_test(NAME heat_fourier32_np${ranks}
+      COMMAND ${CMAKE_COMMAND}
+              -DCLI=$<TARGET_FILE:saturnCFD>
+              -DCASE=${SATURN_HEAT3D_CASE}
+              -DOUT=${CMAKE_CURRENT_BINARY_DIR}/heat_np${ranks}
+              -DMPIEXEC=${MPIEXEC_EXECUTABLE}
+              -DRANKS=${ranks}
+              -P ${CMAKE_CURRENT_SOURCE_DIR}/checkHeat.cmake)
+    set_tests_properties(heat_fourier32_np${ranks} PROPERTIES
+      LABELS "heat;heat3d;regression;mpi" RUN_SERIAL TRUE
+      ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
+  endforeach()
 endif()

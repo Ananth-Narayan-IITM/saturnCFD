@@ -170,13 +170,19 @@ If the change is not understood, it is a bug, not a new baseline.
 | `burgers/vtk` | `output.vtkEvery` writes `.vtu` frames and `.pvd` | implemented (`tests/regression/burgers/vtk.yaml`) |
 | `burgers3d/traveling16` | 3D diagonal wave, $L^2\approx2.577e-3$ | implemented (`tests/regression/burgers3d/traveling16.yaml`) |
 | `burgers/checkpoint` | checkpoint/restart matches uninterrupted run | implemented (`checkBurgersCheckpoint.py`) |
+| `heat2d/fourier64` | periodic 2D Fourier mode, $L^2\approx1.112e-3$ | implemented (`tests/regression/heat2d/fourier64.yaml`, `checkHeat.cmake`) |
+| `heat3d/fourier32` | periodic 3D Fourier mode, $L^2\approx3.973e-3$ | implemented (`tests/regression/heat3d/fourier32.yaml`) |
+| `heat/dimension` | 3D Fourier order 2.28/2.43 at 16^3/32^3/64^3 | implemented in `TestSaturnHeat` |
+| `heat/example` | 2D/3D Fourier examples and `compareAnalytic.py` | implemented (`examples/saturnHeat/`) |
+| `heat/checkpoint` | scalar restart matches uninterrupted heat run | implemented (`checkHeatCheckpoint.py`) |
 
 The FVM entry is a library regression: the stored 32$^3$
 `L2=0.13435580757778084` is the smallest scalar that catches a stencil, halo or
 geometry regression. It is checked on every rank and in a CUDA build. The
 Burgers YAML case is run by CTest on 1/2/4 ranks and checks the analytic norms,
 the CSV rows and the JSON summary. `ctest --preset burgers` selects the 1D
-slice and `ctest --preset burgers2d` the 2D slice;
+slice and `ctest --preset burgers2d` the 2D slice; the heat cases use
+`ctest --preset heat`;
 `tools/validateBurgers.py` regenerates the full table and figure. MPI tests set
 `OMP_NUM_THREADS=1`: without it, 4 ranks oversubscribe a 24-core node and the
 FV suite becomes roughly 100x slower.

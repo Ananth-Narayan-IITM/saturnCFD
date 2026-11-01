@@ -1,0 +1,65 @@
+# saturnHeat 2D standalone example
+#
+# 2D scalar convection–diffusion (heat) equation:
+#   dT/dt + div(a T) = alpha lap(T)
+#
+# Periodic box [0,1]^2, uniform prescribed velocity a = (1, 0.5, 0).
+#
+# The exact Fourier mode is
+#   T(x,y,t) = A sin(kx x + ky y - (a.k) t) exp(-alpha (kx^2 + ky^2) t)
+# with A = 1, kx = ky = 2*pi, alpha = 0.01.
+#
+# Run and compare:
+#   saturnCFD saturnHeat2D.yaml
+#   python3 compareAnalytic.py
+
+solver: saturnHeat
+
+units:
+  system: SI
+
+mesh:
+  type: box
+  nx: 128
+  ny: 128
+  nz: 1            # 2D: must stay 1
+  box:
+    xmin: 0.0
+    xmax: 1.0
+    ymin: 0.0
+    ymax: 1.0
+    zmin: 0.0
+    zmax: 1.0
+
+time:
+  start: 0.0
+  end: 0.2
+  scheme: ssprk3
+  adaptive: true
+  cfl: 0.3
+  dtMax: 0.005
+  maxSteps: 100000
+
+heat:
+  alpha: 0.01
+  velocityX: 1.0
+  velocityY: 0.5
+  velocityZ: 0.0
+  source: 0.0
+  periodic: true
+  initial: fourier
+  amplitude: 1.0
+  kx: 6.283185307179586
+  ky: 6.283185307179586
+  kz: 0.0
+
+numerics:
+  convection: muscl
+  limiter: vanLeer
+
+output:
+  prefix: results/saturnHeat2D/fourier
+  csv: true
+  json: true
+  exact: true
+  vtkEvery: 50

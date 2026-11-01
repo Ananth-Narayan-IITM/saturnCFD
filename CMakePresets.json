@@ -220,6 +220,19 @@
       }
     },
     {
+      "name": "heat",
+      "displayName": "Heat/convection–diffusion YAML validation",
+      "configurePreset": "default",
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "label": "heat"
+        }
+      }
+    },
+    {
       "name": "checkpoint",
       "displayName": "Checkpoint/restart tests",
       "configurePreset": "default",

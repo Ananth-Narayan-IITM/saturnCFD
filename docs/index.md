@@ -9,10 +9,13 @@ yaml-cpp schema validation, CLI help, VTK mesh export, MPI partition/halo and
 the CPU Kokkos FVM slice (`CellField`, `FaceField`, `LocalMesh`, interpolation,
 gradient, divergence, non-orthogonal Laplacian, boundary ghosts,
 upwind/Rusanov/MUSCL convection, MMS and a simplified Rhie–Chow flux), the
-Phase 0 PETSc `saturnLinAlg` layer, the explicit solver/time loop and the 1D
-`saturnBurger` solver are in place. The 1D/2D/3D Burgers solver is registered
-in the CLI and validated against exact traveling waves, with VTK output and
-checkpoint/restart. Implicit time schemes and the heat solver follow.
+Phase 0 PETSc `saturnLinAlg` layer, the explicit solver/time loop, the
+1D/2D/3D Burgers solver and the `saturnHeat` scalar convection–diffusion
+solver are in place. Both scalars are registered in the CLI and validated
+against analytic solutions, with VTK output and checkpoint/restart.
+`saturnHeat` is checked against a periodic Fourier mode in 2D and 3D, with
+the rank-0 mesh load and local-geometry distribution used by both solvers.
+Implicit time schemes and the Stokes solver follow.
 
 ## Where to start
 

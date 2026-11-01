@@ -1,0 +1,54 @@
+# Interrupted run: stops at t = 0.025 s (step 5) and writes checkpoints.
+# Only the solve to the checkpoint differs from restartFull.yaml.
+
+solver: saturnHeat
+
+units:
+  system: SI
+
+mesh:
+  type: box
+  nx: 16
+  ny: 16
+  nz: 16
+  box:
+    xmin: 0.0
+    xmax: 1.0
+    ymin: 0.0
+    ymax: 1.0
+    zmin: 0.0
+    zmax: 1.0
+
+time:
+  start: 0.0
+  end: 0.025
+  scheme: ssprk3
+  adaptive: true
+  cfl: 0.3
+  dtMax: 0.005
+  maxSteps: 10000
+
+heat:
+  alpha: 0.01
+  velocityX: 1.0
+  velocityY: 0.5
+  velocityZ: 0.25
+  source: 0.0
+  periodic: true
+  initial: fourier
+  amplitude: 1.0
+  kx: 6.283185307179586
+  ky: 6.283185307179586
+  kz: 6.283185307179586
+
+numerics:
+  convection: muscl
+  limiter: vanLeer
+
+output:
+  prefix: results/heat/checkpoint
+  csv: false
+  json: true
+  exact: true
+  vtkEvery: 0
+  checkpointEvery: 5

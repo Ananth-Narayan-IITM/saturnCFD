@@ -12,7 +12,7 @@ expected files are maintained.
 | page | solver | status |
 |---|---|---|
 | [`burgers.md`](burgers.md) | 1D/2D/3D scalar `saturnBurger` | implemented; 1D order 2.03, 2D 2.10, 3D example |
-| `heat.md` | heat / convection–diffusion | waiting for Phase 3 |
+| [`heat.md`](heat.md) | 1D/2D/3D `saturnHeat` | implemented; 3D order 2.28/2.44, 2D 2.37/2.20 |
 | `stokes.md` | Stokes | waiting for Phase 4 |
 | `incompressible.md` | incompressible Navier–Stokes | waiting for Phase 5 |
 | `mesh.md` | `checkMesh` | waiting for Phase 1 |

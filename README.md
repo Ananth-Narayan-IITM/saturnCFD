@@ -12,10 +12,11 @@ non-orthogonal Laplacian, Dirichlet/Neumann ghost fill, upwind/Rusanov/MUSCL
 convection, advection–diffusion and divergence-theorem tests, a simplified
 Rhie–Chow flux, the explicit solver/time loop (forward Euler, SSPRK2/3,
 diagnostics, registry), rank-0 mesh load with local-geometry distribution, and
-the registered 1D/2D/3D `saturnBurger` solver are in place. PETSc 3.19.6 is linked through the separate `saturnLinAlg` library; the
-1D/3D Poisson and all-Neumann tests pass on 1/2/4 ranks. The 1D/2D/3D Burgers
-solver, VTK field export and checkpoint/restart are done; implicit time
-schemes, the heat solver and FV Poisson matrix assembler are next.
+the registered 1D/2D/3D `saturnBurger` and `saturnHeat` solvers are in place.
+PETSc 3.19.6 is linked through the separate `saturnLinAlg` library; the
+1D/3D Poisson and all-Neumann tests pass on 1/2/4 ranks. Both scalar solvers,
+VTK field export and checkpoint/restart are done; implicit time schemes and
+the FV Poisson matrix assembler are next.
 
 The 1D/2D/3D Burgers solver is validated against the exact viscous traveling
 wave:
@@ -23,6 +24,14 @@ $L^2$ falls from $9.0\times10^{-3}$ at $N=32$ to $7.3\times10^{-6}$ at $N=1024$
 with observed orders 1.98/2.11/2.10/2.06/2.03, and 1/2/4 ranks give identical norms.
 See [`docs/validation/burgers.md`](docs/validation/burgers.md) and the figure
 [`docs/validation/figures/burgersValidation.png`](docs/validation/figures/burgersValidation.png).
+
+`saturnHeat` is validated against the periodic Fourier mode
+$T=A\sin(\mathbf{k}\cdot\mathbf{x}-(\mathbf{a}\cdot\mathbf{k})t)
+\exp(-\alpha|\mathbf{k}|^2t)$: 3D orders 2.28 and 2.43 at 16^3/32^3/64^3
+(48^3 example $L^2=1.48\times10^{-3}$), 2D orders 2.37 and 2.20, with
+identical norms on 1/2/4 ranks. See
+[`docs/validation/heat.md`](docs/validation/heat.md) and
+[`docs/validation/figures/heat3DValidation.png`](docs/validation/figures/heat3DValidation.png).
 
 Standalone user examples are in
 [`examples/saturnBurger/`](examples/saturnBurger/):
@@ -38,6 +47,19 @@ python3 compareAnalytic.py
 
 cd ../saturnBurger3D
 saturnCFD saturnBurger3D.yaml
+python3 compareAnalytic.py
+```
+
+The heat solver has matching 2D/3D Fourier-mode examples in
+[`examples/saturnHeat/`](examples/saturnHeat/):
+
+```bash
+cd examples/saturnHeat/saturnHeat2D
+saturnCFD saturnHeat2D.yaml
+python3 compareAnalytic.py
+
+cd ../saturnHeat3D
+saturnCFD saturnHeat3D.yaml
 python3 compareAnalytic.py
 ```
 
@@ -118,7 +140,8 @@ Library targets are uniformly camelCase:
 saturnCore         mesh, config, comm, FVM
 saturnLinAlg       PETSc wrappers and matrix assembly
 saturnSimulation   Solver, registry, TimeControl, explicit time loop
-saturnBurger       1D scalar Burgers solver
+saturnBurger       1D/2D/3D scalar Burgers solver
+saturnHeat         1D/2D/3D scalar convection–diffusion solver
 ```
 
 For clangd, the standard database is `buildCPU/compile_commands.json` (or
@@ -143,9 +166,9 @@ ctest --preset gpu
 ```
 
 Build the installed Kokkos for the target architecture (for example
-`PASCAL61` for the Quadro P620). The CUDA build and `saturnBurger` tests are
-verified locally; the exact Kokkos build commands and the CPU/GPU benchmark
-are in [`docs/guides/gpu.md`](docs/guides/gpu.md).
+`PASCAL61` for the Quadro P620). The CUDA build, `saturnBurger` and
+`saturnHeat` tests are verified locally; the exact Kokkos build commands and
+the CPU/GPU benchmark are in [`docs/guides/gpu.md`](docs/guides/gpu.md).
 
 ## CPU threads and GPUs
 

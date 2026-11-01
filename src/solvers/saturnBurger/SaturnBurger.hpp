@@ -14,6 +14,7 @@
 #include "fv/FieldHalo.hpp"
 #include "fv/LocalMesh.hpp"
 #include "mesh/Mesh.hpp"
+#include "simulation/ScalarSolver.hpp"
 #include "simulation/Solver.hpp"
 
 namespace saturn {
@@ -42,31 +43,15 @@ struct BurgersOptions {
   std::function<Real(const Vec3&, Real)> exact;
 };
 
-/// One cell-centre sample of the numerical and analytic profiles.
-struct ProfilePoint {
-  Index cell = -1;
-  Real x = 0;
-  Real y = 0;
-  Real z = 0;
-  Real numerical = 0;
-  Real exact = 0;
-  Real error = 0;
-};
-
-/// Global L1/L2/Linf error against the analytic solution.
-struct ExactError {
-  Real l1 = 0;
-  Real l2 = 0;
-  Real linf = 0;
-  BigIndex samples = 0;
-};
+using ProfilePoint = ScalarProfilePoint;
+using ExactError = ScalarError;
 
 /// Scalar Burgers solver for 1D, 2D and 3D structured blocks.
 ///
 /// This is the first production solver. The spatial operators are the shared
 /// FVM layer; the time loop is `Simulation`. The multi-D case uses the
 /// conservative flux vector F(u) = (u^2/2, u^2/2, u^2/2).
-class SaturnBurger : public Solver {
+class SaturnBurger : public ScalarSolver {
  public:
   SaturnBurger(Mesh mesh, BurgersOptions options);
 
@@ -86,24 +71,25 @@ class SaturnBurger : public Solver {
   CellField& state() override { return mU; }
   const CellField& state() const override { return mU; }
 
-  const Mesh& mesh() const { return mMesh; }
+  const Mesh& mesh() const override { return mMesh; }
   const BurgersOptions& options() const { return mOptions; }
-  bool hasExact() const { return static_cast<bool>(mOptions.exact); }
+  bool hasExact() const override { return static_cast<bool>(mOptions.exact); }
 
   /// Gather the owned cell-centre profile on every rank, sorted by x/y/z.
   /// `withExact` requires `BurgersOptions::exact`; when false, only the
   /// numerical field and cell ids are filled. This is used by VTK output.
-  std::vector<ProfilePoint> profile(Real time, bool withExact = true) const;
+  std::vector<ScalarProfilePoint> profile(Real time,
+                                          bool withExact = true) const override;
 
   /// Global error norms against `BurgersOptions::exact`.
-  ExactError exactError(Real time) const;
+  ScalarError exactError(Real time) const override;
 
   /// Global field in mesh cell order. Used by checkpoint output.
-  std::vector<Real> globalState() const;
+  std::vector<Real> globalState() const override;
 
   /// Replace the owned state from a global field in mesh cell order.
   /// The caller is responsible for refreshing ghosts afterwards.
-  void setGlobalState(const std::vector<Real>& values);
+  void setGlobalState(const std::vector<Real>& values) override;
 
  private:
   Mesh mMesh;

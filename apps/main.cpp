@@ -23,10 +23,10 @@
 #include "mesh/MeshFactory.hpp"
 #include "mesh/VtuWriter.hpp"
 #include "simulation/Registry.hpp"
+#include "simulation/ScalarSolver.hpp"
 #include "simulation/Simulation.hpp"
 #include "simulation/TimeControl.hpp"
 #include "solvers/BuiltinSolvers.hpp"
-#include "solvers/saturnBurger/SaturnBurger.hpp"
 
 #ifdef SATURN_USE_KOKKOS
 #include <Kokkos_Core.hpp>
@@ -886,8 +886,8 @@ int runCase(const Cli& cli) {
   const int checkpointEvery = cfg.getInt("output.checkpointEvery", 0);
   const std::string restartFile = cfg.getString("restart.file", "");
 
-  auto* burgers = dynamic_cast<SaturnBurger*>(solver.get());
-  const bool exactAvailable = burgers != nullptr && burgers->hasExact();
+  auto* scalar = dynamic_cast<ScalarSolver*>(solver.get());
+  const bool exactAvailable = scalar != nullptr && scalar->hasExact();
   if ((wantExact || wantCsv) && !exactAvailable)
     throw ConfigError(
         "output.exact/output.csv requested, but this solver has no analytic "
@@ -912,11 +912,11 @@ int runCase(const Cli& cli) {
         "time.scheme: implicit schemes are not implemented by this solver");
 
   if (haveRestart) {
-    if (burgers == nullptr)
+    if (scalar == nullptr)
       throw ConfigError(
-          "restart.file is currently supported by saturnBurger only");
+          "restart.file is currently supported by scalar solvers");
     restart = readCheckpoint(restartFile);
-    const Mesh& mesh = burgers->mesh();
+    const Mesh& mesh = scalar->mesh();
     if (restart.solver != solverName)
       throw ConfigError("checkpoint solver '" + restart.solver +
                         "' does not match '" + solverName + "'");
@@ -936,16 +936,16 @@ int runCase(const Cli& cli) {
 
   std::vector<std::pair<Real, std::string>> vtkFrames;
   const bool wantVtk = vtkEvery > 0;
-  if (wantVtk && burgers == nullptr)
+  if (wantVtk && scalar == nullptr)
     throw ConfigError(
-        "output.vtkEvery is currently supported by saturnBurger only");
+        "output.vtkEvery is currently supported by scalar solvers");
 
   auto writeVtkFrame = [&](int step, Real time) {
-    const std::vector<ProfilePoint> points = burgers->profile(time, false);
+    const std::vector<ScalarProfilePoint> points = scalar->profile(time, false);
     if (worldRank() != 0)
       return;
-    std::vector<Real> values(burgers->mesh().cells.size(), 0.0);
-    for (const ProfilePoint& point : points) {
+    std::vector<Real> values(scalar->mesh().cells.size(), 0.0);
+    for (const ScalarProfilePoint& point : points) {
       if (point.cell >= 0 &&
           static_cast<std::size_t>(point.cell) < values.size())
         values[static_cast<std::size_t>(point.cell)] = point.numerical;
@@ -953,25 +953,25 @@ int runCase(const Cli& cli) {
     std::ostringstream file;
     file << prefix << '_' << std::setw(6) << std::setfill('0') << step
          << ".vtu";
-    writeCellFieldVtu(burgers->mesh(), values, file.str(), "u");
+    writeCellFieldVtu(scalar->mesh(), values, file.str(), "u");
     vtkFrames.emplace_back(time, file.str());
   };
 
   int checkpointFrames = 0;
-  if (wantCheckpoint && burgers == nullptr)
+  if (wantCheckpoint && scalar == nullptr)
     throw ConfigError(
-        "output.checkpointEvery is currently supported by saturnBurger only");
+        "output.checkpointEvery is currently supported by scalar solvers");
 
   auto writeCheckpointFrame = [&](int step, Real time) {
-    const std::vector<Real> values = burgers->globalState();
+    const std::vector<Real> values = scalar->globalState();
     if (worldRank() != 0)
       return;
     Checkpoint checkpoint;
     checkpoint.solver = solverName;
-    checkpoint.dimension = burgers->dimension();
-    checkpoint.nx = burgers->mesh().nx;
-    checkpoint.ny = burgers->mesh().ny;
-    checkpoint.nz = burgers->mesh().nz;
+    checkpoint.dimension = scalar->dimension();
+    checkpoint.nx = scalar->mesh().nx;
+    checkpoint.ny = scalar->mesh().ny;
+    checkpoint.nz = scalar->mesh().nz;
     checkpoint.step = step;
     checkpoint.time = time;
     checkpoint.values = values;
@@ -984,7 +984,7 @@ int runCase(const Cli& cli) {
 
   if (haveRestart) {
     simulation.setRestart(restart.step, restart.time,
-                          [&]() { burgers->setGlobalState(restart.values); });
+                          [&]() { scalar->setGlobalState(restart.values); });
   }
 
   if (wantVtk || wantCheckpoint) {
@@ -1017,10 +1017,10 @@ int runCase(const Cli& cli) {
   if (wantVtk && worldRank() == 0 && !vtkFrames.empty())
     writePvd(prefix + ".pvd", vtkFrames);
 
-  ExactError exact;
+  ScalarError exact;
   const bool haveExact = exactAvailable && (wantExact || wantCsv);
   if (haveExact)
-    exact = burgers->exactError(result.final.time);
+    exact = scalar->exactError(result.final.time);
 
   if (worldRank() == 0) {
     std::cout << std::setprecision(10);
@@ -1041,9 +1041,9 @@ int runCase(const Cli& cli) {
   }
 
   if (wantCsv) {
-    const std::vector<ProfilePoint> points =
-        burgers->profile(result.final.time);
-    const int dim = burgers->dimension();
+    const std::vector<ScalarProfilePoint> points =
+        scalar->profile(result.final.time);
+    const int dim = scalar->dimension();
     std::ostringstream os;
     os << std::setprecision(17);
     if (dim == 1)
@@ -1052,7 +1052,7 @@ int runCase(const Cli& cli) {
       os << "x,y,u_numerical,u_exact,error\n";
     else
       os << "x,y,z,u_numerical,u_exact,error\n";
-    for (const ProfilePoint& p : points) {
+    for (const ScalarProfilePoint& p : points) {
       if (dim == 1)
         os << p.x << ',' << p.numerical << ',' << p.exact << ',' << p.error
            << '\n';

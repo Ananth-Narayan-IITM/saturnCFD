@@ -1,0 +1,59 @@
+# 3D scalar convection–diffusion (heat) regression case.
+#
+# Periodic box [0,1]^3, uniform velocity a = (1, 0.5, 0.25), alpha = 0.01.
+# Exact Fourier mode:
+#   T = A sin(k.x - (a.k) t) exp(-alpha |k|^2 t)
+# with A = 1 and k = 2*pi*(1,1,1).
+#
+# Stored L2 at N=32, t=0.1 is about 3.97e-3.
+
+solver: saturnHeat
+
+units:
+  system: SI
+
+mesh:
+  type: box
+  nx: 32
+  ny: 32
+  nz: 32
+  box:
+    xmin: 0.0
+    xmax: 1.0
+    ymin: 0.0
+    ymax: 1.0
+    zmin: 0.0
+    zmax: 1.0
+
+time:
+  start: 0.0
+  end: 0.1
+  scheme: ssprk3
+  adaptive: true
+  cfl: 0.3
+  dtMax: 0.005
+  maxSteps: 100000
+
+heat:
+  alpha: 0.01
+  velocityX: 1.0
+  velocityY: 0.5
+  velocityZ: 0.25
+  source: 0.0
+  periodic: true
+  initial: fourier
+  amplitude: 1.0
+  kx: 6.283185307179586
+  ky: 6.283185307179586
+  kz: 6.283185307179586
+
+numerics:
+  convection: muscl
+  limiter: vanLeer
+
+output:
+  prefix: results/heat3d/fourier32
+  csv: true
+  json: true
+  exact: true
+  vtkEvery: 0
