@@ -25,8 +25,12 @@
 #include "simulation/Registry.hpp"
 #include "simulation/ScalarSolver.hpp"
 #include "simulation/Simulation.hpp"
+#include "simulation/SteadySolver.hpp"
 #include "simulation/TimeControl.hpp"
 #include "solvers/BuiltinSolvers.hpp"
+#ifdef SATURN_USE_PETSC
+#include "linalg/Petsc.hpp"
+#endif
 
 #ifdef SATURN_USE_KOKKOS
 #include <Kokkos_Core.hpp>
@@ -96,6 +100,9 @@ struct Runtime {
 #else
     threads = configureThreadCount(1, requestedThreads);
 #endif
+#ifdef SATURN_USE_PETSC
+    petscScope = std::make_unique<saturn::PetscScope>(argc, argv);
+#endif
     configureOpenMPBinding();
 #ifdef SATURN_USE_KOKKOS
     if (threads > 0) {
@@ -114,6 +121,9 @@ struct Runtime {
   Runtime& operator=(const Runtime&) = delete;
 
   ~Runtime() {
+#ifdef SATURN_USE_PETSC
+    petscScope.reset();
+#endif
 #ifdef SATURN_USE_KOKKOS
     Kokkos::finalize();
 #endif
@@ -121,6 +131,10 @@ struct Runtime {
     MPI_Finalize();
 #endif
   }
+
+#ifdef SATURN_USE_PETSC
+  std::unique_ptr<saturn::PetscScope> petscScope;
+#endif
 };
 
 int worldRank() {
@@ -853,6 +867,126 @@ int runDumpConfig(const Cli& cli) {
   return 0;
 }
 
+int runSteadyCase(const Cli& cli, const Config& cfg, SteadySolver& solver,
+                  const std::string& solverName) {
+  const std::string prefix = cfg.getString("output.prefix", "results");
+  if (prefix.empty() || prefix == "." || prefix == "./")
+    throw ConfigError(
+        "output.prefix must name a file prefix, e.g. results/stokes/case; "
+        "an empty prefix or '.' would create '..csv'");
+  const bool wantExact = cfg.getBool("output.exact", false);
+  const bool wantCsv = cfg.getBool("output.csv", false);
+  const bool wantJson = cfg.getBool("output.json", true);
+  const int vtkEvery = cfg.getInt("output.vtkEvery", 0);
+  if (cfg.getInt("output.checkpointEvery", 0) > 0)
+    throw ConfigError("checkpoint output is not supported by steady solvers");
+  if (!cfg.getString("restart.file", "").empty())
+    throw ConfigError("restart is not supported by steady solvers");
+
+  if ((wantExact || wantCsv) && !solver.hasExact())
+    throw ConfigError(
+        "output.exact/output.csv requested, but this solver has no analytic "
+        "solution configured");
+
+  if (worldRank() == 0)
+    std::cout << "backend : " << backendDescription() << "\n";
+
+  const auto wallStart = std::chrono::steady_clock::now();
+  const SteadyResult result = solver.solveSteady();
+  const auto wallEnd = std::chrono::steady_clock::now();
+  const double wallSeconds =
+      std::chrono::duration<double>(wallEnd - wallStart).count();
+  double wallMaximum = wallSeconds;
+#ifdef SATURN_USE_MPI
+  MPI_Reduce(&wallSeconds, &wallMaximum, 1, MPI_DOUBLE, MPI_MAX, 0,
+             MPI_COMM_WORLD);
+#endif
+  if (!result.converged)
+    throw SaturnError("case '" + cli.casePath +
+                      "' did not converge in the coupled Stokes solve");
+
+  VectorError exact;
+  const bool haveExact = solver.hasExact() && (wantExact || wantCsv);
+  if (haveExact)
+    exact = solver.exactError();
+  const std::vector<VectorProfilePoint> points = solver.profile(haveExact);
+
+  if (worldRank() == 0) {
+    std::cout << std::setprecision(10);
+    std::cout << "solver : " << solverName << "\n";
+    std::cout << "ranks  : " << worldSize() << "\n";
+    std::cout << "iterations : " << result.iterations << "\n";
+    std::cout << "residual   : " << result.residual << "\n";
+    std::cout << "wall       : " << wallMaximum << " s\n";
+    if (haveExact) {
+      std::cout << "exact l2   : " << exact.l2 << "\n";
+      std::cout << "exact linf : " << exact.linf << "\n";
+      std::cout << "exact pL2  : " << exact.pL2 << "\n";
+      std::cout << "exact pLinf: " << exact.pLinf << "\n";
+    }
+  }
+
+  if (wantCsv) {
+    std::ostringstream os;
+    os << std::setprecision(17);
+    os << "x,y,z,u,v,w,p,u_exact,v_exact,w_exact,p_exact,error\n";
+    for (const VectorProfilePoint& point : points)
+      os << point.x << ',' << point.y << ',' << point.z << ',' << point.u << ','
+         << point.v << ',' << point.w << ',' << point.p << ',' << point.uExact
+         << ',' << point.vExact << ',' << point.wExact << ',' << point.pExact
+         << ',' << point.error << '\n';
+    if (worldRank() == 0)
+      writeTextFile(prefix + ".csv", os.str());
+  }
+
+  if (wantJson) {
+    std::ostringstream os;
+    os << std::setprecision(17);
+    os << "{\n"
+       << "  \"case\": \"" << cli.casePath << "\",\n"
+       << "  \"solver\": \"" << solverName << "\",\n"
+       << "  \"backend\": \"" << backendDescription() << "\",\n"
+       << "  \"ranks\": " << worldSize() << ",\n"
+       << "  \"iterations\": " << result.iterations << ",\n"
+       << "  \"residual\": " << result.residual << ",\n"
+       << "  \"wallSeconds\": " << wallMaximum;
+    if (haveExact) {
+      os << ",\n  \"exact\": {\"l1\": " << exact.l1 << ", \"l2\": " << exact.l2
+         << ", \"linf\": " << exact.linf << ", \"pL2\": " << exact.pL2
+         << ", \"pLinf\": " << exact.pLinf << ", \"samples\": " << exact.samples
+         << "}";
+    }
+    os << "\n}\n";
+    if (worldRank() == 0)
+      writeTextFile(prefix + ".json", os.str());
+  }
+
+  if (vtkEvery > 0) {
+    const Mesh& mesh = solver.mesh();
+    std::vector<Real> u(mesh.cells.size(), 0);
+    std::vector<Real> v(mesh.cells.size(), 0);
+    std::vector<Real> w(mesh.cells.size(), 0);
+    std::vector<Real> p(mesh.cells.size(), 0);
+    for (const VectorProfilePoint& point : points) {
+      if (point.cell < 0 || static_cast<std::size_t>(point.cell) >= u.size())
+        continue;
+      const std::size_t c = static_cast<std::size_t>(point.cell);
+      u[c] = point.u;
+      v[c] = point.v;
+      w[c] = point.w;
+      p[c] = point.p;
+    }
+    if (worldRank() == 0) {
+      writeCellFieldVtu(mesh, u, prefix + "_u.vtu", "u");
+      writeCellFieldVtu(mesh, v, prefix + "_v.vtu", "v");
+      writeCellFieldVtu(mesh, w, prefix + "_w.vtu", "w");
+      writeCellFieldVtu(mesh, p, prefix + "_p.vtu", "p");
+    }
+  }
+
+  return 0;
+}
+
 int runCase(const Cli& cli) {
   const Config cfg = Config::fromFile(cli.casePath);
   SolverRegistry& registry = solverRegistry();
@@ -868,6 +1002,8 @@ int runCase(const Cli& cli) {
   schema.validate(cfg);
 
   std::unique_ptr<Solver> solver = registry.create(solverName, cfg);
+  if (auto* steady = dynamic_cast<SteadySolver*>(solver.get()))
+    return runSteadyCase(cli, cfg, *steady, solverName);
 
   const std::string prefix = cfg.getString("output.prefix", "results");
   if (prefix.empty() || prefix == "." || prefix == "./")

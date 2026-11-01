@@ -88,6 +88,30 @@ if(SATURN_ENABLE_PETSC)
   target_link_libraries(testSaturnPETSc PRIVATE
     saturn::LinAlg doctest::doctest)
 
+
+  add_executable(testSaturnStokes
+    TestPetscMain.cpp
+    TestSaturnStokes.cpp
+  )
+  set_target_properties(testSaturnStokes PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+  target_link_libraries(testSaturnStokes PRIVATE
+    saturn::Stokes doctest::doctest)
+
+  if(SATURN_ENABLE_MPI)
+    foreach(ranks 1 2 4)
+      add_test(NAME stokes_np${ranks}
+        COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${ranks}
+                ${SATURN_MPI_PREFLAGS} $<TARGET_FILE:testSaturnStokes>)
+      set_tests_properties(stokes_np${ranks} PROPERTIES
+        LABELS "solver;stokes;regression;mpi" RUN_SERIAL TRUE
+        ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
+    endforeach()
+  else()
+    add_test(NAME stokes_serial COMMAND testSaturnStokes)
+    set_tests_properties(stokes_serial PROPERTIES
+      LABELS "solver;stokes;regression")
+  endif()
   if(SATURN_ENABLE_MPI)
     foreach(ranks 1 2 4)
       add_test(NAME petsc_np${ranks}
@@ -238,6 +262,20 @@ add_test(NAME cli_checkConfig_example_heat2d
   COMMAND saturnCFD -checkConfig ${SATURN_HEAT2D_EXAMPLE})
 set_tests_properties(cli_checkConfig_example_heat2d
   PROPERTIES LABELS "cli;config;heat;heat2d;regression;saturnCFD")
+
+set(SATURN_STOKES2D_EXAMPLE
+    "${SATURN_SOURCE_DIR}/examples/saturnStokes/saturnStokes2D/poiseuille.yaml")
+add_test(NAME cli_checkConfig_example_stokes2d
+  COMMAND saturnCFD -checkConfig ${SATURN_STOKES2D_EXAMPLE})
+set_tests_properties(cli_checkConfig_example_stokes2d
+  PROPERTIES LABELS "cli;config;stokes;stokes2d;regression;saturnCFD")
+
+set(SATURN_STOKES3D_EXAMPLE
+    "${SATURN_SOURCE_DIR}/examples/saturnStokes/saturnStokes3D/poiseuille.yaml")
+add_test(NAME cli_checkConfig_example_stokes3d
+  COMMAND saturnCFD -checkConfig ${SATURN_STOKES3D_EXAMPLE})
+set_tests_properties(cli_checkConfig_example_stokes3d
+  PROPERTIES LABELS "cli;config;stokes;stokes3d;regression;saturnCFD")
 
 set(SATURN_HEAT3D_EXAMPLE
     "${SATURN_SOURCE_DIR}/examples/saturnHeat/saturnHeat3D/saturnHeat3D.yaml")

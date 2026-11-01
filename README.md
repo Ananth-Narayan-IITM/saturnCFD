@@ -14,14 +14,13 @@ non-orthogonal Laplacian, Dirichlet/Neumann ghost fill, upwind/Rusanov/MUSCL
 convection, advection–diffusion and divergence-theorem tests, a simplified
 Rhie–Chow flux, the explicit solver/time loop (forward Euler, SSPRK2/3,
 diagnostics, registry), rank-0 mesh load with local-geometry distribution, and
-the registered 1D/2D/3D `saturnBurger` and `saturnHeat` solvers are in place.
-PETSc 3.19.6 is linked through the separate `saturnLinAlg` library; the
-1D/3D Poisson and all-Neumann tests pass on 1/2/4 ranks. Both scalar solvers,
-VTK field export and checkpoint/restart are done. The Stokes coupled
-saddle-point design is documented in
-[`docs/theory/coupledSaddlePoint.md`](docs/theory/coupledSaddlePoint.md);
-implementation starts with the 3D core and 2D/3D validation examples.
-Implicit time schemes and the FV matrix assembler remain next.
+the registered 1D/2D/3D `saturnBurger`, `saturnHeat` and `saturnStokes`
+solvers are in place. PETSc 3.19.6 is linked through the separate
+`saturnLinAlg` library; the 1D/3D Poisson and all-Neumann tests pass on 1/2/4
+ranks. The scalar solvers, VTK output and checkpoint/restart are done.
+`saturnStokes` is validated against Poiseuille and Couette in 2D/3D; 2D runs
+on 1/2/4 ranks, while 3D multi-rank DMDA assembly and fieldsplit tuning remain
+follow-ups. Implicit time schemes and the FV matrix assembler remain next.
 
 The 1D/2D/3D Burgers solver is validated against the exact viscous traveling
 wave:
@@ -357,7 +356,7 @@ src/
   solvers/
     saturnBurger/
     saturnHeat/
-    saturnStokes/          planned
+    saturnStokes/          coupled 2D/3D Stokes
     saturnIncompressible/  planned
   simulation/   time loop, ScalarSolver, solver registry
 tools/

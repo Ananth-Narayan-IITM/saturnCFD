@@ -3,6 +3,9 @@
 #include "simulation/Registry.hpp"
 #include "solvers/saturnBurger/BurgersCase.hpp"
 #include "solvers/saturnHeat/HeatCase.hpp"
+#ifdef SATURN_USE_PETSC
+#include "solvers/saturnStokes/StokesCase.hpp"
+#endif
 
 namespace saturn {
 
@@ -12,6 +15,10 @@ void registerBuiltinSolvers() {
     registerSaturnBurger(registry);
   if (!registry.contains("saturnHeat"))
     registerSaturnHeat(registry);
+#ifdef SATURN_USE_PETSC
+  if (!registry.contains("saturnStokes"))
+    registerSaturnStokes(registry);
+#endif
 }
 
 }  // namespace saturn

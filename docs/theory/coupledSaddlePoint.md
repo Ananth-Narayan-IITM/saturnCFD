@@ -89,7 +89,10 @@ Boundary conditions:
 
 ## 4. PETSc linear solver
 
-The production path is PETSc, not a home-grown Krylov method.
+The production path is PETSc, not a home-grown Krylov method. The current
+`saturnStokes` validation core uses PETSc's coupled direct LU
+(`preonly` + `lu`); the fieldsplit/Schur path below is implemented as an option
+and is still being tuned for refined meshes.
 
 ### Matrix and vectors
 

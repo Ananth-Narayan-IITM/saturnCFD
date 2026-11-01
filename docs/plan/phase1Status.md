@@ -2,11 +2,12 @@
 
 **Status:** mesh, configuration, CLI, the MPI partition/halo substrate, the
 CPU finite-volume operator slice, the Phase 0 PETSc linear-algebra layer and
-the explicit solver/time-loop layer, the 1D/2D/3D Burgers solver and the
-`saturnHeat` scalar convection–diffusion solver are implemented. The Stokes
-coupled saddle-point design is fixed; its implementation starts with the 3D
-core and 2D/3D validation examples. The FV Poisson matrix assembler, implicit
-BE/CN/BDF2 and GPU execution verification remain next. The parallel design is in
+the explicit solver/time-loop layer, the 1D/2D/3D Burgers solver, the
+`saturnHeat` scalar convection–diffusion solver and the `saturnStokes` coupled
+Stokes solver are implemented. Stokes is validated against Poiseuille and
+Couette in 2D/3D; 2D runs on 1/2/4 ranks. The FV Poisson matrix assembler,
+implicit BE/CN/BDF2, 3D multi-rank DMDA assembly, fieldsplit tuning and GPU
+execution verification remain next. The parallel design is in
 [`mpiGpuDesign.md`](mpiGpuDesign.md); the solver sequence is in
 [`solverSequence.md`](solverSequence.md).
 
@@ -61,7 +62,10 @@ BE/CN/BDF2 and GPU execution verification remain next. The parallel design is in
 | Burgers traveling wave and periodic shock | done on 1/2/4 ranks |
 | 3D Burgers, VTK, checkpoint/restart | done |
 | implicit diffusion | next |
-| Stokes coupled saddle-point design | documented in [`../theory/coupledSaddlePoint.md`](../theory/coupledSaddlePoint.md) |
+| `saturnStokes` 2D/3D Poiseuille and Couette | done |
+| Stokes 2D on 1/2/4 ranks | done |
+| Stokes 3D serial validation | done |
+| Stokes coupled saddle-point design | [`../theory/coupledSaddlePoint.md`](../theory/coupledSaddlePoint.md) |
 | GPU-labelled FV regression cases | verified on the local Quadro P620 CUDA build |
 
 ## Pending
@@ -70,9 +74,9 @@ BE/CN/BDF2 and GPU execution verification remain next. The parallel design is in
 |---|---|
 | `src/fv` | persistent face flux, Rhie–Chow coefficient from the momentum diagonal |
 | `src/simulation` | output cadence, implicit time schemes |
-| `src/solvers` | `saturnStokes` coupled saddle-point implementation (3D core + 2D/3D examples), `saturnCFDSolver` tool, Neumann BC, vector Burgers |
-| `src/config` | `boundary` and `fields` schemas; `saturnBurger` and `saturnHeat` supply their own schemas |
-| `src/linalg` | FV matrix assembly, coupled saddle-point/fieldsplit, block/multi-RHS |
+| `src/solvers` | Stokes 3D multi-rank DMDA assembly, MMS/exit-boundary cases, `saturnCFDSolver` tool, Neumann BC, vector Burgers |
+| `src/config` | `boundary` and `fields` schemas; Burgers, heat and Stokes supply their own schemas |
+| `src/linalg` | FV matrix assembly, production fieldsplit tuning, block/multi-RHS |
 | `src/io` | CSV diagnostics, run manifest |
 | `tests/parallel` | cross-run 1/2/4-rank equality, GPU execution on a CUDA host |
 | `benchmarks` | halo/stencil strong/weak scaling harness |

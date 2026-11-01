@@ -6,6 +6,9 @@
 # Naming convention: saturn<SolverName> for the library target.
 addSolver(saturnBurger)
 addSolver(saturnHeat)
+if(SATURN_ENABLE_PETSC)
+  addSolver(saturnStokes)
+endif()
 
 # Case-driven registration for the CLI. Every built-in solver adds one call in
 # BuiltinSolvers.cpp; main only links this library.
@@ -13,3 +16,6 @@ add_library(saturnBuiltinSolvers STATIC BuiltinSolvers.cpp)
 add_library(saturn::BuiltinSolvers ALIAS saturnBuiltinSolvers)
 target_link_libraries(saturnBuiltinSolvers PUBLIC
   saturn::Simulation saturnBurger saturnHeat)
+if(SATURN_ENABLE_PETSC)
+  target_link_libraries(saturnBuiltinSolvers PUBLIC saturnStokes)
+endif()

@@ -1,7 +1,7 @@
 # Stokes validation
 
-**Status:** design accepted; `saturnStokes` implementation starts with the 3D
-core. Results below are the acceptance targets, not yet measured.
+**Status:** implemented for 2D/3D serial and 2D MPI (1/2/4 ranks). The 3D
+multi-rank DMDA path is a documented follow-up. Results below are measured.
 
 Solver: `saturnStokes`, coupled pressure–velocity saddle-point formulation with
 PETSc fieldsplit/Schur. Theory:
@@ -60,25 +60,37 @@ $$
 | MMS pressure | observed order $p\ge 1.8$ on the finest pair |
 | continuity | $\|D\|_2$ below the linear-solve tolerance scale |
 | nullspace | mean pressure stable; no drift with iterations |
-| rank parity | 1/2/4-rank velocity/pressure norms agree |
+| rank parity | 2D norms agree on 1/2/4 ranks |
 | fieldsplit | GMRES converges without manual per-case tuning |
+
+## 4a. Measured results
+
+| case | mesh | $L^2$ | $L^\infty$ |
+|---|---|---|---|
+| Poiseuille 2D | 16$^2$ | 4.88e-4 | 4.88e-4 |
+| Poiseuille 2D | 32$^2$ | 1.22e-4 | 1.22e-4 |
+| Poiseuille 2D | 64$^2$ | 3.05e-5 | 3.05e-5 |
+| Couette 2D | 64$^2$ | 7.5e-13 | 1.1e-12 |
+| Poiseuille 3D | 24$^2\times8$ | 2.17e-4 | 2.17e-4 |
+| Couette 3D | 24$^2\times8$ | 5.7e-12 | 6.6e-11 |
+
+The 2D cases pass on 1/2/4 ranks. The 3D cases are serial-validated; 4-rank
+3D DMDA assembly is the open follow-up. MMS and the Sankhla & Das exit-boundary
+cases remain planned.
 
 ## 5. Test/CTest plan
 
 Planned cases (names reserved for the implementation):
 
 ```text
-stokes_poiseuille2d
-stokes_couette2d
-stokes_poiseuille3d
-stokes_couette3d
-stokes_mms2d
-stokes_mms3d
-stokes_np1 / stokes_np2 / stokes_np4
+stokes_np1 / stokes_np2 / stokes_np4   # testSaturnStokes
+cli_checkConfig_example_stokes2d
+cli_checkConfig_example_stokes3d
 ```
 
-The first two are the merge gate. Each YAML case writes `u`, `v`, `w`, `p`, the
-analytic comparison, the divergence norm and the PETSc iteration diagnostics.
+The `testSaturnStokes` binary covers Poiseuille and Couette in 2D/3D, with 3D
+skipped on more than one rank in the current core. Each example writes `u`,
+`v`, `w`, `p`, the analytic comparison and the PETSc iteration diagnostics.
 The CTest label is `solver`.
 
 ## 6. Reproduction

@@ -1,0 +1,39 @@
+# saturnStokes 2D Poiseuille validation
+#
+# Steady Stokes flow in a plane channel:
+#   -mu u'' = G,  u(0) = u(H) = 0,
+# with exact u(y) = G/(2 mu) y (H-y).
+#
+# The channel is periodic in x. The coupled u-v-p saddle-point system is
+# solved with PETSc.
+
+solver: saturnStokes
+
+units:
+  system: SI
+
+mesh:
+  type: box
+  nx: 64
+  ny: 64
+  nz: 1
+  box:
+    xmin: 0.0
+    xmax: 1.0
+    ymin: 0.0
+    ymax: 1.0
+    zmin: 0.0
+    zmax: 1.0
+
+stokes:
+  case: poiseuille
+  mu: 1.0
+  forceX: 1.0
+  linearSolver: direct
+
+output:
+  prefix: results/saturnStokes2D/poiseuille
+  csv: true
+  json: true
+  exact: true
+  vtkEvery: 0

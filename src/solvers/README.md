@@ -20,10 +20,9 @@ saturnStokes
 saturnIncompressible
 ```
 
-Implemented solvers are `saturnBurger` (1D/2D/3D scalar Burgers) and
-`saturnHeat` (1D/2D/3D scalar convection–diffusion). `saturnStokes` is the next
-target: a 3D coupled saddle-point Stokes solver with 2D and 3D validation
-examples.
+Implemented solvers are `saturnBurger` (1D/2D/3D scalar Burgers),
+`saturnHeat` (1D/2D/3D scalar convection–diffusion) and `saturnStokes`
+(2D/3D steady coupled Stokes with PETSc).
 
 ```text
 src/solvers/
@@ -60,7 +59,7 @@ the manual copy works. See `docs/guides/writingASolver.md`.
 - No runtime plugin in v1.0: solvers are static libraries linked into
   `saturnCFD`.
 
-## Planned `saturnStokes`
+## `saturnStokes`
 
 `saturnStokes` solves
 
@@ -70,9 +69,9 @@ $$
 \nabla\cdot\mathbf{u}=0
 $$
 
-with a coupled $u,v,w,p$ saddle-point matrix, Rhie–Chow stabilisation and a
-PETSc fieldsplit/Schur solve. The implementation order is the 3D core first,
-then independent 2D and 3D examples. Design:
+with a coupled $u,v,w,p$ saddle-point matrix and PETSc. The validation core
+uses the direct coupled solve; the fieldsplit/Schur path is being tuned.
+Examples are in `examples/saturnStokes/`. Design:
 [`docs/theory/coupledSaddlePoint.md`](../../docs/theory/coupledSaddlePoint.md)
 and [`docs/theory/stokes.md`](../../docs/theory/stokes.md).
 
@@ -82,7 +81,8 @@ and [`docs/theory/stokes.md`](../../docs/theory/stokes.md).
   analytic tests, run by `testSaturnFV` on 1/2/4 ranks.
 - `tests/regression/burgers/traveling64.yaml` — 1D YAML CLI regression.
 - `tests/regression/burgers2d/traveling64.yaml` — 2D YAML CLI regression.
-- `ctest --preset solver` — the Burgers and heat YAML cases.
+- `tests/TestSaturnStokes.cpp` — 2D/3D Poiseuille and Couette.
+- `ctest --preset solver` — Burgers, heat and Stokes tests.
 - `python3 docs/validation/scripts/validateBurgers.py` — 1D convergence table and plot.
 
 ## Docs

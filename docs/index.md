@@ -16,10 +16,10 @@ Phase 0 PETSc `saturnLinAlg` layer, the explicit solver/time loop, the
 solver are in place. Both scalars are registered in the CLI and validated
 against analytic solutions, with VTK output and checkpoint/restart.
 `saturnHeat` is checked against a periodic Fourier mode in 2D and 3D, with
-the rank-0 mesh load and local-geometry distribution used by both solvers.
-The Stokes coupled saddle-point design is documented in
-[`theory/coupledSaddlePoint.md`](theory/coupledSaddlePoint.md); implementation
-starts with the 3D core and 2D/3D validation examples. Implicit time schemes
+the rank-0 mesh load and local-geometry distribution used by both scalar
+solvers. `saturnStokes` solves the coupled velocity-pressure saddle point and
+is validated against Poiseuille and Couette in 2D/3D; 2D runs on 1/2/4 ranks,
+while 3D multi-rank DMDA assembly remains a follow-up. Implicit time schemes
 remain next.
 
 ## Where to start

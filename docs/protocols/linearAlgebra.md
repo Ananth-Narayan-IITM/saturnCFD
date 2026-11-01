@@ -74,6 +74,9 @@ $$
   $S=-BA^{-1}B^{T}$, then back-substitute the pressure coupling.
 - The exact $A^{-1}$ and $S^{-1}$ are never formed; AMG/ILU supplies the
   approximate actions. GMRES handles the remaining coupling.
+- The current Stokes validation core uses `preonly` + `lu` (coupled direct);
+  the fieldsplit/Schur configuration is the production target and is being
+  tuned for refined meshes.
 - Reuse the matrix and preconditioner while the coefficients are fixed; rebuild
   or update them for each Navier–Stokes Picard/Newton iteration.
 - All-Neumann pressure: attach `MatNullSpace` with the constant vector and use

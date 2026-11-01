@@ -27,7 +27,17 @@ examples/
       saturnHeat3D.yaml
       compareAnalytic.py
       README.md
-  saturnStokes/            # later
+  saturnStokes/
+    saturnStokes2D/        # 2D Poiseuille/Couette coupled Stokes
+      poiseuille.yaml
+      couette.yaml
+      compareAnalytic.py
+      README.md
+    saturnStokes3D/        # 3D extruded Poiseuille/Couette
+      poiseuille.yaml
+      couette.yaml
+      compareAnalytic.py
+      README.md
   saturnIncompressible/    # later
 ```
 
@@ -84,3 +94,20 @@ python3 compareAnalytic.py
 The heat scripts compare against
 `T = A sin(k.x - (a.k)t) exp(-alpha |k|^2 t)` and draw the numerical field,
 the analytic field, the error and a cut/diagonal profile.
+
+## Running the Stokes examples
+
+```bash
+cd saturnStokes/saturnStokes2D
+saturnCFD poiseuille.yaml
+python3 compareAnalytic.py --case poiseuille
+python3 compareAnalytic.py --case couette
+
+cd ../saturnStokes3D
+saturnCFD poiseuille.yaml
+python3 compareAnalytic.py --case poiseuille
+python3 compareAnalytic.py --case couette
+```
+
+The Stokes scripts compare the numerical velocity with the exact Poiseuille
+parabola or Couette line and plot the field, error and averaged profile.

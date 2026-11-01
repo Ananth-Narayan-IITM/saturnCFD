@@ -1,7 +1,8 @@
 # Stokes
 
-**Status:** design accepted for `saturnStokes`. The implementation starts with
-the 3D core; the 2D and 3D examples are independent validation cases.
+**Status:** implemented for 2D/3D serial and 2D MPI (1/2/4 ranks). The 3D
+multi-rank DMDA path is a documented follow-up. Independent examples are in
+`examples/saturnStokes/`.
 
 ## 1. Governing equations
 
@@ -52,11 +53,11 @@ The derivation, collocated Rhie–Chow stabilisation, PETSc fieldsplit/Schur
 preconditioner and Navier–Stokes extension are in
 [`coupledSaddlePoint.md`](coupledSaddlePoint.md).
 
-SIMPLE and SIMPLEC are deliberately not the Stokes default. They add an outer
-pressure-correction iteration and under-relaxation that a linear steady problem
-does not need. They remain useful as an optional segregated path for
-incompressible Navier–Stokes and as a fallback if a coupled preconditioner is
-not yet available.
+The current validation core uses PETSc's coupled direct LU solve
+(`stokes.linearSolver: direct`). The fieldsplit/Schur path is implemented as
+`stokes.linearSolver: fieldsplit` but still needs tuning for larger meshes.
+SIMPLE and SIMPLEC are deliberately not the Stokes default; they remain an
+optional segregated path for incompressible Navier–Stokes.
 
 ## 3. Discretisation
 
@@ -66,8 +67,9 @@ not yet available.
 - Rhie–Chow face-normal velocity in the continuity row to suppress the
   collocated odd–even pressure mode.
 - PETSc `MPIAIJ` matrix with `u,v,w,p` degrees of freedom per cell.
-- GMRES/FGMRES outer solve with fieldsplit/Schur block preconditioning.
-- Pressure null space attached with `MatNullSpace` for all-Neumann cases.
+- PETSc coupled direct LU for the validation cases; GMRES/FGMRES + fieldsplit
+  as the production path being tuned.
+- One pressure reference row fixes the constant gauge for the direct solve.
 
 ## 4. Boundary conditions
 
@@ -131,27 +133,38 @@ finite-volume coupled saddle-point discretisation, not BEM.
 | checkerboard | pressure field | no odd–even mode with Rhie–Chow |
 | exit boundary | BEM paper cases | quantitative comparison |
 
-## 7. Implementation plan
+## 7. Implemented results
 
-1. **3D core first** — `SaturnStokes`, matrix assembly, PETSc fieldsplit,
-   pressure nullspace, output.
-2. **2D/3D examples** — independent cases under
-   `examples/saturnStokes/saturnStokes2D/` and `saturnStokes3D/`, with
-   analytic comparison and plot scripts.
-3. **Tests** — Poiseuille and Couette first, then MMS and 1/2/4-rank parity.
-4. **Presentation and validation record** — update after the first converged
-   cases.
+| case | mesh | $L^2$ | notes |
+|---|---|---|---|
+| Poiseuille 2D | 16$^2$ | 4.88e-4 | second order |
+| Poiseuille 2D | 32$^2$ | 1.22e-4 | second order |
+| Poiseuille 2D | 64$^2$ | 3.05e-5 | example |
+| Couette 2D | 64$^2$ | 7.5e-13 | exact line |
+| Poiseuille 3D | 24$^2	imes8$ | 2.17e-4 | extruded channel |
+| Couette 3D | 24$^2	imes8$ | 5.7e-12 | exact line |
 
-## 8. Observations (to be filled from runs)
+The 3D core is serial-validated; 3D MPI on 4 ranks remains a follow-up. 2D
+cases pass on 1/2/4 ranks.
 
-Record:
+## 8. Next steps
 
-- fieldsplit/Schur iteration counts versus mesh and viscosity;
-- velocity and pressure error norms for Poiseuille/Couette/MMS;
-- discrete divergence after the coupled solve;
-- pressure null-space and mean-pressure behaviour;
-- sensitivity to the Rhie–Chow coefficient;
-- the cost of the coupled solve versus a segregated fallback.
+1. Fix the 3D multi-rank DMDA velocity assembly (2D MPI is green).
+2. Tune the fieldsplit/Schur preconditioner so the direct LU is no longer
+   required for larger meshes.
+3. Add the MMS source-consistent continuity test and the exit-boundary cases.
+4. Rebuild the validation figures and presentation.
+
+## 9. Observations
+
+- The direct coupled LU solve converges in one iteration on the small
+  validation meshes.
+- Poiseuille is second order; Couette is at roundoff.
+- The pressure reference row fixes the constant gauge; the mean-removed
+  pressure error is at roundoff for both channel cases.
+- The fieldsplit/Schur path works on the small linear-algebra block test but
+  stalls on refined FV matrices; it is the main solver follow-up.
+- The 3D DMDA multi-rank velocity assembly is the other open item.
 
 ## References
 

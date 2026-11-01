@@ -175,31 +175,21 @@ CTest and ship independent `compareAnalytic.py` scripts.
 
 ## Stokes solver tests
 
-The coupled saddle-point design is accepted; the test cases below are added
-with `saturnStokes` and run under the `solver` label.
+`testSaturnStokes` checks the coupled FV system under the `solver` label:
 
-- **Poiseuille 2D/3D:** parabolic velocity, constant pressure gradient; refine
-  the cross-stream mesh and check the velocity $L^2$ error decreases at second
-  order.
-- **Couette 2D/3D:** linear velocity between a fixed and a moving wall.
-- **MMS 2D/3D:** smooth divergence-free velocity and derived pressure; check
-  second-order velocity and mean-removed pressure.
-- **Continuity:** discrete divergence below the linear-solve tolerance.
-- **Pressure nullspace:** all-Neumann case, constant mode attached, mean
-  pressure stable.
-- **Fieldsplit/Schur:** GMRES converges on 1/2/4 ranks without per-case tuning.
+- **Poiseuille 2D:** 16$^2$ and 32$^2$; $L^2$ 4.88e-4 -> 1.22e-4, second order.
+- **Couette 2D:** 24$^2$; linear profile to roundoff.
+- **Poiseuille 3D:** 16$^2\times4$ and 24$^2\times4$; extruded channel.
+- **Couette 3D:** 12$^2\times4$; linear profile to roundoff.
+- **Pressure gauge:** mean-removed pressure error at roundoff.
 - **Examples:** `examples/saturnStokes/saturnStokes2D` and `saturnStokes3D`
-  each ship an independent `compareAnalytic.py`.
+  each ship independent `compareAnalytic.py` scripts.
 
-The linear-algebra part is already tested: `petsc: coupled saddle-point
-fieldsplit solves a 2-field block` assembles a $u,p$ block with a zero pressure
-block, configures `PCFIELDSPLIT` with a Schur preconditioner, solves with GMRES,
-and checks the exact solution on 1/2/4 ranks. This test is the precursor to the
-full `saturnStokes` matrix.
-
-Planned CTest names: `stokes_poiseuille2d`, `stokes_couette2d`,
-`stokes_poiseuille3d`, `stokes_couette3d`, `stokes_mms2d`, `stokes_mms3d`,
-and the 1/2/4-rank variants. See
+The coupled direct PETSc solve is used for the validation core. The
+linear-algebra fieldsplit/Schur path is tested separately by
+`petsc: coupled saddle-point fieldsplit solves a 2-field block` on 1/2/4
+ranks; production tuning is a follow-up. 2D Stokes tests run on 1/2/4 ranks;
+3D tests run serially, with a message on higher rank counts. See
 [`../validation/stokes.md`](../validation/stokes.md).
 
 ## PETSc tests

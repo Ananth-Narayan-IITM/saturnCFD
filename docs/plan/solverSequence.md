@@ -178,21 +178,22 @@ $$
 
 - Collocated FVM and Rhie–Chow face flux.
 - One `MPIAIJ` block with `u,v,w,p` (3D) or `u,v,p` (2D) per cell.
-- PETSc GMRES/FGMRES with fieldsplit/Schur preconditioning.
-- Velocity block GAMG/ILU; pressure block GAMG/HYPRE.
-- Pressure nullspace for all-Neumann cases.
+- PETSc coupled direct LU for the validation core; GMRES/FGMRES +
+  fieldsplit/Schur is the production path being tuned.
+- One pressure reference row fixes the constant gauge.
 - The same block is reused inside Navier–Stokes Picard/Newton or time steps.
 
-Implementation starts with the **3D core**; independent 2D and 3D examples
-validate the same code. Details:
+**Status:** implemented. Poiseuille/Couette 2D/3D pass; 2D runs on 1/2/4
+ranks; 3D is serial-validated. MMS, exit-boundary cases and 3D multi-rank
+DMDA assembly remain. Details:
 [`../theory/coupledSaddlePoint.md`](../theory/coupledSaddlePoint.md),
 [`../theory/stokes.md`](../theory/stokes.md).
 
-Validation: Poiseuille/Couette 2D/3D, MMS 2D/3D, discrete divergence, pressure
-mean/nullspace, exit-boundary cases inspired by Sankhla & Das (2025), 1/2/4
-ranks.
+Validation: Poiseuille/Couette 2D/3D measured; MMS and exit-boundary cases
+planned.
 
-Exit: Stokes tests; fieldsplit converges; nullspace handled; 2D/3D examples
+Exit: 2D/3D examples reproduce the analytic profiles; the production
+fieldsplit path and 3D MPI remain open.
 reproduce the analytic profiles.
 
 ## Phase 5 — Incompressible Navier–Stokes
