@@ -6,7 +6,7 @@ reads the ``wallSeconds`` field from each JSON summary.
 
 Example (from the repository root):
 
-    python3 tools/benchmarkBurgers.py \
+    python3 benchmarks/benchmarkBurgers.py \
         --cpu saturnCPU --gpu saturnGPU \
         --nx 256 --ny 256 --t-end 0.2
 

@@ -44,6 +44,14 @@ cmake --preset gpu
 cmake --build --preset gpu -j
 ```
 
+Run the GPU-labelled tests with `ctest --preset gpu`. The solver YAML cases
+also run through the GPU binary by filtering the GPU build directly:
+
+```bash
+ctest --preset gpu
+ctest --test-dir buildGPU -L solver --output-on-failure
+```
+
 `KOKKOS_ROOT` is only needed when configuring/building the GPU preset; it is
 not needed to run `saturnGPU`. You can put it in `~/.bashrc` if you
 configure the GPU preset manually:
@@ -139,11 +147,11 @@ it uses a CPU or a GPU.
 
 ## CPU/GPU benchmark
 
-`tools/benchmarkBurgers.py` generates one 2D case, runs it through both
+`benchmarks/benchmarkBurgers.py` generates one 2D case, runs it through both
 binaries and reads `wallSeconds` from each JSON summary:
 
 ```bash
-python3 tools/benchmarkBurgers.py \
+python3 benchmarks/benchmarkBurgers.py \
   --cpu saturnCPU \
   --gpu saturnGPU \
   --nx 256 --ny 256 --t-end 0.2

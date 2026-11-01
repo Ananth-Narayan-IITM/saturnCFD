@@ -110,7 +110,7 @@ schemes, 3D Burgers, heat and pressure coupling remain. The detailed checklist i
 
 8. **Documentation and formatting**
    - `docs/Doxyfile` HTML + LaTeX/PDF.
-   - `tools/doxygenMathFilter.py` for `$...$` -> `\f$...\f$`.
+   - `docs/doxygen/doxygenMathFilter.py` for `$...$` -> `\f$...\f$`.
    - `docs.yml` deploys HTML to GitHub Pages; PDF is a workflow artifact.
    - `.clang-format` and the `formatCode` CMake target; `format.yml` CI check.
 
@@ -154,7 +154,7 @@ checkpoint/restart. Implicit diffusion and vector Burgers next.
   table, validation figure and reproduction commands — done.
 - Registered CLI solver with `tests/regression/burgers/traveling64.yaml`,
   `tests/regression/burgers2d/traveling64.yaml`,
-  `tests/regression/burgers3d/traveling16.yaml`, `ctest --preset burgers`,
+  `tests/regression/burgers3d/traveling16.yaml`, `ctest --preset solver`,
   `burgers2d`, `burgers3d` and `checkpoint` — done.
 
 **Exit criterion**

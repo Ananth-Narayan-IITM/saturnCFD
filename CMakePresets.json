@@ -58,190 +58,48 @@
   "testPresets": [
     {
       "name": "default",
+      "displayName": "All tests (CPU build, or the active preset)",
       "configurePreset": "default",
       "output": {
         "outputOnFailure": true
       }
     },
     {
-      "name": "regression",
-      "displayName": "Regression tests",
+      "name": "cpu",
+      "displayName": "CPU tests: everything except GPU-labelled tests",
       "configurePreset": "default",
       "output": {
         "outputOnFailure": true
       },
       "filter": {
-        "include": {
-          "label": "regression"
+        "exclude": {
+          "label": "gpu"
         }
       }
     },
     {
-      "name": "unit",
-      "displayName": "Unit tests",
+      "name": "solver",
+      "displayName": "Solver numerics: FV operators, Burgers and heat",
       "configurePreset": "default",
       "output": {
         "outputOnFailure": true
       },
       "filter": {
         "include": {
-          "label": "unit"
+          "label": "solver"
         }
       }
     },
     {
-      "name": "mesh",
-      "displayName": "Mesh tests",
+      "name": "saturnCFD",
+      "displayName": "saturnCFD basics: CLI, config, mesh, PETSc, VTK, checkpoint",
       "configurePreset": "default",
       "output": {
         "outputOnFailure": true
       },
       "filter": {
         "include": {
-          "label": "mesh"
-        }
-      }
-    },
-    {
-      "name": "config",
-      "displayName": "Configuration tests",
-      "configurePreset": "default",
-      "output": {
-        "outputOnFailure": true
-      },
-      "filter": {
-        "include": {
-          "label": "config"
-        }
-      }
-    },
-    {
-      "name": "cli",
-      "displayName": "CLI tests",
-      "configurePreset": "default",
-      "output": {
-        "outputOnFailure": true
-      },
-      "filter": {
-        "include": {
-          "label": "cli"
-        }
-      }
-    },
-    {
-      "name": "mpi",
-      "displayName": "MPI tests",
-      "configurePreset": "default",
-      "output": {
-        "outputOnFailure": true
-      },
-      "filter": {
-        "include": {
-          "label": "mpi"
-        }
-      }
-    },
-    {
-      "name": "petsc",
-      "displayName": "PETSc linear algebra tests",
-      "configurePreset": "default",
-      "output": {
-        "outputOnFailure": true
-      },
-      "filter": {
-        "include": {
-          "label": "petsc"
-        }
-      }
-    },
-    {
-      "name": "fv",
-      "displayName": "Finite-volume and MMS tests",
-      "configurePreset": "default",
-      "output": {
-        "outputOnFailure": true
-      },
-      "filter": {
-        "include": {
-          "label": "fv"
-        }
-      }
-    },
-    {
-      "name": "burgers",
-      "displayName": "1D Burgers YAML validation",
-      "configurePreset": "default",
-      "output": {
-        "outputOnFailure": true
-      },
-      "filter": {
-        "include": {
-          "label": "burgers"
-        }
-      }
-    },
-    {
-      "name": "burgers2d",
-      "displayName": "2D Burgers YAML validation",
-      "configurePreset": "default",
-      "output": {
-        "outputOnFailure": true
-      },
-      "filter": {
-        "include": {
-          "label": "burgers2d"
-        }
-      }
-    },
-    {
-      "name": "vtk",
-      "displayName": "VTK field export tests",
-      "configurePreset": "default",
-      "output": {
-        "outputOnFailure": true
-      },
-      "filter": {
-        "include": {
-          "label": "vtk"
-        }
-      }
-    },
-    {
-      "name": "burgers3d",
-      "displayName": "3D Burgers YAML validation",
-      "configurePreset": "default",
-      "output": {
-        "outputOnFailure": true
-      },
-      "filter": {
-        "include": {
-          "label": "burgers3d"
-        }
-      }
-    },
-    {
-      "name": "heat",
-      "displayName": "Heat/convection–diffusion YAML validation",
-      "configurePreset": "default",
-      "output": {
-        "outputOnFailure": true
-      },
-      "filter": {
-        "include": {
-          "label": "heat"
-        }
-      }
-    },
-    {
-      "name": "checkpoint",
-      "displayName": "Checkpoint/restart tests",
-      "configurePreset": "default",
-      "output": {
-        "outputOnFailure": true
-      },
-      "filter": {
-        "include": {
-          "label": "checkpoint"
+          "label": "saturnCFD"
         }
       }
     },

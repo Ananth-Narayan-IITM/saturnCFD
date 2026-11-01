@@ -10,11 +10,8 @@ tell where a file belongs without reading the build.
 ```text
 saturnCFD/
   CMakeLists.txt
-  CMakePresets.json             # configure/buildCPU/test presets
+  CMakePresets.json             # configure/build/test presets
   requirements.toml             # host tools, versions, install packages
-  tools/
-    checkRequirements.py        # pre-flight host check
-    doxygenMathFilter.py
   cmake/
     SaturnDependencies.cmake    # Kokkos, PETSc, yaml-cpp, doctest
     SaturnOptions.cmake         # backend, precision, warnings
@@ -31,101 +28,106 @@ saturnCFD/
     linalg/                     # saturnLinAlg: Petsc scope, KSP wrapper,
                                 # Poisson matrix assembly
     io/                         # VTU/PVD, CSV, checkpoint, run manifest
-    simulation/                 # Solver, registry, TimeControl, SSP-RK loop
+    simulation/                 # Solver, ScalarSolver, registry, TimeControl
     solvers/
-      CMakeLists.txt            # addSolver(saturnBurger), addSolver(heat), ...
-      saturnBurger/             # 1D scalar Burgers
+      CMakeLists.txt            # addSolver(saturnBurger), addSolver(saturnHeat)
+      saturnBurger/             # 1D/2D/3D scalar Burgers
         SaturnBurger.hpp        # core solver
         SaturnBurger.cpp
         BurgersCase.hpp         # YAML schema/factory/registration
         BurgersCase.cpp
         README.md
-      heat/
-      stokes/
-      incompressible/
+      saturnHeat/               # 1D/2D/3D scalar convection–diffusion
+        SaturnHeat.hpp
+        SaturnHeat.cpp
+        HeatCase.hpp
+        HeatCase.cpp
+        README.md
+      saturnStokes/             # planned
+      saturnIncompressible/     # planned
 
   apps/
     main.cpp                    # saturnCFD driver
-  benchmarks/
-    haloStencil.cpp             # MPI halo + stencil benchmark
-    diffusion.cpp               # FVM benchmark
 
-  tools/
-    saturnCFDSolver.cpp         # C++ scaffold -> saturnCFDSolver
-    doxygenMathFilter.py        # Markdown $...$ -> Doxygen \f$...\f$
+  benchmarks/
+    README.md
+    benchmarkBurgers.py         # CPU vs GPU wall-clock comparison
+
+  examples/
+    README.md
+    saturnBurger/
+      saturnBurger1D/           # standalone traveling-wave case
+      saturnBurger2D/           # diagonal wave
+      saturnBurger3D/           # diagonal wave
+    saturnHeat/
+      saturnHeat2D/             # periodic Fourier mode
+      saturnHeat3D/             # periodic Fourier mode
+    saturnStokes/               # later
 
   tests/
     TestMain.cpp                # doctest main
     data/meshes/                # fixture meshes
-    core/
-    config/
-    mesh/
-    comm/
-    fv/
-    linalg/
-    solvers/
+    TestFv.cpp                  # fields, operators, MMS
+    TestLocalMesh.cpp           # local geometry + distribution
+    TestSimulation.cpp          # time loop
+    TestSaturnBurger*.cpp       # 1D/2D/3D Burgers
+    TestSaturnHeat.cpp          # 3D Fourier + constant field
+    TestPetsc.cpp               # Poisson/nullspace
+    TestParallel.cpp            # partition/halo
     regression/
       mesh/
-        box2x2x2.expected
-        thin2d.expected
-        tetRejected.expected
       config/
-        siOnly.yaml
-        cgsRejected.yaml
-        unknownKey.yaml
       burgers/
-        traveling64.yaml
-        vtk.yaml
       burgers2d/
-        traveling64.yaml
       burgers3d/
-        traveling16.yaml
-      burgers/restartFull.yaml
-      burgers/restartCheckpoint.yaml
-      burgers/restartTemplate.yaml.in
+      heat2d/
+        fourier64.yaml
+      heat3d/
+        fourier32.yaml
+        restartFull.yaml
+        restartCheckpoint.yaml
+        restartTemplate.yaml.in
     checkBurgers.cmake           # CLI + analytic-norm regression
     checkBurgersVtk.cmake        # VTK frame + PVD regression
     checkBurgersCheckpoint.py    # checkpoint/restart round trip
+    checkHeat.cmake              # heat CLI + analytic-norm regression
+    checkHeatCheckpoint.py       # scalar checkpoint/restart round trip
 
   docs/
     Doxyfile
     index.md                    # Doxygen main page
     Design-v1.md
     Reference-v0.md
+    doxygen/
+      doxygenMathFilter.py      # Markdown $...$ -> Doxygen \f$...\f$
+    logo/
+      saturnCFD.svg             # project logo
     guides/
+      commands.md               # CLI and CTest presets
+      gpu.md                    # CPU/GPU builds and benchmarks
       petsc.md                  # PETSc discovery, saturnLinAlg, KSP/PC
     plan/
       solverSequence.md         # PETSc -> Burgers -> heat -> Stokes -> NS
+      repositoryLayout.md       # this page
     theory/
-      poisson.md                # FV Poisson matrix and nullspace
+      burgers.md
+      heat.md
+      poisson.md
     decisions/                  # ADRs
     protocols/                  # contracts
-    theory/                     # equations and derivations
-    guides/                     # writing a solver
-    validation/                 # lab notebook
-    plan/                       # this folder
+    validation/
+      README.md                 # validation index
+      burgers.md
+      heat.md
+      scripts/
+        validateBurgers.py      # convergence table + validation figure
     references.bib
 
-  examples/
-    README.md
-    saturnBurger/
-      saturnBurger1D/
-        saturnBurger.yaml        # standalone 1D traveling-wave case
-        compareAnalytic.py       # independent analytic check and plot
-        README.md
-      saturnBurger2D/
-        saturnBurger2D.yaml      # standalone 2D diagonal-wave case
-        compareAnalytic.py
-        README.md
-      saturnBurger3D/
-        saturnBurger3D.yaml      # standalone 3D diagonal-wave case
-        compareAnalytic.py
-        README.md
-
   tools/
-    validateBurgers.py           # convergence table + validation figure
-    benchmarkBurgers.py          # CPU vs GPU wall-clock comparison
-    compileSaturnCFD           # build/install CPU+GPU into ~/.local/saturnCFD
+    README.md
+    checkRequirements.py        # pre-flight host check and --install
+    compileSaturnCFD            # build/install CPU+GPU into ~/.local/saturnCFD
+    saturnCFDSolver.cpp         # C++ scaffold -> saturnCFDSolver
 
   external/                     # pinned dependencies or FetchContent cache
   .github/workflows/
@@ -137,6 +139,18 @@ saturnCFD/
   README.md
   LICENSE
 ```
+
+## Where a new file belongs
+
+- **Build/install/host check** → `tools/`. This folder only supports compiling
+  and installing saturnCFD.
+- **Solver numerics** → `src/solvers/saturn<SolverName>/`; the case layer
+  (`<Name>Case.*`) stays beside the solver.
+- **Shared finite-volume operators** → `src/fv/`.
+- **Validation tables/figures** → `docs/validation/`; reusable generators in
+  `docs/validation/scripts/`.
+- **Performance measurements** → `benchmarks/`; these are not CTest cases.
+- **Documentation tooling** → `docs/doxygen/`.
 
 ## Module READMEs
 
@@ -189,23 +203,34 @@ then the manual copy works.
 - `tests/regression/burgers/vtk.yaml` — VTK field export.
 - `tests/regression/burgers2d/traveling64.yaml` — 2D case.
 - `tests/regression/burgers3d/traveling16.yaml` — 3D case.
-- `tests/regression/burgers/restart*.yaml` — checkpoint/restart.
-- `tests/checkBurgers.cmake` — runs the CLI and checks the analytic norms,
-  CSV rows and JSON summary.
+- `tests/regression/heat2d/fourier64.yaml` — 2D Fourier case.
+- `tests/regression/heat3d/fourier32.yaml` — 3D Fourier case.
+- `tests/regression/*/restart*.yaml` — checkpoint/restart.
+- `tests/checkBurgers.cmake`, `tests/checkHeat.cmake` — run the CLI and check
+  the analytic norms, CSV rows and JSON summary.
 - MPI test targets set `OMP_NUM_THREADS=1` to avoid oversubscription.
 - Unit tests live beside the category they test, not in one giant file.
-- CTest labels: `[unit]`, `[mesh]`, `[config]`, `[mms]`, `[regression]`,
-  `[parity]`, `[performance]`.
+
+CTest has two umbrella labels:
+
+- `solver` — FV operators plus Burgers and heat numerics;
+- `saturnCFD` — CLI, config, mesh, PETSc, VTK and checkpoint.
+
+The fine-grained labels (`unit`, `mesh`, `config`, `cli`, `mpi`, `petsc`, `fv`,
+`burgers`, `heat`, `vtk`, `checkpoint`, `gpu`) remain as metadata.
 
 ## Docs
 
 - `docs/Doxyfile` is the single Doxygen configuration.
 - `docs/index.md` is the main page.
+- `docs/doxygen` holds the Doxygen Markdown filter.
+- `docs/logo` holds the project logo.
 - `docs/decisions` is the ADR log.
 - `docs/protocols` is the contract layer.
 - `docs/theory` is the equation and validation record.
 - `docs/guides` is user-facing procedure.
-- `docs/validation` is the measured results.
+- `docs/validation` is the measured results, with generators in
+  `docs/validation/scripts`.
 - `docs/plan` is planning, including this page.
 
 ## Dependencies

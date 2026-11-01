@@ -6,8 +6,8 @@ counts, writes converged profile/error tables, and produces a validation figure.
 
 Usage (from the repository root, CPU build already compiled):
 
-    python3 tools/validateBurgers.py
-    python3 tools/validateBurgers.py --cli buildCPU/saturnCFD \
+    python3 docs/validation/scripts/validateBurgers.py
+    python3 docs/validation/scripts/validateBurgers.py --cli buildCPU/saturnCFD \
         --out docs/validation/figures/burgersValidation
 """
 
@@ -29,7 +29,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 
 
 def write_case(path: Path, n: int, nu: float, t_end: float, prefix: Path) -> None:

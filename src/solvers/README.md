@@ -63,8 +63,8 @@ the manual copy works. See `docs/guides/writingASolver.md`.
   analytic tests, run by `testSaturnFV` on 1/2/4 ranks.
 - `tests/regression/burgers/traveling64.yaml` — 1D YAML CLI regression.
 - `tests/regression/burgers2d/traveling64.yaml` — 2D YAML CLI regression.
-- `ctest --preset burgers` / `burgers2d` — the YAML cases.
-- `python3 tools/validateBurgers.py` — 1D convergence table and plot.
+- `ctest --preset solver` — the Burgers and heat YAML cases.
+- `python3 docs/validation/scripts/validateBurgers.py` — 1D convergence table and plot.
 
 ## Docs
 

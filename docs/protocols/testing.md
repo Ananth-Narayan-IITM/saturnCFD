@@ -29,8 +29,15 @@ harness is retired.
 | `[gpu]` | GPU parity and device indexing | GPU CI |
 | `[regression]` | analytic and benchmark cases (Burgers wave, Poiseuille, Ghia) | nightly / release |
 | `[parity]` | CPU vs GPU within precision floor | GPU CI |
-| `[benchmark]` | halo/stencil timing, strong/weak scaling | manual / release |
-| `[memcheck]` | Valgrind/ASan/UBSan runs | manual / nightly |
+| `[benchmark]` | halo/stencil timing, strong/weak scaling | manual / release (planned) |
+| `[memcheck]` | Valgrind/ASan/UBSan runs | manual / nightly (planned) |
+
+Two umbrella labels partition the suite and drive the main presets:
+
+| umbrella | contains | preset |
+|---|---|---|
+| `[solver]` | FV operators, Burgers and heat numerics | `ctest --preset solver` |
+| `[saturnCFD]` | CLI, config, mesh, PETSc, VTK, checkpoint | `ctest --preset saturnCFD` |
 
 ## Layout
 
@@ -43,10 +50,10 @@ tests/
   fv/                     gradient, divergence, laplacian, limiters
   linalg/                 PETSc wrapper, null space, multi-RHS
   solvers/
-    burgers/
-    heat/
-    stokes/
-    incompressible/
+    saturnBurger/
+    saturnHeat/
+    saturnStokes/          planned
+    saturnIncompressible/  planned
   regression/             case files + expected values
 ```
 
@@ -127,14 +134,14 @@ needed for the asymptotic value.
 
 The stable YAML regressions are `tests/regression/burgers/traveling64.yaml`
 and `tests/regression/burgers2d/traveling64.yaml`; they use
-`tests/checkBurgers.cmake`. `ctest --preset burgers` covers the 1D cases on
-1/2/4 ranks and `ctest --preset burgers2d` covers 2D. The user-facing examples
-`examples/saturnBurger/saturnBurger1D/` and `examples/saturnBurger/saturnBurger2D/` are schema-checked by
-CTest and have their own independent `compareAnalytic.py` scripts.
+`tests/checkBurgers.cmake`. `ctest --preset solver` runs the Burgers and heat
+numerics on 1/2/4 ranks. The user-facing examples
+`examples/saturnBurger/saturnBurger1D/` and
+`examples/saturnBurger/saturnBurger2D/` are schema-checked by CTest and have
+their own independent `compareAnalytic.py` scripts.
 
-The VTK slice is `ctest --preset vtk`; the 3D slice is
-`ctest --preset burgers3d`; checkpoint/restart is
-`ctest --preset checkpoint`.
+VTK output and checkpoint/restart belong to the `saturnCFD` preset:
+`ctest --preset saturnCFD`.
 
 MPI test targets set `OMP_NUM_THREADS=1`. Without it, four ranks each request
 the Kokkos default 12 threads on a 24-core node, and `fv_np4` took about 370 s
@@ -161,7 +168,7 @@ The shock-speed table and dense 3D cluster validation are next. See
 
 The stable YAML regressions are `tests/regression/heat2d/fourier64.yaml` and
 `tests/regression/heat3d/fourier32.yaml`, checked by `tests/checkHeat.cmake`.
-`ctest --preset heat` runs the heat slice; in an MPI build it runs the 3D case
+`ctest --preset solver` runs the heat slice; in an MPI build it runs the 3D case
 on 1/2/4 ranks. The user-facing examples
 `examples/saturnHeat/saturnHeat2D/` and `saturnHeat3D/` are schema-checked by
 CTest and ship independent `compareAnalytic.py` scripts.
@@ -206,20 +213,20 @@ CTest does not read default command-line flags from `CMakeLists.txt`. The
 supported shortcut is `CMakePresets.json`:
 
 ```bash
-ctest --preset default       # all tests, output on failure
-ctest --preset regression    # regression label
-ctest --preset unit
-ctest --preset mesh
-ctest --preset config
-ctest --preset cli
-ctest --preset mpi           # partition/halo + FVM on 1/2/4 ranks
-ctest --preset fv            # CellField, halo and MMS
-ctest --preset petsc         # PETSc Poisson/nullspace on 1/2/4 ranks
+ctest --preset default       # everything, output on failure
+ctest --preset cpu           # everything except GPU-labelled tests
+ctest --preset solver        # FV operators, Burgers and heat, 1/2/4 ranks
+ctest --preset saturnCFD     # CLI, config, mesh, PETSc, VTK, checkpoint
 ctest --preset gpu           # GPU-labelled tests in buildGPU
-ctest --preset benchmark     # benchmark smoke tests
 ```
 
-`ctest --test-dir buildCPU -L regression --output-on-failure` still works.
+Each test also keeps its fine-grained labels, so a direct label filter still
+works:
+
+```bash
+ctest --test-dir buildCPU -L burgers --output-on-failure
+ctest --test-dir buildCPU -L saturnCFD --output-on-failure
+```
 
 ## Rules
 
@@ -263,7 +270,7 @@ tests/checkBurgers.cmake
 
 The script runs the real `saturnCFD` CLI, reads the JSON summary and the CSV
 profile, and checks the analytic norms and row count. The CTest slice is
-`ctest --preset burgers`. A change to the accepted norm is a deliberate code
+`ctest --preset solver`. A change to the accepted norm is a deliberate code
 change, not a test-run side effect.
 
 ## CI

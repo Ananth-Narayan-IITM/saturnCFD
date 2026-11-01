@@ -62,7 +62,7 @@ Burgers → heat → Stokes → Navier–Stokes.
 - 1D Poisson with Dirichlet BCs is second order.
 - 3D Poisson solves with CG + GAMG on 1/2/4 ranks.
 - All-Neumann nullspace is attached and accepted by `MatNullSpaceTest`.
-- `ctest --preset petsc` passes.
+- `ctest --preset saturnCFD` passes.
 
 ## References
 

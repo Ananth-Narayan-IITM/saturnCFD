@@ -85,14 +85,18 @@ laptop test.
 
 ## 5. CTest integration
 
-Planned test presets/labels:
+Test presets:
 
 ```bash
-ctest --preset mpi            # MPI tests
-ctest --preset gpu            # GPU tests
-ctest --preset benchmark      # benchmark smoke tests
-ctest --preset memcheck       # optional valgrind run
+ctest --preset default            # everything
+ctest --preset cpu                # CPU only
+ctest --preset solver             # solver numerics, including MPI
+ctest --preset saturnCFD          # basics, including MPI partition/halo
+ctest --preset gpu                # GPU tests
 ```
+
+A benchmark smoke-test preset and an optional valgrind run are not exposed as
+presets; performance scripts live in `benchmarks/`.
 
 MPI tests use a generated test command:
 

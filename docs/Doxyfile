@@ -20,7 +20,9 @@ EXCLUDE                = external build .git
 EXCLUDE_PATTERNS       = */external/* */build/* */.git/*
 USE_MDFILE_AS_MAINPAGE = docs/index.md
 MARKDOWN_SUPPORT       = YES
-FILTER_PATTERNS        = *.md=./tools/doxygenMathFilter.py
+FILTER_PATTERNS        = *.md=./docs/doxygen/doxygenMathFilter.py
+IMAGE_PATH             = docs/logo
+HTML_EXTRA_FILES       = docs/logo/saturnCFD.svg
 
 # ------------------------------------------------------------- extraction --
 EXTRACT_ALL            = YES

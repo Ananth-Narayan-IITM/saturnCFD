@@ -1,5 +1,7 @@
 # saturnCFD {#mainpage}
 
+<img src="saturnCFD.svg" alt="saturnCFD logo" width="140" align="right">
+
 Structured finite-volume CFD for scalar transport, Stokes flow and
 incompressible Navier–Stokes, driven by YAML and validated against analytic
 solutions.

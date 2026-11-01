@@ -54,7 +54,7 @@ Scope:
   - all-Neumann nullspace.
 - No finite-volume matrix assembly yet; `DMDA` is a smoke-test only.
 
-Exit criteria: `ctest --preset petsc` passes; PETSc version reported.
+Exit criteria: `ctest --preset saturnCFD` passes; PETSc version reported.
 
 ## Phase 1 — Solver lifecycle and time loop
 
@@ -119,13 +119,13 @@ Validation (viscous traveling wave, `U=1`, `nu=0.02`, `t=0.5`):
 | constant field | preserved exactly |
 | periodic inviscid shock, $u_0=-\sin(\pi x)$, N=128, t=0.5 | bounds [-0.9954, 0.9954], integral 1.5e-16 |
 | 1/2/4 ranks at N=256 | bitwise-identical L2 1.236378e-4 |
-| YAML CLI path | `ctest --preset burgers` passes on 1/2/4 ranks |
+| YAML CLI path | `ctest --preset solver` passes on 1/2/4 ranks |
 | 1D standalone example | `examples/saturnBurger/saturnBurger1D` L2 8.051e-5 at t=1.5 with an independent analytic script |
 | 2D diagonal wave, N=32/64/128 | L2 9.909e-3 -> 2.555e-3 -> 5.968e-4, orders 1.96/2.10 |
 | 2D example | `examples/saturnBurger/saturnBurger2D` L2 5.968e-4 with an independent analytic script |
-| VTK output | `output.vtkEvery` writes `.vtu` frames plus `.pvd`; `ctest --preset vtk` |
+| VTK output | `output.vtkEvery` writes `.vtu` frames plus `.pvd`; `ctest --preset saturnCFD` |
 | 3D example | `examples/saturnBurger/saturnBurger3D` L2 8.967e-4 at 32^3 |
-| checkpoint/restart | `output.checkpointEvery` + `restart.file`; `ctest --preset checkpoint` |
+| checkpoint/restart | `output.checkpointEvery` + `restart.file`; `ctest --preset saturnCFD` |
 
 The earlier rank-dependent traveling-wave error was a test-diagnostic bug: the
 test divided by the local owned-cell count. The solver was already rank
@@ -158,12 +158,12 @@ $$
 
 Validation: 1D erf solution, 2D/3D MMS, boundary-layer profile, 1/2/4 ranks.
 
-Exit: second-order heat tests; `ctest --preset heat` passes.
+Exit: second-order heat tests; `ctest --preset solver` passes.
 
 **Status:** the explicit slice is done. `saturnHeat` is registered and
 validated against the periodic Fourier mode in 2D and 3D (orders 2.20-2.44),
 with periodic and Dirichlet boundaries, closed/open profiles, VTK and
-checkpoint/restart; `ctest --preset heat` passes on 1/2/4 ranks. Still open:
+checkpoint/restart; `ctest --preset solver` passes on 1/2/4 ranks. Still open:
 implicit BE/CN/BDF2 diffusion, Neumann boundaries and the 1D
 erf/boundary-layer cases.
 

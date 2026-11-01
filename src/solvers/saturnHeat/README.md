@@ -94,7 +94,7 @@ YAML and plots the numerical field, analytic field and error.
   `tests/checkHeat.cmake`.
 - `tests/checkHeatCheckpoint.py` checks the generic scalar
   checkpoint/restart path.
-- `ctest --preset heat`, and `ctest --preset checkpoint` for restart.
+- `ctest --preset solver`, and `ctest --preset saturnCFD` for restart.
 
 See [`docs/theory/heat.md`](../../../docs/theory/heat.md) for the discretisation
 and the measured convergence tables.

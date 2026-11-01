@@ -45,7 +45,7 @@ src/solvers/saturnBurger/
 This keeps the solver usable from C++ tests without YAML, and keeps YAML and
 case presets out of the RHS. There are **no tests** in this directory: all
 tests are in `tests/TestSaturnBurger.cpp`, `tests/regression/burgers/` and
-`tools/validateBurgers.py`. The `profile`/`exactError` methods are user-facing
+`docs/validation/scripts/validateBurgers.py`. The `profile`/`exactError` methods are user-facing
 CLI diagnostics (`output.exact` and `output.csv`), not test code.
 
 `BurgersCase` is not redundant with `SaturnBurger`: one is "what case", the
@@ -296,7 +296,7 @@ $$
 in 3D. The 2D front is the line $x+y=x_0+y_0+Ut$; the 3D front is the plane
 $x+y+z=x_0+y_0+z_0+\frac32Ut$.
 
-`tools/validateBurgers.py` runs the real YAML case at several resolutions and
+`docs/validation/scripts/validateBurgers.py` runs the real YAML case at several resolutions and
 rank counts, writes `convergence.csv` and `rankIndependence.csv`, and produces
 
 ```text

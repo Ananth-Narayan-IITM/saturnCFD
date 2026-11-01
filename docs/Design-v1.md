@@ -84,7 +84,7 @@ saturnCFD -completion bash
 `-writeVTK` adds `.vtp` patches and a `.pvd`. Open the `.pvd` in ParaView.
 The binary is installed under `$HOME/.local/saturnCFD/cpu` and linked as
 `saturnCPU` (or `saturnCFD`), not called as `./buildCPU/saturnCFD`. `-completion` prints
-bash/zsh/fish completion; `ctest --preset regression` is the short test command.
+bash/zsh/fish completion; `ctest --preset default` is the short test command.
 The full option list is in `docs/protocols/cli.md`.
 
 ## 5. Directory layout
@@ -99,11 +99,11 @@ src/
   linalg/       PETSc wrappers, matrix assembly, linear-solver interface
   io/           VTU/PVD, CSV diagnostics, checkpoint, run manifest
   solvers/
-    burgers/
-    heat/
-    stokes/
-    incompressible/
-  simulation/   time loop, solver registry, factory
+    saturnBurger/
+    saturnHeat/
+    saturnStokes/          planned
+    saturnIncompressible/  planned
+  simulation/   time loop, ScalarSolver, solver registry, factory
 tools/
   saturnCFDSolver.cpp C++ scaffold, built as saturnCFDSolver
 apps/main.cpp
@@ -145,7 +145,7 @@ in v1.0. See [`guides/writingASolver.md`](guides/writingASolver.md) and ADR
 
 - Doxygen builds HTML (`buildCPU/doxygen/html`) and PDF
   (`buildCPU/doxygen/latex/refman.pdf`).
-- Markdown uses `$...$` and `$$...$$`; `tools/doxygenMathFilter.py` adapts them
+- Markdown uses `$...$` and `$$...$$`; `docs/doxygen/doxygenMathFilter.py` adapts them
   for Doxygen.
 - `.github/workflows/docs.yml` deploys the HTML to GitHub Pages.
 - `.clang-format` is mandatory; `formatCode` target and `format.yml` CI check.

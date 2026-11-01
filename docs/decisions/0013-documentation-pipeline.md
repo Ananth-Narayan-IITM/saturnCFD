@@ -25,7 +25,7 @@ serve both without duplicating equations.
    - PDF uses Doxygen's LaTeX output with `USE_PDFLATEX=YES`.
 2. **Markdown is the source for prose and equations.**
    - `$...$` inline and `$$ ... $$` display in Markdown.
-   - `tools/doxygenMathFilter.py` converts them to `\f$...\f$` / `\f[...\f]`
+   - `docs/doxygen/doxygenMathFilter.py` converts them to `\f$...\f$` / `\f[...\f]`
      for the Doxygen build only.
    - The filter also converts `[@key]` to `\cite{key}`.
 3. **GitHub Pages hosts the HTML.**

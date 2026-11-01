@@ -5,7 +5,7 @@ Markdown pages use `$...$` and `$$ ... $$` so they render on GitHub,
 VS Code and Obsidian. Doxygen needs `\\f$...\\f$` and `\\f[...\\f]`.
 
 Usage (Doxygen FILTER_PATTERNS):
-    tools/doxygenMathFilter.py path/to/page.md
+    docs/doxygen/doxygenMathFilter.py path/to/page.md
 
 The filter leaves fenced code blocks and inline code untouched, and converts
 `[@key]` citations to `\\cite{key}`.

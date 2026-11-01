@@ -12,7 +12,7 @@
 \usepackage{listings}
 \usepackage{xcolor}
 
-\graphicspath{{../validation/figures/}}
+\graphicspath{{../validation/figures/}{../logo/}}
 
 \lstset{
   basicstyle=\ttfamily\scriptsize,
@@ -37,7 +37,15 @@
 \begin{document}
 
 \begin{frame}
-  \titlepage
+  \begin{columns}[c]
+    \begin{column}{0.24\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{../logo/saturnCFD.pdf}
+    \end{column}
+    \begin{column}{0.72\textwidth}
+      \titlepage
+    \end{column}
+  \end{columns}
 \end{frame}
 
 \begin{frame}{Outline}
@@ -528,8 +536,8 @@ mpirun -np 1 saturnGPU case.yaml
 mpirun -np 2 saturnGPU case.yaml
 
 # tests
-ctest --preset burgers
-ctest --preset vtk
+ctest --preset solver
+ctest --preset saturnCFD
 ctest --preset gpu
 \end{lstlisting}
     \end{column}
@@ -632,7 +640,8 @@ rm -rf buildCPU buildGPU
 \end{lstlisting}
 
   \begin{block}{No memorisation}
-    Test labels: \texttt{ctest --list-presets}. CLI: \texttt{saturnCFD -help}.
+    Test presets: \texttt{default}, \texttt{cpu}, \texttt{gpu},
+    \texttt{solver}, \texttt{saturnCFD}. CLI: \texttt{saturnCFD -help}.
     Build: \texttt{-help build}. clangd: \texttt{-help clangd} and
     \texttt{compileDb}. Clean: \texttt{-help clean}.
   \end{block}

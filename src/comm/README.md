@@ -22,7 +22,7 @@ MPI decomposition and ghost exchange. No FVM equations live here.
 - `tests/TestParallel.cpp` — partition invariants, analytic periodic halo,
   1/2 ghost layers, 2D, non-periodic internal, two components.
 - CTest labels: `mpi`.
-- `ctest --preset mpi` runs 1, 2 and 4 ranks.
+- `ctest --preset saturnCFD` runs the partition/halo tests on 1, 2 and 4 ranks.
 
 ## Docs
 

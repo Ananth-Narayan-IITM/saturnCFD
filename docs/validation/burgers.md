@@ -6,7 +6,7 @@
 
 **Case:** `tests/regression/burgers/traveling64.yaml`
 
-**Reproduction:** `python3 tools/validateBurgers.py`
+**Reproduction:** `python3 docs/validation/scripts/validateBurgers.py`
 
 This page records the analytic validation of the 1D solver. The reference is
 the exact viscous traveling wave
@@ -177,16 +177,15 @@ cmake --build buildCPU -j
 ./buildCPU/saturnCFD tests/regression/burgers/traveling64.yaml
 
 # the full table, rank sweep and figure
-python3 tools/validateBurgers.py
+python3 docs/validation/scripts/validateBurgers.py
 
 # 2D example + independent comparison
 cd examples/saturnBurger/saturnBurger2D
 saturnCFD saturnBurger2D.yaml
 python3 compareAnalytic.py
 
-# CTest slices
-ctest --preset burgers
-ctest --preset burgers2d
+# CTest solver slice (1D/2D/3D, 1/2/4 ranks)
+ctest --preset solver
 ```
 
 Outputs:

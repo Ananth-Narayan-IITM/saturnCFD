@@ -243,22 +243,18 @@ configure.
 ## Test
 
 ```bash
-ctest --preset default       # all tests, output on failure
-ctest --preset regression    # regression only
-ctest --preset unit
-ctest --preset mesh
-ctest --preset config
-ctest --preset cli
-ctest --preset mpi           # partition/halo + FVM, 1/2/4 ranks
-ctest --preset fv            # fields, LocalMesh, operators, MMS, Burgers
-ctest --preset burgers       # YAML Burgers validation on 1/2/4 ranks
-ctest --preset burgers2d     # 2D Burgers YAML validation
-ctest --preset burgers3d     # 3D Burgers YAML validation
-ctest --preset heat          # heat/Fourier YAML validation on 1/2/4 ranks
-ctest --preset vtk           # VTK field-export test
-ctest --preset checkpoint    # checkpoint/restart test
-ctest --preset petsc         # PETSc Poisson/nullspace on 1/2/4 ranks
+ctest --preset default       # everything, output on failure
+ctest --preset cpu           # everything except GPU-labelled tests
+ctest --preset solver        # FV operators, Burgers and heat, 1/2/4 ranks
+ctest --preset saturnCFD     # CLI, config, mesh, PETSc, VTK, checkpoint
 ctest --preset gpu           # GPU-labelled tests in buildGPU
+```
+
+The fine-grained labels still work directly, for example:
+
+```bash
+ctest --test-dir buildCPU -L burgers --output-on-failure
+ctest --test-dir buildCPU -L saturnCFD --output-on-failure
 ```
 
 The MPI test targets (`mpi_np*`, `fv_np*`, `petsc_np*`) set
@@ -384,7 +380,7 @@ restart:
 
 Checkpoints are written at step 0, every N steps and the final state. A restart
 case resumes at the checkpoint step/time and continues to its `time.end`. The
-solver name, dimension and mesh must match. `ctest --preset checkpoint` verifies
+solver name, dimension and mesh must match. `ctest --preset saturnCFD` verifies
 that a restarted run matches an uninterrupted reference run.
 
 ## Help and completion
@@ -452,7 +448,7 @@ The CI check runs `clang-format --dry-run --Werror`.
 The MPI partition/halo layer is implemented. Run its tests with:
 
 ```bash
-ctest --preset mpi
+ctest --preset default
 # equivalent:
 mpirun -np 1 buildCPU/testSaturnMPI
 mpirun -np 2 buildCPU/testSaturnMPI
@@ -478,7 +474,7 @@ The 1D Burgers solver is registered. Run the YAML case directly:
 ./buildCPU/saturnCFD -checkConfig tests/regression/burgers/traveling64.yaml
 ./buildCPU/saturnCFD tests/regression/burgers/traveling64.yaml
 mpirun -np 4 ./buildCPU/saturnCFD tests/regression/burgers/traveling64.yaml
-python3 tools/validateBurgers.py     # table + validation figure
+python3 docs/validation/scripts/validateBurgers.py     # table + validation figure
 
 # standalone user examples + independent analytic comparison
 cd examples/saturnBurger/saturnBurger1D

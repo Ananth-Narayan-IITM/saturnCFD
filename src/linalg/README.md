@@ -40,7 +40,7 @@ finite-volume matrix assembler is the next slice.
 ## Tests
 
 ```bash
-ctest --preset petsc
+ctest --preset saturnCFD
 ```
 
 The tests run under `mpirun -np 1/2/4`. See

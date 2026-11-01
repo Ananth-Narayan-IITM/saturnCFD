@@ -193,7 +193,7 @@ discrete conservation law.
 
 CPU OpenMP build, 1D, `U=1`, `nu=0.02`, `t=0.5`, MUSCL/van Leer, CFL 0.3,
 SSPRK3. The YAML case is
-`tests/regression/burgers/traveling64.yaml`; `tools/validateBurgers.py`
+`tests/regression/burgers/traveling64.yaml`; `docs/validation/scripts/validateBurgers.py`
 regenerates the table and the plot.
 
 | grid | $L^1$ | $L^2$ | $L^\infty$ | observed order |

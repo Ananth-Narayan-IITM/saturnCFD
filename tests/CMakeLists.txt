@@ -16,7 +16,7 @@ target_compile_definitions(testSaturn PRIVATE
 
 add_test(NAME testSaturn COMMAND testSaturn)
 set_tests_properties(testSaturn PROPERTIES
-  LABELS "unit;mesh;config;regression")
+  LABELS "unit;mesh;config;regression;saturnCFD")
 
 if(SATURN_ENABLE_MPI)
   add_executable(testSaturnMPI
@@ -38,7 +38,7 @@ if(SATURN_ENABLE_MPI)
     COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 4
             ${SATURN_MPI_PREFLAGS} $<TARGET_FILE:testSaturnMPI>)
   set_tests_properties(mpi_np1 mpi_np2 mpi_np4 PROPERTIES
-    LABELS "mpi" RUN_SERIAL TRUE
+    LABELS "mpi;saturnCFD" RUN_SERIAL TRUE
     ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
 endif()
 
@@ -58,7 +58,7 @@ if(SATURN_ENABLE_KOKKOS)
   target_link_libraries(testSaturnFV PRIVATE
     saturn::Core saturn::Simulation saturn::Burger saturn::Heat doctest::doctest)
 
-  set(SATURN_FV_LABELS "fv;regression;parity")
+  set(SATURN_FV_LABELS "solver;fv;regression;parity")
   if(SATURN_BACKEND STREQUAL "cuda")
     list(APPEND SATURN_FV_LABELS "gpu")
   endif()
@@ -94,13 +94,13 @@ if(SATURN_ENABLE_PETSC)
         COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${ranks}
                 ${SATURN_MPI_PREFLAGS} $<TARGET_FILE:testSaturnPETSc>)
       set_tests_properties(petsc_np${ranks} PROPERTIES
-        LABELS "petsc;linalg;regression;mpi" RUN_SERIAL TRUE
+        LABELS "petsc;linalg;regression;mpi;saturnCFD" RUN_SERIAL TRUE
         ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
     endforeach()
   else()
     add_test(NAME petsc_serial COMMAND testSaturnPETSc)
     set_tests_properties(petsc_serial PROPERTIES
-      LABELS "petsc;linalg;regression")
+      LABELS "petsc;linalg;regression;saturnCFD")
   endif()
 endif()
 
@@ -148,7 +148,7 @@ set_tests_properties(
   cli_help cli_version cli_listSolvers cli_dumpConfig
   cli_checkConfig_si cli_checkConfig_cgs cli_checkMesh_box cli_checkMesh_tet
   cli_defaultOutputs cli_writeVTK cli_completion cli_templateExtension
-  PROPERTIES LABELS "cli;regression")
+  PROPERTIES LABELS "cli;regression;saturnCFD")
 
 # YAML-driven Burgers validation: runs the real CLI, checks the analytic norms
 # and the profile CSV. The MPI variants exercise the same case on 1/2/4 ranks.
@@ -158,7 +158,7 @@ set(SATURN_BURGERS_CASE
 add_test(NAME cli_checkConfig_burgers
   COMMAND saturnCFD -checkConfig ${SATURN_BURGERS_CASE})
 set_tests_properties(cli_checkConfig_burgers
-  PROPERTIES LABELS "cli;config;burgers;regression")
+  PROPERTIES LABELS "cli;config;burgers;regression;saturnCFD")
 
 # The standalone user-facing example must stay valid and numerically clean.
 set(SATURN_BURGERS_EXAMPLE
@@ -166,7 +166,7 @@ set(SATURN_BURGERS_EXAMPLE
 add_test(NAME cli_checkConfig_example_burgers
   COMMAND saturnCFD -checkConfig ${SATURN_BURGERS_EXAMPLE})
 set_tests_properties(cli_checkConfig_example_burgers
-  PROPERTIES LABELS "cli;config;burgers;regression")
+  PROPERTIES LABELS "cli;config;burgers;regression;saturnCFD")
 
 # Examples are user-editable demos: only validate their schema in CTest.
 # Numerical regression uses the stable cases in tests/regression/.
@@ -175,7 +175,7 @@ set(SATURN_BURGERS2D_EXAMPLE
 add_test(NAME cli_checkConfig_example_burgers2d
   COMMAND saturnCFD -checkConfig ${SATURN_BURGERS2D_EXAMPLE})
 set_tests_properties(cli_checkConfig_example_burgers2d
-  PROPERTIES LABELS "cli;config;burgers;burgers2d;regression")
+  PROPERTIES LABELS "cli;config;burgers;burgers2d;regression;saturnCFD")
 
 set(SATURN_BURGERS2D_CASE
     "${CMAKE_CURRENT_SOURCE_DIR}/regression/burgers2d/traveling64.yaml")
@@ -191,7 +191,7 @@ add_test(NAME burgers_2d_traveling64
           -DLINF_MAX=3.0e-2
           -P ${CMAKE_CURRENT_SOURCE_DIR}/checkBurgers.cmake)
 set_tests_properties(burgers_2d_traveling64 PROPERTIES
-  LABELS "burgers;burgers2d;regression" RUN_SERIAL TRUE
+  LABELS "solver;burgers;burgers2d;regression" RUN_SERIAL TRUE
   ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
 
 set(SATURN_BURGERS_VTK_CASE
@@ -203,7 +203,7 @@ add_test(NAME burgers_vtk
           -DOUT=${CMAKE_CURRENT_BINARY_DIR}/burgers_vtk
           -P ${CMAKE_CURRENT_SOURCE_DIR}/checkBurgersVtk.cmake)
 set_tests_properties(burgers_vtk PROPERTIES
-  LABELS "burgers;vtk;regression" RUN_SERIAL TRUE
+  LABELS "burgers;vtk;regression;saturnCFD" RUN_SERIAL TRUE
   ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
 
 set(SATURN_BURGERS3D_EXAMPLE
@@ -211,7 +211,7 @@ set(SATURN_BURGERS3D_EXAMPLE
 add_test(NAME cli_checkConfig_example_burgers3d
   COMMAND saturnCFD -checkConfig ${SATURN_BURGERS3D_EXAMPLE})
 set_tests_properties(cli_checkConfig_example_burgers3d
-  PROPERTIES LABELS "cli;config;burgers;burgers3d;regression")
+  PROPERTIES LABELS "cli;config;burgers;burgers3d;regression;saturnCFD")
 
 set(SATURN_BURGERS3D_CASE
     "${CMAKE_CURRENT_SOURCE_DIR}/regression/burgers3d/traveling16.yaml")
@@ -227,7 +227,7 @@ add_test(NAME burgers_3d_traveling16
           -DLINF_MAX=2.0e-2
           -P ${CMAKE_CURRENT_SOURCE_DIR}/checkBurgers.cmake)
 set_tests_properties(burgers_3d_traveling16 PROPERTIES
-  LABELS "burgers;burgers3d;regression" RUN_SERIAL TRUE
+  LABELS "solver;burgers;burgers3d;regression" RUN_SERIAL TRUE
   ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
 
 # YAML-driven heat (scalar convection–diffusion) validation. The exact data is
@@ -237,14 +237,14 @@ set(SATURN_HEAT2D_EXAMPLE
 add_test(NAME cli_checkConfig_example_heat2d
   COMMAND saturnCFD -checkConfig ${SATURN_HEAT2D_EXAMPLE})
 set_tests_properties(cli_checkConfig_example_heat2d
-  PROPERTIES LABELS "cli;config;heat;heat2d;regression")
+  PROPERTIES LABELS "cli;config;heat;heat2d;regression;saturnCFD")
 
 set(SATURN_HEAT3D_EXAMPLE
     "${SATURN_SOURCE_DIR}/examples/saturnHeat/saturnHeat3D/saturnHeat3D.yaml")
 add_test(NAME cli_checkConfig_example_heat3d
   COMMAND saturnCFD -checkConfig ${SATURN_HEAT3D_EXAMPLE})
 set_tests_properties(cli_checkConfig_example_heat3d
-  PROPERTIES LABELS "cli;config;heat;heat3d;regression")
+  PROPERTIES LABELS "cli;config;heat;heat3d;regression;saturnCFD")
 
 set(SATURN_HEAT2D_CASE
     "${CMAKE_CURRENT_SOURCE_DIR}/regression/heat2d/fourier64.yaml")
@@ -260,7 +260,7 @@ add_test(NAME heat_2d_fourier64
           -DLINF_MAX=3.0e-3
           -P ${CMAKE_CURRENT_SOURCE_DIR}/checkHeat.cmake)
 set_tests_properties(heat_2d_fourier64 PROPERTIES
-  LABELS "heat;heat2d;regression" RUN_SERIAL TRUE
+  LABELS "solver;heat;heat2d;regression" RUN_SERIAL TRUE
   ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
 
 set(SATURN_HEAT3D_CASE
@@ -277,7 +277,7 @@ add_test(NAME heat_3d_fourier32
           -DLINF_MAX=1.5e-2
           -P ${CMAKE_CURRENT_SOURCE_DIR}/checkHeat.cmake)
 set_tests_properties(heat_3d_fourier32 PROPERTIES
-  LABELS "heat;heat3d;regression" RUN_SERIAL TRUE
+  LABELS "solver;heat;heat3d;regression" RUN_SERIAL TRUE
   ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
 
 find_package(Python3 COMPONENTS Interpreter QUIET)
@@ -291,7 +291,7 @@ if(Python3_Interpreter_FOUND)
             --checkpoint ${CMAKE_CURRENT_SOURCE_DIR}/regression/burgers/restartCheckpoint.yaml
             --template ${CMAKE_CURRENT_SOURCE_DIR}/regression/burgers/restartTemplate.yaml.in)
   set_tests_properties(burgers_checkpoint PROPERTIES
-    LABELS "burgers;checkpoint;regression" RUN_SERIAL TRUE
+    LABELS "burgers;checkpoint;regression;saturnCFD" RUN_SERIAL TRUE
     ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
 
   add_test(NAME heat_checkpoint
@@ -303,7 +303,7 @@ if(Python3_Interpreter_FOUND)
             --checkpoint ${CMAKE_CURRENT_SOURCE_DIR}/regression/heat3d/restartCheckpoint.yaml
             --template ${CMAKE_CURRENT_SOURCE_DIR}/regression/heat3d/restartTemplate.yaml.in)
   set_tests_properties(heat_checkpoint PROPERTIES
-    LABELS "heat;checkpoint;regression" RUN_SERIAL TRUE
+    LABELS "heat;checkpoint;regression;saturnCFD" RUN_SERIAL TRUE
     ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
 endif()
 
@@ -318,7 +318,7 @@ if(SATURN_ENABLE_MPI)
               -DRANKS=${ranks}
               -P ${CMAKE_CURRENT_SOURCE_DIR}/checkBurgers.cmake)
     set_tests_properties(burgers_traveling64_np${ranks} PROPERTIES
-      LABELS "burgers;regression;mpi" RUN_SERIAL TRUE
+      LABELS "solver;burgers;regression;mpi" RUN_SERIAL TRUE
       ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
   endforeach()
 else()
@@ -329,7 +329,7 @@ else()
             -DOUT=${CMAKE_CURRENT_BINARY_DIR}/burgers_serial
             -P ${CMAKE_CURRENT_SOURCE_DIR}/checkBurgers.cmake)
   set_tests_properties(burgers_traveling64
-    PROPERTIES LABELS "burgers;regression")
+    PROPERTIES LABELS "solver;burgers;regression")
 endif()
 
 # The heat case is periodic, so the MPI variants also exercise periodic halos
@@ -345,7 +345,7 @@ if(SATURN_ENABLE_MPI)
               -DRANKS=${ranks}
               -P ${CMAKE_CURRENT_SOURCE_DIR}/checkHeat.cmake)
     set_tests_properties(heat_fourier32_np${ranks} PROPERTIES
-      LABELS "heat;heat3d;regression;mpi" RUN_SERIAL TRUE
+      LABELS "solver;heat;heat3d;regression;mpi" RUN_SERIAL TRUE
       ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
   endforeach()
 endif()

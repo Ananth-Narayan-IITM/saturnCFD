@@ -4,8 +4,8 @@ doctest + CTest. Every numerical feature has a unit or manufactured test, and
 every solver gets a regression case.
 
 Test executables: `testSaturn` (units/mesh/config/CLI regression),
-`testSaturnMPI` (partition/halo), `testSaturnFV` (FV operators, MMS, time loop, Burgers), and
-`testSaturnPETSc` (PETSc Poisson/nullspace).
+`testSaturnMPI` (partition/halo), `testSaturnFV` (FV operators, MMS, time loop,
+Burgers and heat), and `testSaturnPETSc` (PETSc Poisson/nullspace).
 
 ## Layout
 
@@ -19,57 +19,56 @@ tests/
   TestSaturnBurger.cpp
   TestSaturnBurger2D.cpp
   TestSaturnBurger3D.cpp
+  TestSaturnHeat.cpp
   TestParallel.cpp
   UniformMesh.hpp
   checkBurgers.cmake
   checkBurgersVtk.cmake
   checkBurgersCheckpoint.py
-  core/
-  config/
-  mesh/
-  fv/
-  linalg/
-  simulation/
-  solvers/
+  checkHeat.cmake
+  checkHeatCheckpoint.py
   regression/
     mesh/
     config/
     burgers/
+    burgers2d/
+    burgers3d/
+    heat2d/
+    heat3d/
 ```
 
 ## Labels
 
 | label | purpose |
 |---|---|
+| `[solver]` | umbrella: FV operators, Burgers and heat numerics |
+| `[saturnCFD]` | umbrella: CLI, config, mesh, PETSc, VTK, checkpoint |
 | `[unit]` | helpers and algorithms |
 | `[mesh]` | reader, topology, structured detection, VTK |
 | `[config]` | YAML, schema, SI-only units, BCs |
 | `[fv]` | fields, LocalMesh, operators, boundary ghosts |
 | `[mms]` | manufactured-solution order |
 | `[regression]` | accepted end-to-end cases |
+| `[gpu]` | CUDA-labelled tests |
 | `[parity]` | CPU/GPU agreement |
-| `[performance]` | timing smoke tests |
+| `[performance]` | timing smoke tests (planned) |
+
+Every test carries exactly one umbrella label, so the `solver` and `saturnCFD`
+presets partition the suite.
 
 ## Running
 
 ```bash
-ctest --preset default          # all tests, output on failure
-ctest --preset regression       # regression tests only
-ctest --preset mesh             # mesh tests only
-ctest --preset config           # configuration tests only
-ctest --preset cli              # CLI tests only
-ctest --preset mpi              # 1/2/4-rank MPI tests
-ctest --preset fv               # LocalMesh, operators and MMS
-ctest --preset burgers          # 1D YAML Burgers case on 1/2/4 ranks
-ctest --preset burgers2d        # 2D YAML Burgers regression
-ctest --preset burgers3d        # 3D YAML Burgers regression
-ctest --preset heat             # heat/convection–diffusion YAML validation
-ctest --preset vtk              # VTK field-export regression
-ctest --preset checkpoint       # checkpoint/restart round trip
+ctest --preset default          # everything, output on failure
+ctest --preset cpu              # everything except GPU-labelled tests
+ctest --preset solver           # FV operators, Burgers and heat
+ctest --preset saturnCFD        # CLI, config, mesh, PETSc, VTK, checkpoint
+ctest --preset gpu              # GPU-labelled tests in buildGPU
 
 # equivalent fallback
 ctest --test-dir buildCPU --output-on-failure
-ctest --test-dir buildCPU -L fv --output-on-failure
+ctest --test-dir buildCPU -L solver --output-on-failure
+ctest --test-dir buildCPU -L saturnCFD --output-on-failure
 ```
 
 ## Rules

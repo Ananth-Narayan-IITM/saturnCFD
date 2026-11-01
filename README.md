@@ -1,5 +1,7 @@
 # saturnCFD v1
 
+<img src="docs/logo/saturnCFD.svg" alt="saturnCFD" width="150" align="right">
+
 A rewrite of saturnCFD as a structured hexahedral finite-volume solver:
 scalar transport (Burgers, heat), Stokes and incompressible Navier–Stokes,
 driven by YAML and validated against analytic solutions.
@@ -26,10 +28,15 @@ See [`docs/validation/burgers.md`](docs/validation/burgers.md) and the figure
 [`docs/validation/figures/burgersValidation.png`](docs/validation/figures/burgersValidation.png).
 
 `saturnHeat` is validated against the periodic Fourier mode
-$T=A\sin(\mathbf{k}\cdot\mathbf{x}-(\mathbf{a}\cdot\mathbf{k})t)
-\exp(-\alpha|\mathbf{k}|^2t)$: 3D orders 2.28 and 2.43 at 16^3/32^3/64^3
-(48^3 example $L^2=1.48\times10^{-3}$), 2D orders 2.37 and 2.20, with
-identical norms on 1/2/4 ranks. See
+
+$$
+T=A\sin\!\left(\mathbf{k}\cdot\mathbf{x}-(\mathbf{a}\cdot\mathbf{k})t\right)
+\exp\!\left(-\alpha|\mathbf{k}|^2t\right)
+$$
+
+with 3D orders 2.28 and 2.43 at 16^3/32^3/64^3 (48^3 example
+$L^2=1.48\times10^{-3}$), 2D orders 2.37 and 2.20, and identical norms on
+1/2/4 ranks. See
 [`docs/validation/heat.md`](docs/validation/heat.md) and
 [`docs/validation/figures/heat3DValidation.png`](docs/validation/figures/heat3DValidation.png).
 
@@ -91,14 +98,11 @@ missing. yaml-cpp and doctest are fetched by CMake. Details:
 ```bash
 cmake --preset default
 cmake --build --preset default -j
-ctest --preset regression          # the common case
-ctest --preset mpi                 # 1/2/4-rank halo and FVM tests
-ctest --preset fv                  # fields, operators, MMS, Burgers
-ctest --preset burgers             # YAML Burgers validation on 1/2/4 ranks
-ctest --preset vtk                 # VTK field-export test
-ctest --preset checkpoint          # checkpoint/restart test
-ctest --preset petsc               # PETSc Poisson/nullspace on 1/2/4 ranks
-ctest --preset default             # all tests, output on failure
+ctest --preset default             # everything in buildCPU
+ctest --preset cpu                 # everything except GPU-labelled tests
+ctest --preset solver              # FV operators, Burgers and heat
+ctest --preset saturnCFD           # CLI, config, mesh, PETSc, VTK, checkpoint
+ctest --preset gpu                 # GPU tests in buildGPU
 ```
 
 Equivalent without presets:
@@ -348,11 +352,11 @@ src/
   linalg/       PETSc wrappers, matrix assembly
   io/           VTU/PVD, CSV diagnostics, checkpoint, manifest
   solvers/
-    burgers/
-    heat/
-    stokes/
-    incompressible/
-  simulation/   time loop, solver registry
+    saturnBurger/
+    saturnHeat/
+    saturnStokes/          planned
+    saturnIncompressible/  planned
+  simulation/   time loop, ScalarSolver, solver registry
 tools/
   saturnCFDSolver.cpp C++ scaffold, built as saturnCFDSolver
 apps/main.cpp

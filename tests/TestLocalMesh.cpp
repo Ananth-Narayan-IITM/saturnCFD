@@ -612,7 +612,12 @@ TEST_CASE("fv: gradient of a linear field is exact with Dirichlet ghosts") {
     const int k = lm.origin(2);
     const Vec3 x = lm.cellCentroid(i, j, k);
     const Real exact = a.x * (x.x - Real(1) / n) + a.y * x.y + a.z * x.z + b;
-    CHECK(std::abs(phi(i - 1, j, k, 0) - exact) < 1e-12);
+    // phi is a device field; read the ghost through its host mirror.
+    const auto host = phi.hostView();
+    const int gi = (i - 1) - (phi.origin(0) - phi.nGrow());
+    const int gj = j - (phi.origin(1) - phi.nGrow());
+    const int gk = k - (phi.origin(2) - phi.nGrow());
+    CHECK(std::abs(host(gi, gj, gk, 0) - exact) < 1e-12);
   }
 }
 
@@ -1056,9 +1061,18 @@ TEST_CASE("fv: Burgers constant flux has zero divergence") {
   divergence(flux, div, lm);
   CHECK(maxAbsCell(div) < 1e-12);
   if (lm.origin(0) == 0) {
-    CHECK(flux(0, 0, 0, 0, 0) == doctest::Approx(-0.5).epsilon(1e-12));
-    CHECK(flux(0, 0, 0, 1, 0) == doctest::Approx(0.5).epsilon(1e-12));
-    CHECK(div(0, 0, 0, 0) == doctest::Approx(0.0).epsilon(1e-12));
+    // flux and div are device fields; inspect them through host mirrors.
+    const auto fluxHost = flux.hostView();
+    const auto divHost = div.hostView();
+    const int fi = 0 - (flux.origin(0) - flux.nGrow());
+    const int fj = 0 - (flux.origin(1) - flux.nGrow());
+    const int fk = 0 - (flux.origin(2) - flux.nGrow());
+    const int di = 0 - (div.origin(0) - div.nGrow());
+    const int dj = 0 - (div.origin(1) - div.nGrow());
+    const int dk = 0 - (div.origin(2) - div.nGrow());
+    CHECK(fluxHost(fi, fj, fk, 0, 0) == doctest::Approx(-0.5).epsilon(1e-12));
+    CHECK(fluxHost(fi, fj, fk, 1, 0) == doctest::Approx(0.5).epsilon(1e-12));
+    CHECK(divHost(di, dj, dk, 0) == doctest::Approx(0.0).epsilon(1e-12));
   }
 }
 

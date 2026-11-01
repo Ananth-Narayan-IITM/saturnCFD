@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"
+     role="img" aria-labelledby="logoTitle logoDesc">
+  <title id="logoTitle">saturnCFD</title>
+  <desc id="logoDesc">A cream Saturn with amber rings and a hexagonal polar vortex.
+  The letters CFD run diagonally across the planet, behind the front rings.</desc>
+
+  <defs>
+    <clipPath id="badgeClip">
+      <rect x="8" y="8" width="496" height="496" rx="112"/>
+    </clipPath>
+    <clipPath id="planetClip">
+      <circle cx="256" cy="262" r="112"/>
+    </clipPath>
+    <clipPath id="frontHalf">
+      <rect x="-400" y="262" width="800" height="400"/>
+    </clipPath>
+
+    <!-- Ring system: one shared definition, drawn once behind and once in
+         front of the planet. Only three base colours are used. -->
+    <g id="rings" fill="none" stroke="#D08B2E">
+      <ellipse cx="256" cy="262" rx="224" ry="58" stroke-width="20" opacity="0.12"/>
+      <ellipse cx="256" cy="262" rx="232" ry="60" stroke-width="9" opacity="0.95"/>
+      <ellipse cx="256" cy="262" rx="212" ry="55" stroke-width="3.5" opacity="0.65"/>
+      <ellipse cx="256" cy="262" rx="192" ry="50" stroke-width="2" opacity="0.40"/>
+      <ellipse cx="256" cy="262" rx="248" ry="64" stroke-width="2" opacity="0.30"/>
+    </g>
+  </defs>
+
+  <!-- Badge: deep navy. Cream planet, amber rings, navy text and linework. -->
+  <rect x="8" y="8" width="496" height="496" rx="112" fill="#0E1B2C"/>
+
+  <g clip-path="url(#badgeClip)">
+    <!-- Back half of the rings. -->
+    <g transform="rotate(-18 256 262)">
+      <use href="#rings"/>
+    </g>
+
+    <!-- Planet. -->
+    <circle cx="256" cy="262" r="112" fill="#F2E5C6"/>
+
+    <g clip-path="url(#planetClip)">
+      <!-- Cloud bands, in the ring colour at low opacity. -->
+      <path d="M130 238 Q256 220 382 240" fill="none" stroke="#D08B2E"
+            stroke-width="10" opacity="0.18"/>
+      <path d="M132 282 Q256 270 380 286" fill="none" stroke="#D08B2E"
+            stroke-width="7" opacity="0.14"/>
+      <path d="M140 322 Q256 336 372 318" fill="none" stroke="#D08B2E"
+            stroke-width="8" opacity="0.14"/>
+      <!-- Terminator: a navy crescent gives the disc some depth. -->
+      <circle cx="306" cy="306" r="126" fill="#0E1B2C" opacity="0.10"/>
+    </g>
+
+    <!-- Hexagonal polar vortex, upper-right where the spin axis points.
+         Amber swirl arms and a navy hexagon keep it tied to the rings. -->
+    <g clip-path="url(#planetClip)">
+      <g transform="rotate(-6 316 194)">
+        <path d="M278 181 A42 42 0 0 1 342 164" fill="none" stroke="#D08B2E"
+              stroke-width="2.2" stroke-linecap="round" opacity="0.55"/>
+        <path d="M354 207 A42 42 0 0 1 299 228" fill="none" stroke="#D08B2E"
+              stroke-width="2.2" stroke-linecap="round" opacity="0.45"/>
+        <path d="M286 217 A30 30 0 0 1 279 185" fill="none" stroke="#D08B2E"
+              stroke-width="1.8" stroke-linecap="round" opacity="0.35"/>
+        <polygon points="344,194 330,218.2 302,218.2 288,194 302,169.8 330,169.8"
+                 fill="#D08B2E" fill-opacity="0.16" stroke="#0E1B2C"
+                 stroke-width="3.2" stroke-linejoin="round" opacity="0.85"/>
+        <path d="M316 184 a10 10 0 1 0 10 10" fill="none" stroke="#D08B2E"
+              stroke-width="2.6" stroke-linecap="round" opacity="0.85"/>
+        <path d="M316 204 a10 10 0 0 1 -8 -6" fill="none" stroke="#D08B2E"
+              stroke-width="1.8" stroke-linecap="round" opacity="0.60"/>
+        <circle cx="316" cy="194" r="2.2" fill="#0E1B2C" opacity="0.75"/>
+      </g>
+    </g>
+
+    <!-- Wordmark: diagonal across the planet, not along the bottom. -->
+    <g transform="rotate(14 256 262)">
+      <text x="256" y="322" text-anchor="middle"
+            font-family="'DejaVu Sans', 'Liberation Sans', Arial, sans-serif"
+            font-size="108" font-weight="700" letter-spacing="1"
+            fill="#0E1B2C">CFD</text>
+    </g>
+
+    <!-- Front half of the rings, clipped to the near side. These cross the
+         wordmark, so CFD sits behind the rings while staying readable. -->
+    <g transform="rotate(-18 256 262)" clip-path="url(#frontHalf)">
+      <use href="#rings"/>
+    </g>
+  </g>
+</svg>

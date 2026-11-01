@@ -91,7 +91,7 @@ reimplements a gradient or a flux.
   non-orthogonal Laplacian exactness, upwind/MUSCL convection,
   advection–diffusion MMS, TVD step boundedness, divergence theorem and
   Rhie–Chow flux checks on 1/2/4 ranks.
-- `ctest --preset fv` runs the FV binary on 1, 2 and 4 ranks.
+- `ctest --preset solver` runs the FV binary on 1, 2 and 4 ranks.
 
 ## Docs
 

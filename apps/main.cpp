@@ -456,7 +456,8 @@ void printTopic(const std::string& topic) {
     std::cout
         << "mpi\n\n"
            "Run the MPI test suite (partition/halo and FVM):\n\n"
-           "  ctest --preset mpi\n"
+           "  ctest --preset saturnCFD   partition/halo + PETSc\n"
+           "  ctest --preset solver      FV + Burgers + heat\n"
            "  mpirun -np 2 buildCPU/testSaturnMPI\n"
            "  mpirun -np 4 buildCPU/testSaturnMPI\n"
            "  mpirun -np 2 buildCPU/testSaturnFV\n"
@@ -494,7 +495,7 @@ void printTopic(const std::string& topic) {
            "PETSc. Debian PETSc is found with pkg-config when\n"
            "find_package(PETSc) fails.\n"
            "  cmake -S . -B buildCPU -DSATURN_ENABLE_PETSC=OFF  # minimal\n"
-           "  ctest --preset petsc\n\n"
+           "  ctest --preset saturnCFD\n\n"
            "SATURN_ENABLE_MPI=ON (default) links MPI, defines SATURN_USE_MPI\n"
            "and builds the MPI tests. The FVM layer is partitioned; the app\n"
            "is still a serial mesh/config front end.\n"
@@ -580,21 +581,15 @@ void printTopic(const std::string& topic) {
     std::cout
         << "test\n\n"
            "  ctest --preset default       all tests\n"
-           "  ctest --preset regression    regression only\n"
-           "  ctest --preset unit\n"
-           "  ctest --preset mesh\n"
-           "  ctest --preset config\n"
-           "  ctest --preset cli\n"
-           "  ctest --preset mpi           halo/partition + FVM on 1/2/4\n"
-           "  ctest --preset fv            LocalMesh, operators, MMS, Burgers\n"
-           "  ctest --preset burgers       1D Burgers YAML validation\n"
-           "  ctest --preset burgers2d     2D Burgers YAML validation\n"
-           "  ctest --preset burgers3d     3D Burgers YAML validation\n"
-           "  ctest --preset checkpoint   checkpoint/restart tests\n"
-           "  ctest --preset vtk          VTK field-export tests\n"
-           "  ctest --preset petsc         PETSc Poisson/nullspace tests\n"
+           "  ctest --preset cpu           all except GPU-labelled tests\n"
+           "  ctest --preset solver        FV operators, Burgers and heat\n"
+           "  ctest --preset saturnCFD     CLI, config, mesh, PETSc,\n"
+           "                               VTK and checkpoint\n"
            "  ctest --preset gpu           GPU-labelled FV tests\n"
-           "  ctest --list-presets         list them\n";
+           "  ctest --list-presets         list them\n\n"
+           "Fine-grained labels still work directly:\n"
+           "  ctest --test-dir buildCPU -L burgers\n"
+           "  ctest --test-dir buildCPU -L saturnCFD\n";
   } else if (topic == "petsc") {
     std::cout
         << "petsc\n\n"
@@ -608,12 +603,12 @@ void printTopic(const std::string& topic) {
            "fails. Disable PETSc for a minimal build with:\n\n"
            "  cmake -S . -B buildCPU -DSATURN_ENABLE_PETSC=OFF\n\n"
            "Tests:\n\n"
-           "  ctest --preset petsc\n"
+           "  ctest --preset saturnCFD\n"
            "  ./buildCPU/testSaturnPETSc\n"
            "  mpirun -np 4 buildCPU/testSaturnPETSc\n\n"
            "The tests cover 1D/3D Poisson, CG/GAMG, and the all-Neumann\n"
            "nullspace on 1/2/4 ranks. The finite-volume matrix assembler\n"
-           "and Burgers/heat solvers are the next phase.\n\n"
+           "and implicit diffusion are the next phase.\n\n"
            "See docs/guides/petsc.md and docs/theory/poisson.md.\n";
   } else if (topic == "clangd") {
     std::cout

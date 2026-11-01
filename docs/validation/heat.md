@@ -69,9 +69,13 @@ the same norms on 1, 2 and 4 ranks.
 - The periodic halo and rank-0 local-geometry distribution are exercised by
   the MPI targets without a change in the norms.
 - The explicit stability limit is
-  $\Delta t\le\min(\mathrm{CFL}\,h/|\mathbf{a}|,\;
-  \mathrm{safety}\,h^2/(2\alpha d))$, and SSPRK3 keeps the diffusion term
-  stable at the default safety factor.
+
+  $$
+  \Delta t\le\min\!\left(\frac{\mathrm{CFL}\,h}{|\mathbf{a}|},\;
+  \frac{\mathrm{safety}\,h^2}{2\alpha d}\right),
+  $$
+
+  and SSPRK3 keeps the diffusion term stable at the default safety factor.
 - Checkpoint/restart through the generic `ScalarSolver` path reproduces the
   uninterrupted run to roundoff.
 
@@ -84,8 +88,8 @@ saturnCFD saturnHeat3D.yaml
 python3 compareAnalytic.py
 
 # regression slice (2D + 3D + 1/2/4 ranks + restart)
-ctest --preset heat
-ctest --preset checkpoint
+ctest --preset solver
+ctest --preset saturnCFD
 ```
 
 Stable cases:

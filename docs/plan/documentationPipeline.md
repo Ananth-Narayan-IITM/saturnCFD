@@ -30,7 +30,7 @@ Doxygen does not parse those delimiters, so the Doxygen build runs a small
 input filter:
 
 ```text
-tools/doxygenMathFilter.py
+docs/doxygen/doxygenMathFilter.py
 ```
 
 It converts, outside code blocks and inline code:

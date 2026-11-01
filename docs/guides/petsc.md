@@ -80,7 +80,7 @@ allowed in a kernel. The test main and future solver mains follow this order.
 ## Tests
 
 ```bash
-ctest --preset petsc
+ctest --preset saturnCFD
 ```
 
 The tests are `testSaturnPETSc`, run under `mpirun -np 1/2/4`:
