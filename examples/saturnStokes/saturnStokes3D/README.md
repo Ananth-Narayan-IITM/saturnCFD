@@ -33,8 +33,8 @@ python3 compareAnalytic.py --case couette
 ```
 
 The script recomputes the analytic profile from the YAML, independent of the
-solver's exact column, and plots a midplane field plus the averaged \(u(y)\)
-profile.
+solver's exact column, validates both cases, and plots 3D colored slices of the
+numerical and analytic fields plus the averaged \(u(y)\) profile.
 
 ## Expected result
 
@@ -47,9 +47,10 @@ Couette   : L2 ≈ 5.7e-12,  Linf ≈ 6.6e-11
 
 ## Parallel note
 
-The 3D core is validated on 1 and 2 MPI ranks. The 4-rank 3D DMDA layout is a
-known follow-up item; the 2D cases are validated on 1/2/4 ranks. The CTest
-`stokes_np4` therefore runs the 2D cases and skips the 3D cases with a message.
+The 3D core is validated serially. Its multi-rank DMDA assembly is a known
+follow-up item; the 2D cases are validated on 1/2/4 ranks. The CTest
+`stokes_np2` and `stokes_np4` therefore run the 2D cases and skip the 3D cases
+with a message.
 
 ## Files
 
@@ -66,3 +67,9 @@ The validation core uses PETSc's coupled direct LU solve
 (`stokes.linearSolver: direct`). The fieldsplit/Schur path is available as
 `stokes.linearSolver: fieldsplit` and is still being tuned for production
 meshes.
+
+## VTK output
+
+With `output.vtkEvery: 1` the steady solver writes one `prefix.vtu` containing
+all four cell arrays `u`, `v`, `w` and `p`. Open it directly in ParaView; no
+per-variable files are created.

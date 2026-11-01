@@ -183,7 +183,10 @@ CTest and ship independent `compareAnalytic.py` scripts.
 - **Couette 3D:** 12$^2\times4$; linear profile to roundoff.
 - **Pressure gauge:** mean-removed pressure error at roundoff.
 - **Examples:** `examples/saturnStokes/saturnStokes2D` and `saturnStokes3D`
-  each ship independent `compareAnalytic.py` scripts.
+  each ship independent `compareAnalytic.py` scripts that validate both
+  Poiseuille and Couette, write a combined `summary.txt`, and draw 2D fields
+  or 3D slice contours. `output.vtkEvery: 1` writes one `.vtu` with
+  `u,v,w,p`.
 
 The coupled direct PETSc solve is used for the validation core. The
 linear-algebra fieldsplit/Schur path is tested separately by

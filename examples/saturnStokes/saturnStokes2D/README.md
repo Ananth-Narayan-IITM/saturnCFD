@@ -34,17 +34,19 @@ python3 compareAnalytic.py --case couette
 ```
 
 `compareAnalytic.py` recomputes the analytic profile from the YAML parameters,
-independently of the solver's exact column. Options:
+independently of the solver's exact column. Run it without `--case` to validate
+both cases together and write `results/summary.txt`. Options:
 
 ```bash
 python3 compareAnalytic.py --case poiseuille --cli /path/to/saturnCFD
 python3 compareAnalytic.py --case couette --no-run
-python3 compareAnalytic.py --case poiseuille --tolerance 1e-5
+python3 compareAnalytic.py --tolerance 1e-5   # both cases
 ```
 
 ## Plot
 
-`comparison.png` / `.pdf` contain:
+`comparison_poiseuille.png` / `.pdf` and `comparison_couette.png` / `.pdf`
+contain:
 
 1. the numerical \(u\) field on a midplane,
 2. the independent analytic field,
@@ -77,3 +79,9 @@ README.md            this page
 The current validation core uses PETSc's coupled direct LU solve
 (`stokes.linearSolver: direct`). The fieldsplit/Schur path is exposed as
 `stokes.linearSolver: fieldsplit` but is still being tuned for larger meshes.
+
+## VTK output
+
+With `output.vtkEvery: 1` the steady solver writes one `prefix.vtu` containing
+all four cell arrays `u`, `v`, `w` and `p`. Open it directly in ParaView; no
+per-variable files are created.

@@ -11,7 +11,7 @@ finite-volume layer.
   geometry is sent by `LocalMesh::distributed`.
 - `checkMesh` — topology, volume, orientation, patches, quality metrics.
 - `StructuredMesh` — `(i,j,k)` mapping and neighbour tables for the solver.
-- `VtuWriter` — default `.vtu`; `-writeVTK` adds per-patch `.vtp` and `.pvd`.
+- `VtuWriter` — default `.vtu`; multi-field cell data (`u,v,w,p`); `-writeVTK` adds per-patch `.vtp` and `.pvd`.
 - `MeshReport` — text and JSON report.
 
 ## Boundaries

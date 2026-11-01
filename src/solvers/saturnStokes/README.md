@@ -64,7 +64,9 @@ periodic (`stokes.periodicY` for MMS).
 ```
 
 Output is CSV (`x,y,z,u,v,w,p,u_exact,v_exact,w_exact,p_exact,error`) and JSON
-(iterations, residual, exact norms) under `output.prefix`.
+(iterations, residual, exact norms) under `output.prefix`. When
+`output.vtkEvery > 0`, one `.vtu` file contains all four cell arrays `u`, `v`,
+`w`, `p` for ParaView.
 
 ## Tests
 

@@ -35,4 +35,4 @@ output:
   csv: true
   json: true
   exact: true
-  vtkEvery: 0
+  vtkEvery: 1

@@ -15,6 +15,12 @@ namespace saturn {
 void writeMeshVtk(const Mesh& mesh, const std::string& prefix,
                   bool withPatches);
 
+/// One cell-centred scalar field for multi-field VTU output.
+struct CellFieldVtu {
+  std::string name;
+  std::vector<Real> values;
+};
+
 /// Write a single `.vtu` with one cell-centred scalar field.
 ///
 /// `cellValues` must have one entry per `mesh.cells` entry. `path` is the full
@@ -22,6 +28,14 @@ void writeMeshVtk(const Mesh& mesh, const std::string& prefix,
 void writeCellFieldVtu(const Mesh& mesh, const std::vector<Real>& cellValues,
                        const std::string& path,
                        const std::string& fieldName = "u");
+
+/// Write one `.vtu` containing several cell-centred scalar fields.
+///
+/// Every field must have one entry per `mesh.cells` entry. ParaView shows all
+/// arrays in the same file, so a velocity-pressure solution is one dataset.
+void writeCellFieldsVtu(const Mesh& mesh,
+                        const std::vector<CellFieldVtu>& fields,
+                        const std::string& path);
 
 /// Write a ParaView `.pvd` collection for a sequence of `.vtu` files.
 /// The frame `.second` values are file names, not full paths.

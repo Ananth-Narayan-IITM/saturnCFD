@@ -977,10 +977,12 @@ int runSteadyCase(const Cli& cli, const Config& cfg, SteadySolver& solver,
       p[c] = point.p;
     }
     if (worldRank() == 0) {
-      writeCellFieldVtu(mesh, u, prefix + "_u.vtu", "u");
-      writeCellFieldVtu(mesh, v, prefix + "_v.vtu", "v");
-      writeCellFieldVtu(mesh, w, prefix + "_w.vtu", "w");
-      writeCellFieldVtu(mesh, p, prefix + "_p.vtu", "p");
+      std::vector<CellFieldVtu> fields;
+      fields.push_back(CellFieldVtu{"u", std::move(u)});
+      fields.push_back(CellFieldVtu{"v", std::move(v)});
+      fields.push_back(CellFieldVtu{"w", std::move(w)});
+      fields.push_back(CellFieldVtu{"p", std::move(p)});
+      writeCellFieldsVtu(mesh, fields, prefix + ".vtu");
     }
   }
 

@@ -244,10 +244,15 @@ void writeMeshVtk(const Mesh& mesh, const std::string& prefix,
   }
 }
 
-void writeCellFieldVtu(const Mesh& mesh, const std::vector<Real>& cellValues,
-                       const std::string& path, const std::string& fieldName) {
-  if (cellValues.size() != mesh.cells.size())
-    throw MeshError("writeCellFieldVtu: field size does not match cell count");
+void writeCellFieldsVtu(const Mesh& mesh,
+                        const std::vector<CellFieldVtu>& fields,
+                        const std::string& path) {
+  for (const CellFieldVtu& field : fields)
+    if (field.values.size() != mesh.cells.size())
+      throw MeshError("writeCellFieldsVtu: field '" + field.name +
+                      "' size does not match cell count");
+  if (fields.empty())
+    throw MeshError("writeCellFieldsVtu: no fields");
 
   const std::filesystem::path base(path);
   if (base.has_parent_path())
@@ -296,15 +301,22 @@ void writeCellFieldVtu(const Mesh& mesh, const std::vector<Real>& cellValues,
   os << "        </DataArray>\n";
   os << "      </Cells>\n";
   os << "      <CellData>\n";
-  os << "        <DataArray type=\"Float64\" Name=\"" << fieldName
-     << "\" format=\"ascii\">\n";
-  for (Real value : cellValues)
-    os << value << "\n";
-  os << "        </DataArray>\n";
+  for (const CellFieldVtu& field : fields) {
+    os << "        <DataArray type=\"Float64\" Name=\"" << field.name
+       << "\" format=\"ascii\">\n";
+    for (Real value : field.values)
+      os << value << "\n";
+    os << "        </DataArray>\n";
+  }
   os << "      </CellData>\n";
   os << "    </Piece>\n";
   os << "  </UnstructuredGrid>\n";
   os << "</VTKFile>\n";
+}
+
+void writeCellFieldVtu(const Mesh& mesh, const std::vector<Real>& cellValues,
+                       const std::string& path, const std::string& fieldName) {
+  writeCellFieldsVtu(mesh, {CellFieldVtu{fieldName, cellValues}}, path);
 }
 
 void writePvd(const std::string& path,

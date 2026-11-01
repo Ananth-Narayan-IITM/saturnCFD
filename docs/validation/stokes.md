@@ -95,15 +95,24 @@ The CTest label is `solver`.
 
 ## 6. Reproduction
 
-Planned:
-
 ```bash
 cd examples/saturnStokes/saturnStokes2D
-saturnCFD saturnStokes2D.yaml
-python3 compareAnalytic.py
+saturnCFD poiseuille.yaml
+saturnCFD couette.yaml
+python3 compareAnalytic.py       # validates both, writes summary.txt
+
+cd ../saturnStokes3D
+saturnCFD poiseuille.yaml
+saturnCFD couette.yaml
+python3 compareAnalytic.py       # 3D slice contours + summary
 
 ctest --preset solver
 ```
+
+With `output.vtkEvery: 1`, each case writes one `.vtu` containing `u`, `v`,
+`w` and `p` for ParaView. The comparison script plots the numerical field,
+analytic field, error and averaged profile; the 3D version uses colored
+orthogonal slices with analytic reference.
 
 ## 7. Observations
 

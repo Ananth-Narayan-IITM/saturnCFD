@@ -1,7 +1,10 @@
 #include <doctest/doctest.h>
 
 #include <filesystem>
+#include <fstream>
+#include <sstream>
 #include <string>
+#include <vector>
 
 #include "mesh/CheckMesh.hpp"
 #include "mesh/Mesh.hpp"
@@ -79,5 +82,30 @@ TEST_CASE("mesh: writeVTK adds patches and pvd [mesh]") {
   CHECK(std::filesystem::exists(prefix + ".pvd"));
   CHECK(std::filesystem::exists(prefix + "_xmin.vtp"));
   CHECK(std::filesystem::exists(prefix + "_zmax.vtp"));
+  std::filesystem::remove_all(dir);
+}
+
+TEST_CASE("mesh: multi-field vtu keeps all arrays in one file [mesh]") {
+  Mesh mesh = readGmsh(meshPath("box2x2x2.msh"));
+  const auto dir =
+      std::filesystem::temp_directory_path() / "saturncfd_vtk_multifield";
+  std::filesystem::remove_all(dir);
+  std::filesystem::create_directories(dir);
+  const std::string path = (dir / "fields.vtu").string();
+  const std::vector<Real> values(mesh.cells.size(), Real(1));
+  writeCellFieldsVtu(mesh,
+                     {CellFieldVtu{"u", values}, CellFieldVtu{"v", values},
+                      CellFieldVtu{"w", values}, CellFieldVtu{"p", values}},
+                     path);
+
+  std::ifstream in(path);
+  REQUIRE(in.good());
+  std::ostringstream text;
+  text << in.rdbuf();
+  const std::string body = text.str();
+  CHECK(body.find("Name=\"u\"") != std::string::npos);
+  CHECK(body.find("Name=\"v\"") != std::string::npos);
+  CHECK(body.find("Name=\"w\"") != std::string::npos);
+  CHECK(body.find("Name=\"p\"") != std::string::npos);
   std::filesystem::remove_all(dir);
 }
