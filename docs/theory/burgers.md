@@ -166,7 +166,9 @@ on a structured 1D or 2D block. It uses:
 - the shared non-orthogonal `laplacian` for diffusion;
 - `Simulation` with forward Euler, SSPRK2 or SSPRK3;
 - `setTime` so Dirichlet data at a moving exact boundary is refreshed after
-  every RK stage.
+  every RK stage;
+- `output.vtkEvery` writes the `u` field every N steps plus a `.pvd`
+  collection for ParaView.
 
 The face flux is stored with a **canonical orientation** (lower-coordinate
 cell on the left), then multiplied by the outward normal component. In 2D the

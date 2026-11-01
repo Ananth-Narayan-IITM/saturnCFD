@@ -88,9 +88,11 @@ PASS: L2 8.050775e-05 <= tolerance 1.0e-04
 
 It also writes `results/saturnBurger/comparison.png`. The raw final-time field
 is `results/saturnBurger/traveling.csv` (`x,u_numerical,u_exact,error`); the
-JSON summary includes `wallSeconds`. CTest validates the example schema; the
-numerical regression is the stable
-`tests/regression/burgers/traveling64.yaml`.
+JSON summary includes `wallSeconds`. Set `output.vtkEvery: N` to write
+`traveling_<step>.vtu` frames and `traveling.pvd` for ParaView. CTest
+validates the example schema; the numerical regression is the stable
+`tests/regression/burgers/traveling64.yaml`, and `burgers_vtk` checks the VTK
+sequence.
 
 ## 2D diagonal wave
 

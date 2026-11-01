@@ -9,6 +9,7 @@
 #include <sstream>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #include "config/CommonSchema.hpp"
@@ -431,11 +432,13 @@ void printTopic(const std::string& topic) {
            "YAML groups: solver, units, mesh, time, fields, boundary,\n"
            "numerics, linearSolver, output. yaml-cpp parses; the schema\n"
            "validates. Unknown keys are errors. -dumpConfig generates the\n"
-           "template from the same registration that reads the case.\n";
+           "template from the same registration that reads the case.\n\n"
+           "output.vtkEvery: N writes <prefix>_<step>.vtu frames and a\n"
+           "<prefix>.pvd ParaView collection; 0 disables it.\n";
   } else if (topic == "solvers") {
     std::cout
         << "solvers\n\n"
-           "Registered: saturnBurger (1D scalar Burgers). The 2D/3D\n"
+           "Registered: saturnBurger (1D/2D scalar Burgers). The 3D\n"
            "extension, then heat, stokes and incompressible follow. A user\n"
            "solver is a copy under src/solvers/saturn<Name> with a\n"
            "saturn<Name> target. Use -dumpConfig saturnBurger for its YAML.\n";
@@ -583,6 +586,7 @@ void printTopic(const std::string& topic) {
            "  ctest --preset fv            LocalMesh, operators, MMS, Burgers\n"
            "  ctest --preset burgers       1D Burgers YAML validation\n"
            "  ctest --preset burgers2d     2D Burgers YAML validation\n"
+           "  ctest --preset vtk          VTK field-export tests\n"
            "  ctest --preset petsc         PETSc Poisson/nullspace tests\n"
            "  ctest --preset gpu           GPU-labelled FV tests\n"
            "  ctest --list-presets         list them\n";
@@ -873,6 +877,7 @@ int runCase(const Cli& cli) {
   const bool wantExact = cfg.getBool("output.exact", false);
   const bool wantCsv = cfg.getBool("output.csv", false);
   const bool wantJson = cfg.getBool("output.json", true);
+  const int vtkEvery = cfg.getInt("output.vtkEvery", 0);
 
   auto* burgers = dynamic_cast<SaturnBurger*>(solver.get());
   const bool exactAvailable = burgers != nullptr && burgers->hasExact();
@@ -899,6 +904,37 @@ int runCase(const Cli& cli) {
     std::cout << "backend : " << backendDescription() << "\n";
 
   Simulation simulation(*solver, control, scheme);
+
+  std::vector<std::pair<Real, std::string>> vtkFrames;
+  const bool wantVtk = vtkEvery > 0;
+  if (wantVtk && burgers == nullptr)
+    throw ConfigError(
+        "output.vtkEvery is currently supported by saturnBurger only");
+
+  auto writeVtkFrame = [&](int step, Real time) {
+    const std::vector<ProfilePoint> points = burgers->profile(time, false);
+    if (worldRank() != 0)
+      return;
+    std::vector<Real> values(burgers->mesh().cells.size(), 0.0);
+    for (const ProfilePoint& point : points) {
+      if (point.cell >= 0 &&
+          static_cast<std::size_t>(point.cell) < values.size())
+        values[static_cast<std::size_t>(point.cell)] = point.numerical;
+    }
+    std::ostringstream file;
+    file << prefix << '_' << std::setw(6) << std::setfill('0') << step
+         << ".vtu";
+    writeCellFieldVtu(burgers->mesh(), values, file.str(), "u");
+    vtkFrames.emplace_back(time, file.str());
+  };
+
+  if (wantVtk) {
+    simulation.setStepCallback([&](int step, Real time) {
+      if (step % vtkEvery == 0)
+        writeVtkFrame(step, time);
+    });
+  }
+
   const auto wallStart = std::chrono::steady_clock::now();
   const SimulationResult result = simulation.run();
   const auto wallEnd = std::chrono::steady_clock::now();
@@ -912,6 +948,11 @@ int runCase(const Cli& cli) {
   if (!result.reachedEnd)
     throw SaturnError("case '" + cli.casePath +
                       "' did not reach time.end within time.maxSteps");
+
+  if (wantVtk && result.final.step % vtkEvery != 0)
+    writeVtkFrame(result.final.step, result.final.time);
+  if (wantVtk && worldRank() == 0 && !vtkFrames.empty())
+    writePvd(prefix + ".pvd", vtkFrames);
 
   ExactError exact;
   const bool haveExact = exactAvailable && (wantExact || wantCsv);
@@ -973,6 +1014,10 @@ int runCase(const Cli& cli) {
        << "  \"l1\": " << result.final.l1 << ",\n"
        << "  \"l2\": " << result.final.l2 << ",\n"
        << "  \"linf\": " << result.final.linf;
+    if (wantVtk) {
+      os << ",\n  \"vtkEvery\": " << vtkEvery
+         << ",\n  \"vtkFrames\": " << vtkFrames.size();
+    }
     if (haveExact) {
       os << ",\n  \"exact\": {\"l1\": " << exact.l1 << ", \"l2\": " << exact.l2
          << ", \"linf\": " << exact.linf << ", \"samples\": " << exact.samples

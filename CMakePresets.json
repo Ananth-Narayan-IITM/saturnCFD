@@ -194,6 +194,19 @@
       }
     },
     {
+      "name": "vtk",
+      "displayName": "VTK field export tests",
+      "configurePreset": "default",
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "label": "vtk"
+        }
+      }
+    },
+    {
       "name": "gpu",
       "displayName": "GPU tests in buildGPU",
       "configurePreset": "gpu",

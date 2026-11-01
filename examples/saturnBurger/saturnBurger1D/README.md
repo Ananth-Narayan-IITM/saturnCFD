@@ -106,8 +106,10 @@ false, no raw field values are written and the script stops with a missing-CSV
 message. If `output.exact` is false, the CSV still has the numerical values but
 the exact column/norms are not meaningful.
 
-Only the final time is stored. `output.vtkEvery` is a reserved key and does
-not write VTK fields yet; use the CSV for comparison.
+Only the final time is stored in the CSV. `output.vtkEvery: N` also writes the
+`u` cell field every N steps as `.vtu` frames plus a `.pvd` ParaView
+collection. The first frame is step 0, then every N steps, plus the final
+state. `vtkEvery: 0` disables VTK output.
 
 The script also writes:
 

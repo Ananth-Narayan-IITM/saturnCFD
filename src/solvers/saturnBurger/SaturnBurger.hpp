@@ -44,6 +44,7 @@ struct BurgersOptions {
 
 /// One cell-centre sample of the numerical and analytic profiles.
 struct ProfilePoint {
+  Index cell = -1;
   Real x = 0;
   Real y = 0;
   Real z = 0;
@@ -89,9 +90,10 @@ class SaturnBurger : public Solver {
   const BurgersOptions& options() const { return mOptions; }
   bool hasExact() const { return static_cast<bool>(mOptions.exact); }
 
-  /// Gather the owned cell-centre profile on every rank, sorted by x.
-  /// Requires `BurgersOptions::exact` when exact values are requested.
-  std::vector<ProfilePoint> profile(Real time) const;
+  /// Gather the owned cell-centre profile on every rank, sorted by x/y/z.
+  /// `withExact` requires `BurgersOptions::exact`; when false, only the
+  /// numerical field and cell ids are filled. This is used by VTK output.
+  std::vector<ProfilePoint> profile(Real time, bool withExact = true) const;
 
   /// Global error norms against `BurgersOptions::exact`.
   ExactError exactError(Real time) const;

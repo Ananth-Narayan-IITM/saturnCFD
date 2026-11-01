@@ -21,6 +21,7 @@ tests/
   TestParallel.cpp
   UniformMesh.hpp
   checkBurgers.cmake
+  checkBurgersVtk.cmake
   core/
   config/
   mesh/
@@ -59,6 +60,7 @@ ctest --preset mpi              # 1/2/4-rank MPI tests
 ctest --preset fv               # LocalMesh, operators and MMS
 ctest --preset burgers          # 1D YAML Burgers case on 1/2/4 ranks
 ctest --preset burgers2d        # 2D YAML Burgers regression
+ctest --preset vtk              # VTK field-export regression
 
 # equivalent fallback
 ctest --test-dir buildCPU --output-on-failure

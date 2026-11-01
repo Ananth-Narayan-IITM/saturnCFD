@@ -110,7 +110,9 @@ device tests. The CUDA build is verified on the local Quadro P620; see
 - periodic inviscid shock: bounds [-0.9954, 0.9954], integral 1.5e-16;
 - all cases under 1/2/4 ranks, with bitwise-identical N=256 norms;
 - `fv: Burgers constant flux` separately checks the $-0.5/+0.5$ face sign
-  and zero divergence.
+  and zero divergence;
+- `burgers_vtk` checks `output.vtkEvery`: `.vtu` frames and a `.pvd`
+  collection.
 
 `tests/TestSaturnBurger2D.cpp` checks the 2D diagonal plane wave on
 $[-1,1]^2$: $L^2=9.909\times10^{-3}$ at $32^2$ and
@@ -122,6 +124,8 @@ and `tests/regression/burgers2d/traveling64.yaml`; they use
 1/2/4 ranks and `ctest --preset burgers2d` covers 2D. The user-facing examples
 `examples/saturnBurger/saturnBurger1D/` and `examples/saturnBurger/saturnBurger2D/` are schema-checked by
 CTest and have their own independent `compareAnalytic.py` scripts.
+
+The VTK slice is `ctest --preset vtk`.
 
 MPI test targets set `OMP_NUM_THREADS=1`. Without it, four ranks each request
 the Kokkos default 12 threads on a 24-core node, and `fv_np4` took about 370 s

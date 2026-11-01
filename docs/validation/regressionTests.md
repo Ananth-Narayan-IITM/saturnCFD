@@ -167,6 +167,7 @@ If the change is not understood, it is a bug, not a new baseline.
 | `burgers/convergence` | $N=32\ldots1024$ order and $N=256$ rank independence | implemented in `tools/validateBurgers.py` |
 | `burgers/shock128` | periodic inviscid shock bounded and conservative | implemented in `TestSaturnBurger` |
 | `burgers2d/traveling64` | 2D diagonal wave, $L^2\approx2.555e-3$ | implemented (`tests/regression/burgers2d/traveling64.yaml`) |
+| `burgers/vtk` | `output.vtkEvery` writes `.vtu` frames and `.pvd` | implemented (`tests/regression/burgers/vtk.yaml`) |
 
 The FVM entry is a library regression: the stored 32$^3$
 `L2=0.13435580757778084` is the smallest scalar that catches a stencil, halo or

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+#include <utility>
 #include <vector>
 
 #include "simulation/Solver.hpp"
@@ -21,6 +23,12 @@ class Simulation {
 
   SimulationResult run();
 
+  /// Called once at the initial state (step 0) and after every accepted step.
+  using StepCallback = std::function<void(int step, Real time)>;
+  void setStepCallback(StepCallback callback) {
+    mStepCallback = std::move(callback);
+  }
+
   // Public only because nvcc rejects an extended __host__ __device__ lambda
   // inside a private member function. They are internal to run().
   void rkUpdate(CellField& out, const CellField& base, const CellField& stage,
@@ -40,6 +48,7 @@ class Simulation {
   CellField mStage1;
   CellField mStage2;
   CellField mRate;
+  StepCallback mStepCallback;
 
   void allocateWorkspaces();
   void explicitStep(Real dt);

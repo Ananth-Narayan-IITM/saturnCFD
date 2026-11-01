@@ -92,6 +92,20 @@ x,u_numerical,u_exact,error
 The JSON stores `wallSeconds`, `l1/l2/linf` of the state and the analytic
 error. The prefix is relative to the current working directory.
 
+Set `output.vtkEvery: N` to write the `u` cell field every `N` accepted time
+steps:
+
+```text
+results/burgers/traveling64_000000.vtu
+results/burgers/traveling64_000010.vtu
+...
+results/burgers/traveling64.pvd
+```
+
+The first frame is step 0, then every `N` steps, plus the final state. Open the
+`.pvd` collection in ParaView. `vtkEvery: 0` disables field output. VTK output
+is currently supported by `saturnBurger` only.
+
 With MPI, the CLI chooses `OMP_NUM_THREADS = max(1, cores/ranks)` unless it is
 already set, and passes it explicitly to Kokkos; this avoids oversubscription
 when several ranks share a node.
@@ -116,6 +130,7 @@ when several ranks share a node.
 | `numerics.limiter` | `minmod`, `vanLeer` or `superbee` |
 | `output.prefix` | output path without extension |
 | `output.csv/json/exact` | profile, summary and analytic comparison |
+| `output.vtkEvery` | write the `u` cell field every N steps plus a PVD |
 
 ## Mesh and layout
 

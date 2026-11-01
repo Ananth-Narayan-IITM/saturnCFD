@@ -192,6 +192,18 @@ set_tests_properties(burgers_2d_traveling64 PROPERTIES
   LABELS "burgers;burgers2d;regression" RUN_SERIAL TRUE
   ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
 
+set(SATURN_BURGERS_VTK_CASE
+    "${CMAKE_CURRENT_SOURCE_DIR}/regression/burgers/vtk.yaml")
+add_test(NAME burgers_vtk
+  COMMAND ${CMAKE_COMMAND}
+          -DCLI=$<TARGET_FILE:saturnCFD>
+          -DCASE=${SATURN_BURGERS_VTK_CASE}
+          -DOUT=${CMAKE_CURRENT_BINARY_DIR}/burgers_vtk
+          -P ${CMAKE_CURRENT_SOURCE_DIR}/checkBurgersVtk.cmake)
+set_tests_properties(burgers_vtk PROPERTIES
+  LABELS "burgers;vtk;regression" RUN_SERIAL TRUE
+  ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
+
 if(SATURN_ENABLE_MPI)
   foreach(ranks 1 2 4)
     add_test(NAME burgers_traveling64_np${ranks}

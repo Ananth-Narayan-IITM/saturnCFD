@@ -107,8 +107,10 @@ x,y,u_numerical,u_exact,error
 
 The JSON contains `wallSeconds`, the state norms and the exact-error norms.
 
-Only the final time is stored. `output.vtkEvery` is reserved and does not
-write VTK fields yet.
+Only the final time is stored in the CSV. `output.vtkEvery: N` also writes the
+`u` cell field every N steps as `.vtu` frames plus a `.pvd` ParaView
+collection. The first frame is step 0, then every N steps, plus the final
+state. `vtkEvery: 0` disables VTK output.
 
 ## Threads
 

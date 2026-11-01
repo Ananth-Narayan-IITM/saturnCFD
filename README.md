@@ -68,6 +68,7 @@ ctest --preset regression          # the common case
 ctest --preset mpi                 # 1/2/4-rank halo and FVM tests
 ctest --preset fv                  # fields, operators, MMS, Burgers
 ctest --preset burgers             # YAML Burgers validation on 1/2/4 ranks
+ctest --preset vtk                 # VTK field-export test
 ctest --preset petsc               # PETSc Poisson/nullspace on 1/2/4 ranks
 ctest --preset default             # all tests, output on failure
 ```

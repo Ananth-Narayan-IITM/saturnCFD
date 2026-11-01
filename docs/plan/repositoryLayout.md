@@ -75,9 +75,11 @@ saturnCFD/
         unknownKey.yaml
       burgers/
         traveling64.yaml
+        vtk.yaml
       burgers2d/
         traveling64.yaml
     checkBurgers.cmake           # CLI + analytic-norm regression
+    checkBurgersVtk.cmake        # VTK frame + PVD regression
 
   docs/
     Doxyfile
@@ -174,6 +176,7 @@ then the manual copy works.
 ## Tests
 
 - `tests/regression/burgers/traveling64.yaml` — 1D case.
+- `tests/regression/burgers/vtk.yaml` — VTK field export.
 - `tests/regression/burgers2d/traveling64.yaml` — 2D case.
 - `tests/checkBurgers.cmake` — runs the CLI and checks the analytic norms,
   CSV rows and JSON summary.

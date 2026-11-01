@@ -251,6 +251,7 @@ ctest --preset mpi           # partition/halo + FVM, 1/2/4 ranks
 ctest --preset fv            # fields, LocalMesh, operators, MMS, Burgers
 ctest --preset burgers       # YAML Burgers validation on 1/2/4 ranks
 ctest --preset burgers2d     # 2D Burgers YAML validation
+ctest --preset vtk           # VTK field-export test
 ctest --preset petsc         # PETSc Poisson/nullspace on 1/2/4 ranks
 ctest --preset gpu           # GPU-labelled tests in buildGPU
 ```
@@ -339,6 +340,32 @@ results/<mesh-stem>.json
 ```
 
 `-writeVTK` adds `.vtp` patches and a `.pvd`.
+
+### Solver field output
+
+A solver case writes according to its `output` block:
+
+```yaml
+output:
+  prefix: results/burgers/run
+  csv: true        # final-time profile
+  json: true       # norms and wall time
+  exact: true      # analytic comparison where available
+  vtkEvery: 10     # u field every 10 steps; 0 = off
+```
+
+With `vtkEvery: 10`:
+
+```text
+results/burgers/run_000000.vtu   # initial state
+results/burgers/run_000010.vtu   # every 10 accepted steps
+...
+results/burgers/run_<final>.vtu  # final state
+results/burgers/run.pvd          # ParaView collection
+```
+
+Open the `.pvd` in ParaView to animate the sequence. VTK field output is
+currently available for `saturnBurger`.
 
 ## Help and completion
 

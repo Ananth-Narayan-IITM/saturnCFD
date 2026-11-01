@@ -244,4 +244,89 @@ void writeMeshVtk(const Mesh& mesh, const std::string& prefix,
   }
 }
 
+void writeCellFieldVtu(const Mesh& mesh, const std::vector<Real>& cellValues,
+                       const std::string& path, const std::string& fieldName) {
+  if (cellValues.size() != mesh.cells.size())
+    throw MeshError("writeCellFieldVtu: field size does not match cell count");
+
+  const std::filesystem::path base(path);
+  if (base.has_parent_path())
+    std::filesystem::create_directories(base.parent_path());
+
+  std::ofstream os;
+  openOrThrow(os, path);
+  os << std::setprecision(15);
+  os << "<?xml version=\"1.0\"?>\n";
+  os << "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" "
+        "byte_order=\"LittleEndian\">\n";
+  os << "  <UnstructuredGrid>\n";
+  os << "    <Piece NumberOfPoints=\"" << mesh.points.size()
+     << "\" NumberOfCells=\"" << mesh.cells.size() << "\">\n";
+  os << "      <Points>\n";
+  os << "        <DataArray type=\"Float64\" NumberOfComponents=\"3\" "
+        "format=\"ascii\">\n";
+  for (const Vec3& p : mesh.points)
+    os << p.x << " " << p.y << " " << p.z << "\n";
+  os << "        </DataArray>\n";
+  os << "      </Points>\n";
+  os << "      <Cells>\n";
+  os << "        <DataArray type=\"Int32\" Name=\"connectivity\" "
+        "format=\"ascii\">\n";
+  for (const Cell& c : mesh.cells) {
+    for (std::size_t i = 0; i < c.nodes.size(); ++i) {
+      if (i)
+        os << " ";
+      os << c.nodes[i];
+    }
+    os << "\n";
+  }
+  os << "        </DataArray>\n";
+  os << "        <DataArray type=\"Int32\" Name=\"offsets\" "
+        "format=\"ascii\">\n";
+  int offset = 0;
+  for (const Cell& c : mesh.cells) {
+    offset += static_cast<int>(c.nodes.size());
+    os << offset << "\n";
+  }
+  os << "        </DataArray>\n";
+  os << "        <DataArray type=\"UInt8\" Name=\"types\" "
+        "format=\"ascii\">\n";
+  for (const Cell& c : mesh.cells)
+    os << vtkCellType(c.type) << "\n";
+  os << "        </DataArray>\n";
+  os << "      </Cells>\n";
+  os << "      <CellData>\n";
+  os << "        <DataArray type=\"Float64\" Name=\"" << fieldName
+     << "\" format=\"ascii\">\n";
+  for (Real value : cellValues)
+    os << value << "\n";
+  os << "        </DataArray>\n";
+  os << "      </CellData>\n";
+  os << "    </Piece>\n";
+  os << "  </UnstructuredGrid>\n";
+  os << "</VTKFile>\n";
+}
+
+void writePvd(const std::string& path,
+              const std::vector<std::pair<Real, std::string>>& frames) {
+  const std::filesystem::path base(path);
+  if (base.has_parent_path())
+    std::filesystem::create_directories(base.parent_path());
+
+  std::ofstream os;
+  openOrThrow(os, path);
+  os << std::setprecision(15);
+  os << "<?xml version=\"1.0\"?>\n";
+  os << "<VTKFile type=\"Collection\" version=\"0.1\" "
+        "byte_order=\"LittleEndian\">\n";
+  os << "  <Collection>\n";
+  for (const auto& frame : frames) {
+    os << "    <DataSet timestep=\"" << frame.first
+       << "\" group=\"\" part=\"0\" file=\""
+       << std::filesystem::path(frame.second).filename().string() << "\"/>\n";
+  }
+  os << "  </Collection>\n";
+  os << "</VTKFile>\n";
+}
+
 }  // namespace saturn

@@ -189,6 +189,8 @@ SimulationResult Simulation::run() {
   result.history.reserve(
       static_cast<std::size_t>(std::min(mControl.maxSteps, 100000)));
   result.history.push_back(makeDiagnostics());
+  if (mStepCallback)
+    mStepCallback(mStep, mTime);
 
   const Real endTolerance = 1e-14 * std::max(Real(1), std::abs(mControl.tEnd));
   while (mTime < mControl.tEnd - endTolerance) {
@@ -211,6 +213,8 @@ SimulationResult Simulation::run() {
     mTime += dt;
     ++mStep;
     result.history.push_back(makeDiagnostics());
+    if (mStepCallback)
+      mStepCallback(mStep, mTime);
   }
 
   result.final = result.history.back();

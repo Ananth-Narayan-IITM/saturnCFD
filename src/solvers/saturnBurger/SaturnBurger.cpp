@@ -143,8 +143,9 @@ void SaturnBurger::rhs(const CellField& state, CellField& rate) {
       });
 }
 
-std::vector<ProfilePoint> SaturnBurger::profile(Real time) const {
-  if (!mOptions.exact)
+std::vector<ProfilePoint> SaturnBurger::profile(Real time,
+                                                bool withExact) const {
+  if (withExact && !mOptions.exact)
     throw std::runtime_error(
         "saturnBurger: profile comparison needs an exact solution");
 
@@ -156,9 +157,9 @@ std::vector<ProfilePoint> SaturnBurger::profile(Real time) const {
   const int k0 = mU.origin(2);
   const int n = nx * ny * nz;
 
-  // Pack x,y,z,u_numerical,u_exact per cell into one flat buffer so the
-  // global profile needs a single MPI_Allgatherv.
-  std::vector<double> local(static_cast<std::size_t>(5) * n);
+  // Pack x,y,z,u_numerical,u_exact,cell_id per cell into one flat buffer so
+  // the global profile needs a single MPI_Allgatherv.
+  std::vector<double> local(static_cast<std::size_t>(6) * n);
   auto host = mU.hostView();
   const int gi0 = mU.origin(0) - mU.nGrow();
   const int gj0 = mU.origin(1) - mU.nGrow();
@@ -171,12 +172,13 @@ std::vector<ProfilePoint> SaturnBurger::profile(Real time) const {
         if (cell < 0)
           throw std::runtime_error("saturnBurger: missing owned cell");
         const Vec3& centre = mMesh.cellCentroid[cell];
-        const std::size_t base = static_cast<std::size_t>(5) * a;
+        const std::size_t base = static_cast<std::size_t>(6) * a;
         local[base + 0] = centre.x;
         local[base + 1] = centre.y;
         local[base + 2] = centre.z;
         local[base + 3] = host(i - gi0, j - gj0, k - gk0, 0);
-        local[base + 4] = mOptions.exact(centre, time);
+        local[base + 4] = withExact ? mOptions.exact(centre, time) : 0.0;
+        local[base + 5] = static_cast<double>(cell);
         ++a;
       }
     }
@@ -197,16 +199,16 @@ std::vector<ProfilePoint> SaturnBurger::profile(Real time) const {
         offsets[static_cast<std::size_t>(r - 1)] +
         counts[static_cast<std::size_t>(r - 1)];
   const int total = offsets.back() + counts.back();
-  const int localDoubles = 5 * n;
+  const int localDoubles = 6 * n;
   std::vector<int> doubleCounts(static_cast<std::size_t>(worldSize));
   std::vector<int> doubleOffsets(static_cast<std::size_t>(worldSize));
   for (int r = 0; r < worldSize; ++r) {
     doubleCounts[static_cast<std::size_t>(r)] =
-        5 * counts[static_cast<std::size_t>(r)];
+        6 * counts[static_cast<std::size_t>(r)];
     doubleOffsets[static_cast<std::size_t>(r)] =
-        5 * offsets[static_cast<std::size_t>(r)];
+        6 * offsets[static_cast<std::size_t>(r)];
   }
-  global.resize(static_cast<std::size_t>(5) * total);
+  global.resize(static_cast<std::size_t>(6) * total);
   MPI_Allgatherv(local.data(), localDoubles, MPI_DOUBLE, global.data(),
                  doubleCounts.data(), doubleOffsets.data(), MPI_DOUBLE,
                  MPI_COMM_WORLD);
@@ -214,10 +216,11 @@ std::vector<ProfilePoint> SaturnBurger::profile(Real time) const {
   global = std::move(local);
 #endif
 
-  const std::size_t pointCount = global.size() / 5;
+  const std::size_t pointCount = global.size() / 6;
   std::vector<ProfilePoint> points(pointCount);
   for (std::size_t p = 0; p < pointCount; ++p) {
-    const std::size_t base = 5 * p;
+    const std::size_t base = 6 * p;
+    points[p].cell = static_cast<Index>(global[base + 5]);
     points[p].x = global[base + 0];
     points[p].y = global[base + 1];
     points[p].z = global[base + 2];
