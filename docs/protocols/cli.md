@@ -133,7 +133,8 @@ saturnCFD -completion fish | source
 ```
 
 Completion requires `saturnCFD` to be on `PATH`; install it with
-`cmake --install buildCPU --prefix "$HOME/.local"`.
+`tools/installBackends.sh cpu` (or install under
+`$HOME/.local/saturnCFD/cpu` and link it).
 
 ## Units
 

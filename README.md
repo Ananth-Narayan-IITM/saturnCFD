@@ -80,12 +80,17 @@ cmake --build buildCPU -j
 ctest --test-dir buildCPU --output-on-failure
 ```
 
-Install the binary so the command is simply `saturnCFD`:
+Install into the standard backend root and link a stable command:
 
 ```bash
-cmake --install buildCPU --prefix "$HOME/.local"
+cmake --install buildCPU --prefix "$HOME/.local/saturnCFD/cpu"
+ln -sfn "$HOME/.local/saturnCFD/cpu/bin/saturnCFD" \
+        "$HOME/.local/bin/saturnCFD"
 # ~/.local/bin must be on PATH
 ```
+
+For CPU+GPU in one install root, use `tools/installBackends.sh both`; see
+[`docs/guides/commands.md`](docs/guides/commands.md).
 
 yaml-cpp, doctest and Kokkos are fetched automatically when not installed.
 Kokkos is pinned to 4.7.04 and uses `SATURN_BACKEND=openmp` by default.

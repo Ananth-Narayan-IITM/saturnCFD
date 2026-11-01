@@ -94,54 +94,92 @@ buildCPU/compile_commands.json    # CMake/clangd standard
 CPU/GPU builds are separate build directories because CMake fixes the compiler
 and backend at configure time:
 
-Build both backends and install them into **separate prefixes**, so one does
-not overwrite the other:
+Use **one install root** with a subdirectory per backend. Rebuilding CPU does
+not overwrite the GPU install, and vice versa:
 
-```bash
-# CPU
-cmake --preset cpu
-cmake --build --preset cpu -j
-cmake --install buildCPU --prefix "$HOME/.local/saturn-cpu"
-
-# GPU
-export KOKKOS_ROOT=/path/to/cuda-kokkos
-# export KOKKOS_ROOT="$HOME/.local/kokkos-cuda"
-cmake --preset gpu
-cmake --build --preset gpu -j
-cmake --install buildGPU --prefix "$HOME/.local/saturn-gpu"
+```text
+~/.local/saturnCFD/
+  cpu/bin/saturnCFD
+  gpu/bin/saturnCFD
 ```
 
-The GPU preset needs an installed CUDA-enabled Kokkos because the compiler must
-be Kokkos' `nvcc_wrapper` before the project is configured. Build that Kokkos
-for the target architecture (for example `PASCAL61` for the Quadro P620). The
-exact commands, the GPU benchmark and the thread/pinning guidance are in
-[`gpu.md`](gpu.md).
-
-## Call saturnCFD from any directory
-
-Create stable command names in a directory that is already on `PATH`:
+The helper builds, installs and refreshes the command links:
 
 ```bash
-mkdir -p "$HOME/.local/bin"
+# both backends; CPU becomes the plain "saturnCFD" default
+tools/installBackends.sh both --default cpu
 
-ln -sf "$HOME/.local/saturn-cpu/bin/saturnCFD" \
-       "$HOME/.local/bin/saturnCFD-cpu"
-ln -sf "$HOME/.local/saturn-gpu/bin/saturnCFD" \
-       "$HOME/.local/bin/saturnCFD-gpu"
+# only one backend; the other install stays untouched
+tools/installBackends.sh cpu
+tools/installBackends.sh gpu
+```
 
-# if ~/.local/bin is not already on PATH, add it once:
+It creates:
+
+```text
+~/.local/bin/saturnCFD-cpu -> ~/.local/saturnCFD/cpu/bin/saturnCFD
+~/.local/bin/saturnCFD-gpu -> ~/.local/saturnCFD/gpu/bin/saturnCFD
+~/.local/bin/saturnCFD     -> CPU (only with --default cpu)
+```
+
+Make sure the command directory is on `PATH`:
+
+```bash
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
 source "$HOME/.bashrc"
-
 which saturnCFD-cpu
 which saturnCFD-gpu
 ```
+
+### KOKKOS_ROOT
+
+The GPU **configure** step needs a CUDA-enabled Kokkos. The helper reads
+`KOKKOS_CUDA_ROOT` (default `$HOME/.local/kokkos-cuda`) and exports
+`KOKKOS_ROOT` only for that configure step. You do **not** need it at runtime.
+
+If you configure the GPU preset manually, put this in `~/.bashrc`:
+
+```bash
+export KOKKOS_ROOT="$HOME/.local/kokkos-cuda"
+```
+
+It is ignored by the CPU preset. Build the CUDA Kokkos for the target
+architecture (for example `PASCAL61` for the Quadro P620); see
+[`gpu.md`](gpu.md).
+
+### Manual equivalent
+
+```bash
+# CPU -> ~/.local/saturnCFD/cpu
+cmake --preset cpu
+cmake --build --preset cpu -j
+cmake --install buildCPU --prefix "$HOME/.local/saturnCFD/cpu"
+
+# GPU -> ~/.local/saturnCFD/gpu
+export KOKKOS_ROOT="$HOME/.local/kokkos-cuda"
+cmake --preset gpu
+cmake --build --preset gpu -j
+cmake --install buildGPU --prefix "$HOME/.local/saturnCFD/gpu"
+```
+
+```bash
+mkdir -p "$HOME/.local/bin"
+ln -sfn "$HOME/.local/saturnCFD/cpu/bin/saturnCFD" \
+        "$HOME/.local/bin/saturnCFD-cpu"
+ln -sfn "$HOME/.local/saturnCFD/gpu/bin/saturnCFD" \
+        "$HOME/.local/bin/saturnCFD-gpu"
+ln -sfn "$HOME/.local/saturnCFD/cpu/bin/saturnCFD" \
+        "$HOME/.local/bin/saturnCFD"
+```
+
+## Call saturnCFD from any directory
 
 Now the case can be anywhere and the backend is explicit:
 
 ```bash
 saturnCFD-cpu /path/to/case.yaml
 saturnCFD-gpu /path/to/case.yaml
+saturnCFD     /path/to/case.yaml   # whichever --default you installed
 ```
 
 Each run prints the backend before the time loop:
@@ -149,14 +187,6 @@ Each run prints the backend before the time loop:
 ```text
 backend : CPU (Kokkos OpenMP, 24 threads)
 backend : GPU (Kokkos CUDA, device 0: Quadro P620)
-```
-
-If you want a plain `saturnCFD` command as the default, link it to one backend:
-
-```bash
-ln -sf "$HOME/.local/saturn-cpu/bin/saturnCFD" \
-       "$HOME/.local/bin/saturnCFD"
-saturnCFD case.yaml          # CPU
 ```
 
 The installed binaries are independent of the build trees:
@@ -251,31 +281,29 @@ List the available presets instead of memorising them:
 ctest --list-presets
 ```
 
-## Install one default command
-
-If you only need one backend, install it into `$HOME/.local`:
+## Install only one backend
 
 ```bash
-cmake --install buildCPU --prefix "$HOME/.local"
-# creates $HOME/.local/bin/saturnCFD
+tools/installBackends.sh cpu
+# or: tools/installBackends.sh gpu
 ```
 
-Make sure the directory is on `PATH`:
+That leaves the other backend install untouched. To make the selected one the
+plain `saturnCFD` command:
 
 ```bash
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
-source "$HOME/.bashrc"
-which saturnCFD
+ln -sfn "$HOME/.local/saturnCFD/cpu/bin/saturnCFD" \
+        "$HOME/.local/bin/saturnCFD"
+# or the gpu path
 ```
 
 Then run from anywhere:
 
 ```bash
 saturnCFD /path/to/case.yaml
+saturnCFD-cpu /path/to/case.yaml
+saturnCFD-gpu /path/to/case.yaml
 ```
-
-For both CPU and GPU commands without relative paths, use the separate prefixes
-and `saturnCFD-cpu` / `saturnCFD-gpu` symlinks in the section above.
 
 ## Run
 

@@ -41,6 +41,24 @@ cmake --preset gpu
 cmake --build --preset gpu -j
 ```
 
+`KOKKOS_ROOT` is only needed when configuring/building the GPU preset; it is
+not needed to run `saturnCFD-gpu`. You can put it in `~/.bashrc` if you
+configure the GPU preset manually:
+
+```bash
+export KOKKOS_ROOT="$HOME/.local/kokkos-cuda"
+```
+
+The recommended installation helper does this for you and keeps both backends:
+
+```bash
+tools/installBackends.sh both --default cpu
+```
+
+It installs to `~/.local/saturnCFD/cpu` and `~/.local/saturnCFD/gpu` and creates
+`~/.local/bin/saturnCFD-cpu` / `saturnCFD-gpu`; see
+[`commands.md`](commands.md).
+
 Use the architecture that matches the card (`Kokkos_ARCH_...`), for example
 `AMPERE80`, `HOPPER90`, or `PASCAL61`.
 
