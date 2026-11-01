@@ -2,7 +2,9 @@
 
 **Status:** accepted (ADR `0003`, `0017`). Phase 0 implemented: `saturnLinAlg`,
 `PetscScope`, `petscCheck`, `KspSolver`, and PETSc Poisson/nullspace tests.
-Finite-volume matrix assembly is next.
+The finite-volume assembler and the coupled saddle-point/fieldsplit path are the
+next implementation slice; the design is fixed in
+[`../theory/coupledSaddlePoint.md`](../theory/coupledSaddlePoint.md).
 
 ## Purpose
 
@@ -45,12 +47,51 @@ Discovery note: Debian PETSc 3.19.6 is found through `pkg-config petsc` when
 - Pressure: one scalar Poisson operator.
 - The solver reports the preconditioned residual and the true residual.
 
+## Coupled saddle-point systems
+
+For Stokes (and the pressure–velocity block of Navier–Stokes) the matrix is
+
+$$
+\left[\begin{array}{cc}
+A & B^{T}\\
+B & 0
+\end{array}\right]
+\left[\begin{array}{cc}
+\mathbf{u}\\ p
+\end{array}\right]
+=
+\left[\begin{array}{cc}
+\mathbf{f}\\ \mathbf{g}
+\end{array}\right].
+$$
+
+- Assemble one `MPIAIJ` matrix with `u,v,w,p` degrees of freedom per cell
+  (`u,v,p` in 2D), using a local-to-global map that covers owned cells and one
+  ghost layer.
+- Use GMRES/FGMRES on the coupled system.
+- Precondition with `PCFIELDSPLIT` and a Schur-complement factorization:
+  approximate velocity solve with $A$, approximate Schur solve with
+  $S=-BA^{-1}B^{T}$, then back-substitute the pressure coupling.
+- The exact $A^{-1}$ and $S^{-1}$ are never formed; AMG/ILU supplies the
+  approximate actions. GMRES handles the remaining coupling.
+- Reuse the matrix and preconditioner while the coefficients are fixed; rebuild
+  or update them for each Navier–Stokes Picard/Newton iteration.
+- All-Neumann pressure: attach `MatNullSpace` with the constant vector and use
+  `KSPSetNullSpace`; report the mean pressure separately.
+- Rhie–Chow stabilisation in the continuity block is required for the
+  collocated grid; the matrix is a stabilised saddle-point system, not the raw
+  central-difference block.
+
+The derivation and options are in
+[`../theory/coupledSaddlePoint.md`](../theory/coupledSaddlePoint.md).
+
 ## Recommended PETSc settings
 
 | system | KSP | PC | notes |
 |---|---|---|---|
 | momentum (vector) | GMRES or BiCGStab | ILU / block Jacobi | one setup, three components |
 | pressure Poisson | CG | GAMG or HYPRE BoomerAMG | symmetric positive (semi-)definite |
+| coupled Stokes/NS | GMRES/FGMRES | fieldsplit/Schur | velocity GAMG/ILU, pressure GAMG/HYPRE |
 | small validation | preonly | LU / MUMPS / SuperLU | direct, for reference |
 
 - Neumann pressure: create `MatNullSpace` with the constant vector and attach
@@ -78,10 +119,16 @@ host-only. A failed solve is an error, not a warning, in validation runs.
 - 1D Poisson vs analytic;
 - Neumann zero-mean solution;
 - vector momentum with three RHS vs three scalar solves;
+- coupled saddle-point block with fieldsplit/Schur on 1/2/4 ranks;
+- pressure nullspace and mean-pressure diagnostics;
 - PETSc unavailable -> clear configuration error;
 - convergence failure -> non-zero exit with the PETSc reason.
 
 ## References
 
 - Balay et al., PETSc/TAO Users Manual.
-- PETSc `KSP`, `PC`, `MatNullSpace` documentation.
+- PETSc `KSP`, `PC`, `MatNullSpace`, `PCFIELDSPLIT` documentation.
+- Benzi, Golub & Liesen (2005).
+- Elman, Silvester & Wathen (2014).
+- Kay, Loghin & Wathen (2002).
+- Elman et al. (2006).

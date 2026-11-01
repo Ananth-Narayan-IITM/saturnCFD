@@ -34,7 +34,7 @@ decision is visible, argued, dated, and can be superseded without archaeology.
 | `0001` | Physics roadmap: Burgers → heat → Stokes → incompressible | accepted |
 | `0002` | Structured hexahedral `.msh` only; 2D is one cell thick; no AMR in v1.0 | accepted |
 | `0003` | PETSc as the linear-algebra backend; no home-grown Krylov | accepted |
-| `0004` | Collocated cell-centred state; Rhie–Chow; SIMPLE/PISO | accepted |
+| `0004` | Collocated cell-centred state; Rhie–Chow; coupled saddle point; SIMPLE/PISO optional | accepted, amended |
 | `0005` | `Solver` lifecycle and registry; `Simulation` owns the time loop | accepted |
 | `0006` | Typed config schema, generated templates, strict validation | accepted |
 | `0007` | `checkMesh` module and structured-mesh detection | accepted |

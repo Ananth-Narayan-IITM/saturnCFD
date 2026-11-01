@@ -20,7 +20,10 @@ saturnStokes
 saturnIncompressible
 ```
 
-The first implemented solver is `saturnBurger` for 1D and 2D scalar Burgers.
+Implemented solvers are `saturnBurger` (1D/2D/3D scalar Burgers) and
+`saturnHeat` (1D/2D/3D scalar convection–diffusion). `saturnStokes` is the next
+target: a 3D coupled saddle-point Stokes solver with 2D and 3D validation
+examples.
 
 ```text
 src/solvers/
@@ -56,6 +59,22 @@ the manual copy works. See `docs/guides/writingASolver.md`.
 - A solver may not edit them for its own equation.
 - No runtime plugin in v1.0: solvers are static libraries linked into
   `saturnCFD`.
+
+## Planned `saturnStokes`
+
+`saturnStokes` solves
+
+$$
+-\nabla p + \mu\nabla^2\mathbf{u}=\mathbf{f},
+\qquad
+\nabla\cdot\mathbf{u}=0
+$$
+
+with a coupled $u,v,w,p$ saddle-point matrix, Rhie–Chow stabilisation and a
+PETSc fieldsplit/Schur solve. The implementation order is the 3D core first,
+then independent 2D and 3D examples. Design:
+[`docs/theory/coupledSaddlePoint.md`](../../docs/theory/coupledSaddlePoint.md)
+and [`docs/theory/stokes.md`](../../docs/theory/stokes.md).
 
 ## Tests
 

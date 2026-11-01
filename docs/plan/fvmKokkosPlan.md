@@ -4,7 +4,10 @@
 `CellField`/`FaceField`, halo adapter, structured `LocalMesh`, interpolation,
 gradient, divergence, non-orthogonal Laplacian, Dirichlet/Neumann ghosts,
 upwind/Rusanov/MUSCL convection, advection–diffusion MMS and a simplified
-Rhie–Chow flux). The pressure Poisson solve, SIMPLE/PISO and PETSc are next.
+Rhie–Chow flux). The coupled saddle-point Stokes design is in
+[`../theory/coupledSaddlePoint.md`](../theory/coupledSaddlePoint.md); SIMPLE/PISO
+remain optional segregated paths for Navier–Stokes. The FV matrix assembly and
+PETSc coupled solve are next.
 
 This is the plan for the first Kokkos field/FVM increment. It builds directly
 on the MPI partition/halo layer already implemented.

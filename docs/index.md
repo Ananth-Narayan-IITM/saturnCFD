@@ -17,7 +17,10 @@ solver are in place. Both scalars are registered in the CLI and validated
 against analytic solutions, with VTK output and checkpoint/restart.
 `saturnHeat` is checked against a periodic Fourier mode in 2D and 3D, with
 the rank-0 mesh load and local-geometry distribution used by both solvers.
-Implicit time schemes and the Stokes solver follow.
+The Stokes coupled saddle-point design is documented in
+[`theory/coupledSaddlePoint.md`](theory/coupledSaddlePoint.md); implementation
+starts with the 3D core and 2D/3D validation examples. Implicit time schemes
+remain next.
 
 ## Where to start
 
@@ -42,7 +45,7 @@ Implicit time schemes and the Stokes solver follow.
 |---|---|
 | mesh | structured hexahedral Gmsh `.msh`; 2D is one cell thick |
 | state | collocated cell-centred velocity vector and dynamic pressure |
-| coupling | Rhie–Chow face flux; SIMPLE/PISO |
+| coupling | Rhie–Chow face flux; coupled saddle point for Stokes, SIMPLE/PISO optional |
 | linear algebra | PETSc |
 | YAML | yaml-cpp 0.8, generated templates, strict validation |
 | units | SI only in v1.0 |

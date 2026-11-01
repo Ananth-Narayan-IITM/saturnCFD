@@ -194,7 +194,12 @@ $$
 \left(\nabla p_f - \overline{\nabla p}_f\right).
 $$
 
-## 9. SIMPLE (steady Stokes and steady incompressible)
+## 9. SIMPLE (optional steady incompressible path)
+
+Stokes uses the coupled saddle-point method in
+[`coupledSaddlePoint.md`](coupledSaddlePoint.md). SIMPLE is retained as an
+optional segregated path for steady incompressible Navier–Stokes, where the
+nonlinear outer iteration already exists.
 
 1. Guess $p^*$, $\mathbf{u}^*$.
 2. Solve the momentum equation with $p^*$:

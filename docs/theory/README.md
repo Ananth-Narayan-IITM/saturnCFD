@@ -11,8 +11,9 @@ validation results and the observations.
 | [`finiteVolume.md`](finiteVolume.md) | cell-centred finite-volume operators, face interpolation, Rhie–Chow, SIMPLE/PISO |
 | [`burgers.md`](burgers.md) | scalar and vector Burgers, exact solutions, shocks, limiters |
 | [`heat.md`](heat.md) | convection–diffusion, boundary layers, manufactured solutions |
-| [`stokes.md`](stokes.md) | Stokes equations, SIMPLE, Poiseuille/Couette |
-| [`incompressible.md`](incompressible.md) | incompressible Navier–Stokes, PISO, cavity |
+| [`stokes.md`](stokes.md) | Stokes equations, coupled saddle point, Poiseuille/Couette |
+| [`coupledSaddlePoint.md`](coupledSaddlePoint.md) | velocity–pressure block, Rhie–Chow, PETSc fieldsplit/Schur, Navier–Stokes extension |
+| [`incompressible.md`](incompressible.md) | incompressible Navier–Stokes, Newton/Picard, PISO, cavity |
 | [`units.md`](units.md) | SI convention, dynamic pressure, dimensionless groups |
 | [`manufacturedSolutions.md`](manufacturedSolutions.md) | MMS methodology, expected orders, pitfalls |
 | [`poisson.md`](poisson.md) | FV Poisson matrix, Dirichlet/Neumann, nullspace, PETSc tests |

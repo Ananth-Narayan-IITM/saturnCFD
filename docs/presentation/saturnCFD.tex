@@ -118,13 +118,14 @@
           \texttt{.pvd} collection.
     \item Periodic Laplacian, gradient and divergence MMS at order 2 on
           1/2/4 ranks.
-    \item 40 CTest cases, regression tests, Doxygen HTML/PDF.
+    \item 41 CTest cases, regression tests, Doxygen HTML/PDF.
   \end{itemize}
 
   \begin{block}{Status}
     The mesh/config/comm, CPU Kokkos operators, PETSc Phase 0, explicit
     solver-loop and the 1D/2D/3D Burgers and heat solvers are working.
-    Implicit BE/CN/BDF2 and Stokes pressure coupling are next.
+    The Stokes coupled saddle-point design is fixed; implementation starts
+    with the 3D core. Implicit BE/CN/BDF2 follows.
   \end{block}
 \end{frame}
 
@@ -288,15 +289,17 @@ time:
     \item Velocity and pressure at cell centroids.
     \item Face fluxes reconstructed from the two adjacent cells.
     \item Rhie--Chow correction suppresses checkerboard pressure.
-    \item SIMPLE for steady Stokes/incompressible flow.
-    \item PISO for transient incompressible flow.
+    \item Coupled saddle-point \cite{benzi2005,elman2014} for steady Stokes.
+    \item SIMPLE/SIMPLEC remain optional segregated paths for Navier--Stokes;
+          PISO for transient flow.
   \end{itemize}
 
   \begin{block}{Why not MAC?}
     Staggered MAC gives exact discrete continuity, but it splits the velocity
     components onto different meshes and fights the vector form, \texttt{.msh}
     import and the 2D/3D rule. Collocated FV matches OpenFOAM and the default
-    Basilisk/Nektar++ approach \cite{weller1998,cantwell2015}.
+    Basilisk/Nektar++ approach \cite{weller1998,cantwell2015}; Rhie--Chow
+    \cite{rhieChow1983} restores pressure--velocity stability.
   \end{block}
 \end{frame}
 
@@ -325,7 +328,8 @@ time:
   \scriptsize
   Projection/pressure correction from Chorin \cite{chorin1968}; SIMPLE/PISO
   from Patankar \cite{patankar1980} and Issa \cite{issa1986}; Rhie--Chow
-  \cite{rhieChow1983}.
+  \cite{rhieChow1983}; coupled saddle point from Benzi et al.
+  \cite{benzi2005} and Elman et al. \cite{elman2014}.
 \end{frame}
 
 \begin{frame}{Vector form and linear algebra}
@@ -343,8 +347,68 @@ time:
     \item PETSc: \texttt{Mat}, \texttt{Vec}, \texttt{KSP}, \texttt{PC}.
     \item Pressure Poisson: CG + GAMG/HYPRE; Neumann null space handled
           explicitly.
+    \item Coupled Stokes/NS: \texttt{MPIAIJ} with $(u,v,w,p)$ per cell,
+          GMRES/FGMRES + \texttt{PCFIELDSPLIT} Schur preconditioner.
+    \item Velocity block GAMG/ILU; pressure block GAMG/HYPRE; nullspace
+          attached with \texttt{MatNullSpace}.
     \item No home-grown Krylov solver.
   \end{itemize}
+\end{frame}
+
+\begin{frame}{Stokes: coupled saddle point}
+  \small
+  \[
+    \begin{bmatrix}
+      A & B^{T}\\
+      B & 0
+    \end{bmatrix}
+    \begin{bmatrix}
+      \mathbf{u}\\ p
+    \end{bmatrix}
+    =
+    \begin{bmatrix}
+      \mathbf{f}\\ 0
+    \end{bmatrix}
+  \]
+  \begin{itemize}
+    \item One PETSc solve for velocity and pressure; no SIMPLE outer iteration
+          for Stokes.
+    \item Collocated FV + Rhie--Chow \cite{rhieChow1983} stabilisation.
+    \item Schur factorisation
+          $S=-BA^{-1}B^{T}$; approximate $A^{-1}$ and $S^{-1}$ with
+          AMG/ILU; GMRES handles the coupling \cite{benzi2005,elman2014}.
+    \item Pressure nullspace attached for all-Neumann cases; mean pressure
+          reported separately.
+    \item The same block is reused inside Navier--Stokes Picard/Newton or
+          time-step iterations.
+  \end{itemize}
+
+  \begin{block}{Why coupled?}
+    Stokes is linear and steady; pressure is a Lagrange multiplier. A coupled
+    solve avoids under-relaxation and pseudo-time tuning.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Stokes validation plan}
+  \begin{center}
+    \small
+    \begin{tabular}{lll}
+      \toprule
+      Case & Quantity & Reference \\
+      \midrule
+      Poiseuille 2D/3D & velocity profile & analytic parabola \\
+      Couette 2D/3D & velocity profile & analytic line \\
+      MMS 2D/3D & velocity/pressure order & manufactured \\
+      Exit boundary & 3D outflow & Sankhla \& Das \cite{sankhla2025} \\
+      Nullspace & mean pressure & constant mode \\
+      \bottomrule
+    \end{tabular}
+  \end{center}
+
+  \begin{block}{Implementation order}
+    3D coupled core first; independent 2D/3D examples; Poiseuille/Couette as
+    the merge gate; MMS, exit-boundary and 1/2/4-rank parity next.
+  \end{block}
 \end{frame}
 
 \section{Verification and validation}
@@ -411,8 +475,9 @@ time:
       Burgers & inviscid shock & characteristics/conservation \\
       Heat & 1D boundary layer & exact solution \\
       Heat & 2D/3D MMS & manufactured order \\
-      Stokes & Poiseuille/Couette & exact parabolic/linear \\
-      Stokes & cavity $Re\to0$ & converged reference \\
+      Stokes & Poiseuille/Couette 2D/3D & exact parabolic/linear \\
+      Stokes & MMS 2D/3D & manufactured order \\
+      Stokes & exit boundary & Sankhla \& Das (2025) \\
       Incompressible & cavity $Re=100,1000$ & Ghia et al.\ \cite{ghia1982} \\
       Incompressible & Taylor--Green & energy decay/order \\
       \bottomrule
@@ -648,7 +713,7 @@ rm -rf buildCPU buildGPU
       \toprule
       Suite & Result \\
       \midrule
-      CTest total & 33/33 passing \\
+      CTest total & 41/41 passing \\
       MPI distribution \& halo & 1, 2, 4 ranks passing \\
       Kokkos field + halo & 2 ghosts, 26 directions, 1/2/4 ranks \\
       LocalMesh + operators & linear exactness, 1/2/4 ranks \\
@@ -673,9 +738,9 @@ rm -rf buildCPU buildGPU
   \end{center}
 
   \begin{block}{What is not yet tested}
-    Implicit BE/CN/BDF2, FV Poisson matrix assembly, Stokes pressure
-    coupling, pressure Poisson/SIMPLE-PISO, device boundary/halo
-    optimization and multi-GPU scaling. These are the next gates.
+    Implicit BE/CN/BDF2, FV matrix assembly, the Stokes coupled
+    saddle-point implementation, device boundary/halo optimization and
+    multi-GPU scaling. These are the next gates.
   \end{block}
 \end{frame}
 
@@ -710,9 +775,9 @@ rm -rf buildCPU buildGPU
     \begin{column}{0.48\textwidth}
       \begin{block}{Next}
         \begin{itemize}
-          \item FV Poisson matrix assembly
+          \item FV coupled matrix assembly
+          \item Stokes saddle-point: 3D core + 2D/3D examples
           \item Implicit BE/CN/BDF2
-          \item Stokes pressure coupling
           \item Incompressible Navier--Stokes
           \item CUDA build verification
           \item Cluster scaling study

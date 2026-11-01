@@ -174,19 +174,32 @@ $$
 \qquad \nabla\cdot\mathbf{u}=0.
 $$
 
+**Chosen method:** fully coupled saddle point, not SIMPLE/SIMPLEC.
+
 - Collocated FVM and Rhie–Chow face flux.
-- Coupled saddle-point system or Schur complement with PETSc fieldsplit.
-- Pressure nullspace for all-Neumann.
-- GMRES + fieldsplit/Schur; pressure PC GAMG/HYPRE.
+- One `MPIAIJ` block with `u,v,w,p` (3D) or `u,v,p` (2D) per cell.
+- PETSc GMRES/FGMRES with fieldsplit/Schur preconditioning.
+- Velocity block GAMG/ILU; pressure block GAMG/HYPRE.
+- Pressure nullspace for all-Neumann cases.
+- The same block is reused inside Navier–Stokes Picard/Newton or time steps.
 
-Validation: Poiseuille/Couette exact, cavity $Re\to0$, discrete divergence,
-pressure mean/nullspace, 1/2/4 ranks.
+Implementation starts with the **3D core**; independent 2D and 3D examples
+validate the same code. Details:
+[`../theory/coupledSaddlePoint.md`](../theory/coupledSaddlePoint.md),
+[`../theory/stokes.md`](../theory/stokes.md).
 
-Exit: Stokes tests; fieldsplit converges; nullspace handled.
+Validation: Poiseuille/Couette 2D/3D, MMS 2D/3D, discrete divergence, pressure
+mean/nullspace, exit-boundary cases inspired by Sankhla & Das (2025), 1/2/4
+ranks.
+
+Exit: Stokes tests; fieldsplit converges; nullspace handled; 2D/3D examples
+reproduce the analytic profiles.
 
 ## Phase 5 — Incompressible Navier–Stokes
 
-- PISO transient, SIMPLE steady; Rhie–Chow.
+- Reuse the coupled saddle-point block with Picard/Newton linearisation.
+- Add convection to the velocity block; mass matrix for time stepping.
+- PISO transient and SIMPLE steady remain optional segregated paths.
 - Cavity $Re=100,1000$ against Ghia et al.
 - Taylor–Green energy decay and order.
 
@@ -199,7 +212,7 @@ Exit: Stokes tests; fieldsplit converges; nullspace handled.
 | explicit convection | SSP-RK3 | — |
 | IMEX | BE/CN convection-explicit, diffusion-implicit | higher-order IMEX |
 | convection | MUSCL + minmod/van Leer/MC | WENO5 after Burgers validation |
-| pressure | — | PETSc fieldsplit/Schur |
+| pressure | coupled saddle point with PETSc fieldsplit/Schur | SIMPLE/SIMPLEC optional path |
 
 Advanced convection (WENO5, MUSCL-Hancock, HLLC/AUSM) is deliberately deferred
 until Burgers is validated. Adding schemes before a validated baseline makes
@@ -211,5 +224,9 @@ debugging harder.
 2. IMEX BE versus fully implicit Newton for the first implicit Burgers step.
 3. Whether the first production matrix assembler uses a contiguous local
    numbering with an owner map or PETSc `DMDA` for the structured block.
-4. Pressure coupling for Stokes: coupled fieldsplit (recommended) versus a
-   projection/SIMPLE first implementation.
+   The current plan is a local-to-global map with ghost coverage; `DMDA` remains
+   an alternative for a later optimisation.
+
+Resolved: pressure coupling uses the coupled saddle-point/fieldsplit path for
+Stokes and Navier–Stokes. SIMPLE/SIMPLEC are fallback/optional segregated
+methods, not the primary design.

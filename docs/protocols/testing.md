@@ -173,6 +173,35 @@ on 1/2/4 ranks. The user-facing examples
 `examples/saturnHeat/saturnHeat2D/` and `saturnHeat3D/` are schema-checked by
 CTest and ship independent `compareAnalytic.py` scripts.
 
+## Stokes solver tests
+
+The coupled saddle-point design is accepted; the test cases below are added
+with `saturnStokes` and run under the `solver` label.
+
+- **Poiseuille 2D/3D:** parabolic velocity, constant pressure gradient; refine
+  the cross-stream mesh and check the velocity $L^2$ error decreases at second
+  order.
+- **Couette 2D/3D:** linear velocity between a fixed and a moving wall.
+- **MMS 2D/3D:** smooth divergence-free velocity and derived pressure; check
+  second-order velocity and mean-removed pressure.
+- **Continuity:** discrete divergence below the linear-solve tolerance.
+- **Pressure nullspace:** all-Neumann case, constant mode attached, mean
+  pressure stable.
+- **Fieldsplit/Schur:** GMRES converges on 1/2/4 ranks without per-case tuning.
+- **Examples:** `examples/saturnStokes/saturnStokes2D` and `saturnStokes3D`
+  each ship an independent `compareAnalytic.py`.
+
+The linear-algebra part is already tested: `petsc: coupled saddle-point
+fieldsplit solves a 2-field block` assembles a $u,p$ block with a zero pressure
+block, configures `PCFIELDSPLIT` with a Schur preconditioner, solves with GMRES,
+and checks the exact solution on 1/2/4 ranks. This test is the precursor to the
+full `saturnStokes` matrix.
+
+Planned CTest names: `stokes_poiseuille2d`, `stokes_couette2d`,
+`stokes_poiseuille3d`, `stokes_couette3d`, `stokes_mms2d`, `stokes_mms3d`,
+and the 1/2/4-rank variants. See
+[`../validation/stokes.md`](../validation/stokes.md).
+
 ## PETSc tests
 
 `tests/TestPetsc.cpp` currently checks:
@@ -181,10 +210,14 @@ CTest and ship independent `compareAnalytic.py` scripts.
 - 3D Poisson with CG + GAMG: L2 error about 2.1e-3 at 12^3;
 - all-Neumann 1D matrix: constant nullspace attached and verified with
   `MatNullSpaceTest`, CG + GAMG converges;
+- coupled $u,p$ saddle-point block with `PCFIELDSPLIT` and a Schur
+  preconditioner: GMRES converges in one iteration on 1/2/4 ranks;
 - all cases run on 1, 2 and 4 ranks.
 
 The PETSc tests use `DMDA` only as a linear-algebra smoke test. The production
-finite-volume matrix assembler is the next phase. See
+finite-volume matrix assembler and the coupled saddle-point/fieldsplit test are
+the next phase; the latter verifies the Schur block solve and the pressure
+nullspace before `saturnStokes` is wired in. See
 [`../guides/petsc.md`](../guides/petsc.md) and
 [`../theory/poisson.md`](../theory/poisson.md).
 

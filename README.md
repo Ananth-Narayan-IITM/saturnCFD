@@ -17,8 +17,11 @@ diagnostics, registry), rank-0 mesh load with local-geometry distribution, and
 the registered 1D/2D/3D `saturnBurger` and `saturnHeat` solvers are in place.
 PETSc 3.19.6 is linked through the separate `saturnLinAlg` library; the
 1D/3D Poisson and all-Neumann tests pass on 1/2/4 ranks. Both scalar solvers,
-VTK field export and checkpoint/restart are done; implicit time schemes and
-the FV Poisson matrix assembler are next.
+VTK field export and checkpoint/restart are done. The Stokes coupled
+saddle-point design is documented in
+[`docs/theory/coupledSaddlePoint.md`](docs/theory/coupledSaddlePoint.md);
+implementation starts with the 3D core and 2D/3D validation examples.
+Implicit time schemes and the FV matrix assembler remain next.
 
 The 1D/2D/3D Burgers solver is validated against the exact viscous traveling
 wave:

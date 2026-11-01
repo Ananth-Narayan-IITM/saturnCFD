@@ -158,6 +158,7 @@ If the change is not understood, it is a bug, not a new baseline.
 | `petsc/poisson1d` | 1D Dirichlet Poisson, second-order | implemented |
 | `petsc/poisson3d` | 3D Poisson with CG + GAMG | implemented |
 | `petsc/neumann` | all-Neumann nullspace and residual | implemented |
+| `petsc/saddlePoint` | coupled $u,p$ block, fieldsplit/Schur, 1/2/4 ranks | implemented (`TestPetsc.cpp`) |
 | `simulation/constant` | all explicit schemes preserve a constant field | implemented |
 | `simulation/diffusion` | SSPRK3 cosine decay against analytic L2 | implemented |
 | `simulation/bounded` | SSPRK3 sine advection bounded | implemented |
@@ -175,6 +176,13 @@ If the change is not understood, it is a bug, not a new baseline.
 | `heat/dimension` | 3D Fourier order 2.28/2.43 at 16^3/32^3/64^3 | implemented in `TestSaturnHeat` |
 | `heat/example` | 2D/3D Fourier examples and `compareAnalytic.py` | implemented (`examples/saturnHeat/`) |
 | `heat/checkpoint` | scalar restart matches uninterrupted heat run | implemented (`checkHeatCheckpoint.py`) |
+| `stokes/poiseuille2d` | 2D channel, analytic parabola | planned with `saturnStokes` |
+| `stokes/couette2d` | 2D moving-wall linear profile | planned with `saturnStokes` |
+| `stokes/poiseuille3d` | 3D extruded channel | planned with `saturnStokes` |
+| `stokes/couette3d` | 3D extruded Couette | planned with `saturnStokes` |
+| `stokes/mms2d` | coupled velocity/pressure order | planned with `saturnStokes` |
+| `stokes/mms3d` | coupled velocity/pressure order | planned with `saturnStokes` |
+| `stokes/fieldsplit` | GMRES + fieldsplit/Schur on 1/2/4 ranks | planned |
 
 The FVM entry is a library regression: the stored 32$^3$
 `L2=0.13435580757778084` is the smallest scalar that catches a stencil, halo or

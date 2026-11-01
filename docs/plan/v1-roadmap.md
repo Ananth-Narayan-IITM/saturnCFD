@@ -81,7 +81,7 @@ schemes, 3D Burgers, heat and pressure coupling remain. The detailed checklist i
    - Steady advection–diffusion MMS and TVD boundedness — done.
    - Discrete divergence theorem on a sheared mesh — done.
    - Simplified Rhie–Chow face flux — done.
-   - Pressure Poisson/SIMPLE-PISO with PETSc — next.
+   - Coupled saddle-point/FV matrix assembly with PETSc — next.
    - All operators iterate owned cells only and read ghost values.
    - Plan: [`fvmKokkosPlan.md`](fvmKokkosPlan.md), ADR `0016`.
 
@@ -183,8 +183,9 @@ checkpoint/restart. Implicit diffusion and vector Burgers next.
 
 **Deliverables**
 
-- `src/solvers/stokes`: SIMPLE, vector momentum, pressure correction.
-- Rhie–Chow face flux.
+- `src/solvers/saturnStokes`: coupled saddle-point velocity–pressure solve,
+  vector momentum and PETSc fieldsplit/Schur.
+- Rhie–Chow face flux for the collocated grid.
 - Poiseuille, Couette, cavity at $Re\to0$, 2D/3D MMS.
 - PETSc null-space handling for all-Neumann pressure.
 - `docs/validation/stokes.md`.

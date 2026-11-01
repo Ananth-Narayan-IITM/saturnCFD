@@ -62,7 +62,7 @@ saturnCFD/
     saturnHeat/
       saturnHeat2D/             # periodic Fourier mode
       saturnHeat3D/             # periodic Fourier mode
-    saturnStokes/               # later
+    saturnStokes/               # planned: 2D/3D coupled Stokes cases
 
   tests/
     TestMain.cpp                # doctest main
@@ -72,7 +72,8 @@ saturnCFD/
     TestSimulation.cpp          # time loop
     TestSaturnBurger*.cpp       # 1D/2D/3D Burgers
     TestSaturnHeat.cpp          # 3D Fourier + constant field
-    TestPetsc.cpp               # Poisson/nullspace
+    TestSaturnStokes.cpp        # planned: coupled saddle point
+    TestPetsc.cpp               # Poisson/nullspace/fieldsplit
     TestParallel.cpp            # partition/halo
     regression/
       mesh/
@@ -112,6 +113,8 @@ saturnCFD/
     theory/
       burgers.md
       heat.md
+      stokes.md
+      coupledSaddlePoint.md
       poisson.md
     decisions/                  # ADRs
     protocols/                  # contracts
@@ -119,6 +122,7 @@ saturnCFD/
       README.md                 # validation index
       burgers.md
       heat.md
+      stokes.md                 # planned with saturnStokes
       scripts/
         validateBurgers.py      # convergence table + validation figure
     references.bib

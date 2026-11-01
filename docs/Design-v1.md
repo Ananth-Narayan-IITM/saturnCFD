@@ -31,7 +31,7 @@ A single codebase that:
 |---|---|
 | mesh | structured hexahedral `.msh` only; 1D/2D are degenerate 3D meshes; `checkMesh` mandatory |
 | state | collocated cell-centred velocity vector and dynamic pressure |
-| coupling | Rhie–Chow face flux; SIMPLE for steady, PISO for transient |
+| coupling | Rhie–Chow face flux; coupled saddle point for Stokes; SIMPLE/PISO optional |
 | parallel | MPI Cartesian block decomposition; one owner per cell; 2-layer ghost halo |
 | execution | Kokkos CPU/GPU; one rank per GPU; host-staged halo first |
 | linear algebra | MPI PETSc `Mat`/`Vec`/`KSP`/`PC`; no home-grown Krylov |

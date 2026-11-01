@@ -101,9 +101,11 @@ $$
 + \Delta t\left(\overline{\nabla p}_f - \nabla p_f\right)
 $$
 
-(in the unsteady form; the steady SIMPLE form omits the time factor). The exact
-sign and discretisation are derived in `docs/theory/finiteVolume.md` and
-validated by the checkerboard test.
+(in the unsteady form; the steady coupled form uses the momentum-diagonal
+coefficient instead of the time factor). The exact sign and discretisation are
+derived in `docs/theory/finiteVolume.md`; the coupled Stokes solve is in
+`docs/theory/coupledSaddlePoint.md`. The checkerboard test validates the
+stabilisation.
 
 ## Boundary conditions
 

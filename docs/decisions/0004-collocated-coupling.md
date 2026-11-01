@@ -1,6 +1,6 @@
 # 0004 — Collocated state and pressure–velocity coupling
 
-- **Status:** accepted
+- **Status:** accepted; amended 2026-11-01 for the Stokes solve
 - **Date:** 2026-10-30
 - **Owner:** saturnCFD v1
 - **Supersedes:** none
@@ -27,8 +27,9 @@ default centred solver and the collocated mixed spaces of Nektar++/NekRS.
   interpolated from the two adjacent cells.
 - Suppress the checkerboard pressure mode with **Rhie–Chow momentum
   interpolation** on the face flux.
-- **SIMPLE** for steady Stokes and steady incompressible flow.
-- **PISO** for transient incompressible flow.
+- **Coupled saddle point** for steady Stokes; PETSc fieldsplit/Schur solve.
+- **SIMPLE/SIMPLEC** as optional segregated paths for steady incompressible
+  flow; **PISO** for transient incompressible flow.
 - The vector momentum equation is assembled and solved as a vector system:
   one operator, three components (block size 3 or multiple right-hand sides).
 - A staggered MAC backend is not implemented in v1.0. It may be added later as

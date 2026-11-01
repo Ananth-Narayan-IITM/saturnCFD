@@ -1,6 +1,7 @@
 # Stokes
 
-**Status:** third solver in the v1 sequence (ADR `0001`, `0004`).
+**Status:** design accepted for `saturnStokes`. The implementation starts with
+the 3D core; the 2D and 3D examples are independent validation cases.
 
 ## 1. Governing equations
 
@@ -26,10 +27,49 @@ for simplicity; the vector identity is recorded for the theory discussion.
 
 The Stokes problem is a saddle-point system: the pressure is the Lagrange
 multiplier that enforces continuity. It has no time derivative, so it tests the
-elliptic operators and the pressure coupling without the complication of
-nonlinear convection or time accuracy.
+elliptic operators and the pressure coupling without nonlinear convection or
+time accuracy.
 
-## 2. Boundary conditions
+## 2. Solution method
+
+The primary method is a **fully coupled saddle-point solve**:
+
+$$
+\left[\begin{array}{cc}
+A & B^{T}\\
+B & 0
+\end{array}\right]
+\left[\begin{array}{cc}
+\mathbf{u}_h\\ p_h
+\end{array}\right]
+=
+\left[\begin{array}{cc}
+\mathbf{f}_h\\ \mathbf{g}_h
+\end{array}\right].
+$$
+
+The derivation, collocated Rhie–Chow stabilisation, PETSc fieldsplit/Schur
+preconditioner and Navier–Stokes extension are in
+[`coupledSaddlePoint.md`](coupledSaddlePoint.md).
+
+SIMPLE and SIMPLEC are deliberately not the Stokes default. They add an outer
+pressure-correction iteration and under-relaxation that a linear steady problem
+does not need. They remain useful as an optional segregated path for
+incompressible Navier–Stokes and as a fallback if a coupled preconditioner is
+not yet available.
+
+## 3. Discretisation
+
+- Cell-centred velocity and pressure on the structured `LocalMesh`.
+- Component-wise viscous Laplacian with Dirichlet wall data.
+- Cell-centred pressure gradient.
+- Rhie–Chow face-normal velocity in the continuity row to suppress the
+  collocated odd–even pressure mode.
+- PETSc `MPIAIJ` matrix with `u,v,w,p` degrees of freedom per cell.
+- GMRES/FGMRES outer solve with fieldsplit/Schur block preconditioning.
+- Pressure null space attached with `MatNullSpace` for all-Neumann cases.
+
+## 4. Boundary conditions
 
 - no-slip walls: $\mathbf{u}=0$;
 - moving wall: $\mathbf{u}=\mathbf{U}_{\mathrm{wall}}$;
@@ -38,38 +78,10 @@ nonlinear convection or time accuracy.
 - periodic patches: mapped neighbours.
 
 The pressure is determined up to a constant for all-Neumann boundaries. The
-solver fixes the null space (PETSc `MatNullSpace`), and the diagnostics report
-the mean pressure.
+solver keeps the null space, removes the mean for error norms, and reports the
+mean pressure.
 
-## 3. Solution method: SIMPLE
-
-1. Guess $p^*$ and $\mathbf{u}^*$.
-2. Solve the vector momentum equation:
-   $$
-   a_P\mathbf{u}_P = \sum_N a_N\mathbf{u}_N + \mathbf{b}_P
-   - V_P(\nabla p^*)_P.
-   $$
-3. Compute face fluxes with Rhie–Chow.
-4. Solve the pressure-correction equation:
-   $$
-   \nabla\cdot\left(\frac{\Delta t}{\rho}\nabla p'\right)
-   = \nabla\cdot\mathbf{u}^*.
-   $$
-5. Correct velocity and pressure:
-   $$
-   \mathbf{u} = \mathbf{u}^* - \frac{\Delta t}{\rho}\nabla p',
-   \qquad
-   p = p^* + \alpha_p p'.
-   $$
-6. Under-relax and repeat until the momentum residual, continuity residual and
-   pressure-correction residual are below tolerance.
-
-For steady Stokes there is no physical $\Delta t$; it is a pseudo-time factor
-in the pressure-correction equation. The choice of $\Delta t$ and the
-under-relaxation factors is documented in the case file and in the validation
-record.
-
-## 4. Analytical validation
+## 5. Analytical validation
 
 ### Plane Poiseuille flow
 
@@ -78,8 +90,13 @@ $G=-dp/dx$:
 
 $$
 u(y) = \frac{G}{2\mu}y(H-y),
-\qquad v=0.
+\qquad v=0,
+\qquad p(x)=p_0-Gx .
 $$
+
+For the first regression the flow can also be driven by a constant body force
+$f_x=G$ with periodic streamwise boundaries; then the pressure is periodic and
+the velocity is the same parabola.
 
 ### Plane Couette flow
 
@@ -89,42 +106,59 @@ $$
 u(y) = U\frac{y}{H},\qquad v=0,\qquad p=\mathrm{constant}.
 $$
 
-### Lid-driven cavity at $Re\to0$
-
-The Stokes limit of the cavity. It tests the pressure coupling in a closed
-domain with a singular lid corner. Compare against a converged reference or a
-very-low-Reynolds Navier–Stokes solution.
-
 ### Manufactured solution
 
-Choose a smooth divergence-free $\mathbf{u}$, compute $p$ from the momentum
-equation, and verify second-order convergence on 2D/3D hex meshes.
+Choose a smooth divergence-free $\mathbf{u}$ and derive $p$ and $\mathbf{f}$
+from the momentum equation. Verify second-order convergence of velocity and
+pressure on 2D and 3D hex meshes.
 
-## 5. Validation plan
+### Exit-boundary-condition cases
+
+The BEM study of Sankhla & Das (2025) provides 3D steady Stokes cases with exit
+boundary conditions. We use its geometries, boundary data and reported
+quantities as inspiration for later 3D verification; the present solver uses a
+finite-volume coupled saddle-point discretisation, not BEM.
+
+## 6. Validation plan
 
 | case | quantity | criterion |
 |---|---|---|
-| Poiseuille | profile | machine-precision match to the parabola |
-| Couette | profile | linear profile |
-| cavity $Re\to0$ | centreline | matches reference within tolerance |
-| MMS 2D/3D | order | second order |
+| Poiseuille 2D/3D | velocity profile | matches the parabola to discretisation error |
+| Couette 2D/3D | velocity profile | matches the linear profile |
+| MMS 2D/3D | velocity/pressure order | second order in $h$ |
 | null space | mean pressure | stable, no drift |
-| checkerboard | pressure field | no odd/even mode with Rhie–Chow |
+| continuity | discrete divergence | below solver tolerance |
+| checkerboard | pressure field | no odd–even mode with Rhie–Chow |
+| exit boundary | BEM paper cases | quantitative comparison |
 
-## 6. Observations (to be filled from runs)
+## 7. Implementation plan
+
+1. **3D core first** — `SaturnStokes`, matrix assembly, PETSc fieldsplit,
+   pressure nullspace, output.
+2. **2D/3D examples** — independent cases under
+   `examples/saturnStokes/saturnStokes2D/` and `saturnStokes3D/`, with
+   analytic comparison and plot scripts.
+3. **Tests** — Poiseuille and Couette first, then MMS and 1/2/4-rank parity.
+4. **Presentation and validation record** — update after the first converged
+   cases.
+
+## 8. Observations (to be filled from runs)
 
 Record:
 
-- SIMPLE convergence rate versus under-relaxation and pseudo-time step;
-- the effect of mesh stretching on the non-orthogonal correction;
-- the pressure null-space behaviour;
-- the divergence norm after each correction;
-- whether Rhie–Chow is required on the stretched mesh (it is; document the
-  failure without it).
+- fieldsplit/Schur iteration counts versus mesh and viscosity;
+- velocity and pressure error norms for Poiseuille/Couette/MMS;
+- discrete divergence after the coupled solve;
+- pressure null-space and mean-pressure behaviour;
+- sensitivity to the Rhie–Chow coefficient;
+- the cost of the coupled solve versus a segregated fallback.
 
 ## References
 
-- Patankar & Spalding (1972).
-- Patankar (1980).
+- Benzi, Golub & Liesen (2005).
+- Elman, Silvester & Wathen (2014).
+- Kay, Loghin & Wathen (2002).
+- Elman et al. (2006).
 - Rhie & Chow (1983).
-- Ferziger & Perić (2002).
+- Sankhla & Das (2025).
+- Balay et al., *PETSc/TAO Users Manual*.

@@ -15,11 +15,13 @@ PETSc directly.
   norm.
 - CMake discovery: `find_package(PETSc)` with a `pkg-config` fallback for
   Debian.
-- `testSaturnPETSc` — 1D Poisson order, 3D Poisson with CG + GAMG, and an
-  all-Neumann nullspace test on 1/2/4 ranks.
+- `testSaturnPETSc` — 1D Poisson order, 3D Poisson with CG + GAMG, an
+  all-Neumann nullspace test, and a coupled $u,p$ saddle-point block with
+  `PCFIELDSPLIT`/Schur on 1/2/4 ranks.
 
-The Phase 0 tests use PETSc `DMDA` only as a smoke test. The production
-finite-volume matrix assembler is the next slice.
+The Phase 0 tests use PETSc `DMDA` only as a smoke test. The coupled block test
+validates the fieldsplit/Schur setup; the production finite-volume matrix
+assembler is the next slice.
 
 ## Next
 
@@ -27,8 +29,14 @@ finite-volume matrix assembler is the next slice.
 - Poisson assembler with Dirichlet/Neumann rows and RHS.
 - All-Neumann pressure nullspace.
 - Block/multi-RHS momentum systems.
-- PETSc fieldsplit/Schur for Stokes.
+- Coupled `u,v,w,p` saddle-point matrix for `saturnStokes`.
+- Apply the validated `PCFIELDSPLIT`/Schur path to the FV matrix:
+  velocity block GAMG/ILU, pressure block GAMG/HYPRE, `MatNullSpace` for
+  all-Neumann pressure.
 - True residual and iteration diagnostics.
+
+The coupled saddle-point design, matrix layout and PETSc options are described
+in [`docs/theory/coupledSaddlePoint.md`](../../docs/theory/coupledSaddlePoint.md).
 
 ## Boundaries
 

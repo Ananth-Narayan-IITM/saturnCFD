@@ -3,9 +3,10 @@
 **Status:** mesh, configuration, CLI, the MPI partition/halo substrate, the
 CPU finite-volume operator slice, the Phase 0 PETSc linear-algebra layer and
 the explicit solver/time-loop layer, the 1D/2D/3D Burgers solver and the
-`saturnHeat` scalar convection–diffusion solver are implemented. The FV
-Poisson matrix assembler, implicit BE/CN/BDF2, Stokes coupling and GPU
-execution verification are next. The parallel design is in
+`saturnHeat` scalar convection–diffusion solver are implemented. The Stokes
+coupled saddle-point design is fixed; its implementation starts with the 3D
+core and 2D/3D validation examples. The FV Poisson matrix assembler, implicit
+BE/CN/BDF2 and GPU execution verification remain next. The parallel design is in
 [`mpiGpuDesign.md`](mpiGpuDesign.md); the solver sequence is in
 [`solverSequence.md`](solverSequence.md).
 
@@ -51,6 +52,7 @@ execution verification are next. The parallel design is in
 | PETSc 3.19.6 discovery (`pkg-config` fallback) | done |
 | `saturnLinAlg`, `PetscScope`, `KspSolver` | done |
 | 1D/3D Poisson and all-Neumann PETSc tests | done on 1/2/4 ranks |
+| coupled saddle-point fieldsplit/Schur block | tested on 1/2/4 ranks |
 | `ctest --preset saturnCFD` | done |
 | `src/simulation` `Solver`/`SolverRegistry`/`TimeControl` | done |
 | explicit `Simulation` loop (FE, SSPRK2/3) + diagnostics | done |
@@ -59,17 +61,18 @@ execution verification are next. The parallel design is in
 | Burgers traveling wave and periodic shock | done on 1/2/4 ranks |
 | 3D Burgers, VTK, checkpoint/restart | done |
 | implicit diffusion | next |
+| Stokes coupled saddle-point design | documented in [`../theory/coupledSaddlePoint.md`](../theory/coupledSaddlePoint.md) |
 | GPU-labelled FV regression cases | verified on the local Quadro P620 CUDA build |
 
 ## Pending
 
 | area | pending item |
 |---|---|
-| `src/fv` | pressure Poisson/SIMPLE-PISO coupling, persistent face flux, Rhie–Chow coefficient from the momentum diagonal |
+| `src/fv` | persistent face flux, Rhie–Chow coefficient from the momentum diagonal |
 | `src/simulation` | output cadence, implicit time schemes |
-| `src/solvers` | `saturnCFDSolver` tool, Neumann BC, vector Burgers; 1D/2D/3D CLI/YAML done |
-| `src/config` | `boundary` and `fields` schemas; `saturnBurger` supplies its own schema |
-| `src/linalg` | FV Poisson matrix assembly, block/multi-RHS, fieldsplit/Schur |
+| `src/solvers` | `saturnStokes` coupled saddle-point implementation (3D core + 2D/3D examples), `saturnCFDSolver` tool, Neumann BC, vector Burgers |
+| `src/config` | `boundary` and `fields` schemas; `saturnBurger` and `saturnHeat` supply their own schemas |
+| `src/linalg` | FV matrix assembly, coupled saddle-point/fieldsplit, block/multi-RHS |
 | `src/io` | CSV diagnostics, run manifest |
 | `tests/parallel` | cross-run 1/2/4-rank equality, GPU execution on a CUDA host |
 | `benchmarks` | halo/stencil strong/weak scaling harness |
@@ -116,7 +119,7 @@ Navier–Stokes. The list below is the repository build-out order.
      divergence theorem on a sheared mesh.
    - Done: simplified Rhie–Chow flux; zero for a linear pressure, suppresses
      a checkerboard pressure.
-   - Next: pressure Poisson/SIMPLE-PISO with PETSc.
+   - Next: coupled saddle-point/FV matrix assembly with PETSc.
    - Next: persistent face flux and the momentum-diagonal Rhie–Chow
      coefficient.
    - Done: CUDA build and `saturnBurger` tests on the Quadro P620.
@@ -186,7 +189,7 @@ Then Phase 2: Burgers physics and the `traveling64` analytic regression.
   5.733e-3/1.112e-3/2.425e-4 at 32^2/64^2/128^2 (orders 2.37/2.20);
   `ctest --preset solver` passes on 1/2/4 ranks, including restart.
 - Pending: FV Poisson matrix assembly, implicit BE/CN/BDF2 and vector Burgers.
-- Pending: pressure Poisson/SIMPLE-PISO with PETSc.
+- Pending: coupled saddle-point/FV matrix assembly with PETSc.
 - 1/2/4-rank *cross-run* results agree; a CUDA build reproduces the CPU
   reference within precision.
 - `mpirun -np 1` GPU runs the halo/stencil benchmark.
