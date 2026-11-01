@@ -14,7 +14,9 @@ cmake --build buildCPU --target doctor
 ```
 
 `requirements.toml` lists the tools and minimum versions. Missing optional
-tools (docs/editor/GPU) do not fail the check; missing core tools do. Kokkos,
+tools (docs/editor/GPU) do not fail the check; missing core tools do.
+`--install` installs PETSc, installs `nvcc` only if an NVIDIA GPU is detected,
+and compiles missing Kokkos into `~/.local/kokkos-cpu`/`kokkos-cuda`.
 yaml-cpp and doctest are fetched by CMake. See
 [`requirements.md`](requirements.md).
 

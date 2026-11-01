@@ -579,8 +579,9 @@ cmake --build buildCPU --target doctor
       \begin{itemize}
         \item \texttt{requirements.toml} lists core, docs, editor and GPU
               tools with minimum versions.
-        \item Kokkos 4.7.04, yaml-cpp 0.8 and doctest 2.4.11 are fetched and
-              compiled by CMake.
+        \item \texttt{checkRequirements.py --install}: PETSc, CUDA toolkit on
+              NVIDIA hosts, and missing Kokkos builds.
+        \item yaml-cpp 0.8 and doctest 2.4.11 are fetched by CMake.
         \item Missing optional tools are reported, not fatal.
       \end{itemize}
     \end{column}

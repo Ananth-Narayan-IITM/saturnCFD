@@ -17,7 +17,10 @@ Kokkos backend at configure time.
 
 The GPU build needs an installed **CUDA-enabled Kokkos** because the C++
 compiler must be Kokkos' `nvcc_wrapper`. The OpenMP-only Kokkos install is not
-enough.
+enough. `tools/checkRequirements.py --install` detects an NVIDIA GPU, installs
+`nvcc` from `nvidia-cuda-toolkit`, and compiles Kokkos into
+`~/.local/kokkos-cuda` when it is missing. The manual build below is the
+explicit alternative.
 
 Example for a Quadro P620 (`PASCAL61`), using the Kokkos source already fetched
 by the CPU build:

@@ -80,6 +80,243 @@ def version_text(value) -> str:
     return ".".join(str(part) for part in value)
 
 
+
+
+_NVIDIA_GPU = None
+
+
+def has_nvidia_gpu() -> bool:
+    global _NVIDIA_GPU
+    if _NVIDIA_GPU is not None:
+        return _NVIDIA_GPU
+
+    smi = shutil.which("nvidia-smi")
+    if smi:
+        try:
+            proc = subprocess.run(
+                [smi, "-L"], capture_output=True, text=True, timeout=10,
+                check=False
+            )
+            if proc.returncode == 0 and proc.stdout.strip():
+                _NVIDIA_GPU = True
+                return True
+        except (OSError, subprocess.SubprocessError):
+            pass
+
+    lspci = shutil.which("lspci")
+    if lspci:
+        try:
+            proc = subprocess.run(
+                [lspci], capture_output=True, text=True, timeout=10, check=False
+            )
+            if "nvidia" in ((proc.stdout or "") + (proc.stderr or "")).lower():
+                _NVIDIA_GPU = True
+                return True
+        except (OSError, subprocess.SubprocessError):
+            pass
+
+    devices = Path("/sys/bus/pci/devices")
+    if devices.is_dir():
+        for vendor in devices.glob("*/vendor"):
+            try:
+                if vendor.read_text().strip().lower() == "0x10de":
+                    _NVIDIA_GPU = True
+                    return True
+            except OSError:
+                pass
+
+    _NVIDIA_GPU = False
+    return False
+
+
+def requirement_applies(req: dict) -> bool:
+    condition = req.get("condition")
+    if condition == "nvidia-gpu":
+        return has_nvidia_gpu()
+    return True
+
+
+def kokkos_settings(data: dict) -> dict:
+    cfg = data.get("kokkos", {})
+    return {
+        "version": cfg.get("version", "4.7.04"),
+        "cpu_prefix": Path(os.path.expanduser(
+            cfg.get("cpu_prefix", "~/.local/kokkos-cpu"))),
+        "cuda_prefix": Path(os.path.expanduser(
+            cfg.get("cuda_prefix", "~/.local/kokkos-cuda"))),
+        "source_cache": Path(os.path.expanduser(
+            cfg.get("source_cache", "~/.cache/saturnCFD/kokkos"))),
+    }
+
+
+def kokkos_config(prefix: Path):
+    for libdir in ("lib", "lib64", "share"):
+        config = prefix / libdir / "cmake" / "Kokkos" / "KokkosConfig.cmake"
+        if config.is_file():
+            return config
+    return None
+
+
+def find_kokkos(prefixes, want_cuda: bool):
+    for prefix in prefixes:
+        config = kokkos_config(prefix)
+        if config is None:
+            continue
+        header = prefix / "include" / "kokkos" / "KokkosCore_config.h"
+        if not header.is_file():
+            header = prefix / "include" / "KokkosCore_config.h"
+        text = header.read_text(errors="ignore") if header.is_file() else ""
+        has_cuda = "KOKKOS_ENABLE_CUDA" in text
+        has_openmp = "KOKKOS_ENABLE_OPENMP" in text
+        has_serial = "KOKKOS_ENABLE_SERIAL" in text
+        if want_cuda and not has_cuda:
+            continue
+        if not want_cuda and not has_openmp:
+            continue
+        return prefix
+    return None
+
+
+def report_kokkos(data: dict):
+    cfg = kokkos_settings(data)
+    gpu = has_nvidia_gpu()
+    root = os.environ.get("KOKKOS_ROOT")
+    cpu_candidates = []
+    if root:
+        cpu_candidates.append(Path(os.path.expanduser(root)))
+    cpu_candidates += [cfg["cpu_prefix"], Path.home() / ".local",
+                       Path("/usr/local"), Path("/usr")]
+    cuda_candidates = []
+    if root:
+        cuda_candidates.append(Path(os.path.expanduser(root)))
+    cuda_candidates += [cfg["cuda_prefix"]]
+
+    cpu = find_kokkos(cpu_candidates, want_cuda=False)
+    cuda = find_kokkos(cuda_candidates, want_cuda=True) if gpu else None
+
+    print()
+    print("Kokkos:")
+    if cpu:
+        print(f"  [OK     ] kokkos-cpu  {cpu}")
+    else:
+        print("  [MISSING] kokkos-cpu")
+    if gpu:
+        if cuda:
+            print(f"  [OK     ] kokkos-cuda {cuda}")
+        else:
+            print("  [MISSING] kokkos-cuda")
+    else:
+        print("  [SKIP   ] kokkos-cuda (no NVIDIA GPU)")
+
+    missing = []
+    if cpu is None:
+        missing.append("kokkos-cpu")
+    if gpu and cuda is None:
+        missing.append("kokkos-cuda")
+    return missing
+
+
+def kokkos_source(data: dict, install: bool):
+    cfg = kokkos_settings(data)
+    candidates = [
+        ROOT / "buildCPU" / "_deps" / "kokkos-src",
+        ROOT / "buildGPU" / "_deps" / "kokkos-src",
+        cfg["source_cache"],
+    ]
+    for candidate in candidates:
+        if (candidate / "CMakeLists.txt").is_file():
+            return candidate
+    if not install:
+        return None
+
+    cache = cfg["source_cache"]
+    if cache.exists():
+        shutil.rmtree(cache)
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    print(f"Cloning Kokkos {cfg['version']} into {cache}")
+    try:
+        subprocess.run(
+            ["git", "clone", "--depth", "1", "--branch", cfg["version"],
+             "https://github.com/kokkos/kokkos.git", str(cache)],
+            check=True,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        print(f"error: cannot clone Kokkos: {exc}", file=sys.stderr)
+        return None
+    return cache
+
+
+def build_kokkos(source: Path, prefix: Path, cuda: bool, version: str) -> bool:
+    if not source:
+        return False
+    source = source.resolve()
+    if not (source / "CMakeLists.txt").is_file():
+        return False
+    build = Path.home() / ".cache" / "saturnCFD" / (
+        "build-kokkos-cuda" if cuda else "build-kokkos-cpu")
+    if build.exists():
+        shutil.rmtree(build)
+    prefix.mkdir(parents=True, exist_ok=True)
+
+    command = [
+        "cmake", "-S", str(source), "-B", str(build),
+        "-DCMAKE_BUILD_TYPE=Release",
+        f"-DCMAKE_INSTALL_PREFIX={prefix}",
+        "-DKokkos_ENABLE_TESTS=OFF",
+        "-DKokkos_ENABLE_EXAMPLES=OFF",
+    ]
+    if cuda:
+        wrapper = source / "bin" / "nvcc_wrapper"
+        if not wrapper.is_file() or shutil.which("nvcc") is None:
+            print("error: CUDA Kokkos needs nvcc and the Kokkos nvcc_wrapper",
+                  file=sys.stderr)
+            return False
+        command += [
+            "-DKokkos_ENABLE_CUDA=ON",
+            "-DKokkos_ENABLE_CUDA_LAMBDA=ON",
+            "-DKokkos_ENABLE_OPENMP=OFF",
+            "-DKokkos_ENABLE_SERIAL=ON",
+            "-DKokkos_ARCH_NATIVE=ON",
+            f"-DCMAKE_CXX_COMPILER={wrapper}",
+        ]
+    else:
+        command += [
+            "-DKokkos_ENABLE_CUDA=OFF",
+            "-DKokkos_ENABLE_OPENMP=ON",
+            "-DKokkos_ENABLE_SERIAL=ON",
+        ]
+
+    print(f"Building Kokkos {version} ({'CUDA' if cuda else 'OpenMP'}) -> {prefix}")
+    try:
+        subprocess.run(command, check=True)
+        subprocess.run(["cmake", "--build", str(build), "-j"], check=True)
+        subprocess.run(["cmake", "--install", str(build)], check=True)
+    except (OSError, subprocess.SubprocessError) as exc:
+        print(f"error: Kokkos build failed: {exc}", file=sys.stderr)
+        return False
+    return True
+
+
+def ensure_kokkos(data: dict, install: bool, core_only: bool) -> None:
+    if not install:
+        return
+    missing = report_kokkos(data)
+    if not missing:
+        return
+    cfg = kokkos_settings(data)
+    source = kokkos_source(data, install=True)
+    if source is None:
+        print("error: no Kokkos source available to compile", file=sys.stderr)
+        return
+
+    if "kokkos-cpu" in missing:
+        build_kokkos(source, cfg["cpu_prefix"], cuda=False,
+                     version=cfg["version"])
+    if "kokkos-cuda" in missing and has_nvidia_gpu() and not core_only:
+        build_kokkos(source, cfg["cuda_prefix"], cuda=True,
+                     version=cfg["version"])
+    report_kokkos(data)
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Check saturnCFD host requirements from requirements.toml"
@@ -134,6 +371,13 @@ def main() -> int:
         req_id = req.get("id", req.get("command", "?"))
         required = bool(req.get("required", False))
         group = req.get("group", "core")
+        if not requirement_applies(req):
+            print(
+                f"[{'SKIP':7}] {req_id:14} {'-':12} {'-':10} "
+                f"{group:7} {'optional':8} {req.get('purpose', '')} "
+                "(condition not met)"
+            )
+            continue
         minimum = parse_version(req.get("min_version", "0"), r"(\d+(?:\.\d+)*)")
         status, found, detail = run_requirement(req, default_regex)
 
@@ -190,6 +434,9 @@ def main() -> int:
                 f"{item.get('source', '')}"
             )
 
+    kokkos_missing = report_kokkos(data)
+    optional_missing.extend(kokkos_missing)
+
     notes = data.get("notes", [])
     if notes:
         print()
@@ -205,27 +452,28 @@ def main() -> int:
     if optional_missing:
         print(f"Optional missing/outdated: {', '.join(sorted(set(optional_missing)))}")
 
-    if args.install and missing_apt:
+    if args.install:
         packages = sorted(set(missing_core_apt if args.core_only else missing_apt))
-        if not packages:
-            print("\nNo missing core apt packages to install.")
-            return 1 if failures else 0
-        command = ["apt-get", "install", "-y"] + packages
-        if os.geteuid() != 0:
-            if shutil.which("sudo") is None:
-                print("\nerror: sudo is not available; install packages manually", file=sys.stderr)
+        if packages:
+            command = ["apt-get", "install", "-y"] + packages
+            if os.geteuid() != 0:
+                if shutil.which("sudo") is None:
+                    print("\nerror: sudo is not available; install packages manually", file=sys.stderr)
+                    return 1
+                command = ["sudo"] + command
+            print("\nInstalling apt packages: " + " ".join(packages))
+            try:
+                update = (["sudo", "apt-get", "update"]
+                          if os.geteuid() != 0 else ["apt-get", "update"])
+                subprocess.run(update, check=False)
+                subprocess.run(command, check=False)
+            except (OSError, subprocess.SubprocessError) as exc:
+                print(f"error: package installation failed: {exc}", file=sys.stderr)
                 return 1
-            command = ["sudo"] + command
-        print("\nInstalling apt packages: " + " ".join(packages))
-        try:
-            subprocess.run(["sudo", "apt-get", "update"] if os.geteuid() != 0 else ["apt-get", "update"], check=False)
-            subprocess.run(command, check=False)
-        except (OSError, subprocess.SubprocessError) as exc:
-            print(f"error: package installation failed: {exc}", file=sys.stderr)
-            return 1
-        print("Re-run this checker after installation.")
-    elif args.install:
-        print("\nNo missing apt packages to install.")
+        else:
+            print("\nNo missing apt packages to install.")
+
+        ensure_kokkos(data, install=True, core_only=args.core_only)
 
     if failures:
         return 1

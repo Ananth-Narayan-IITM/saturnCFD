@@ -54,13 +54,15 @@ Check the host before a clean build:
 
 ```bash
 python3 tools/checkRequirements.py
-python3 tools/checkRequirements.py --install   # apt packages when missing
+python3 tools/checkRequirements.py --install   # PETSc, CUDA, Kokkos
 cmake --build buildCPU --target doctor         # same check through CMake
 ```
 
 `requirements.toml` lists core, docs, editor and GPU tools with minimum
-versions. Kokkos, yaml-cpp and doctest are fetched and compiled by CMake.
-Details: [`docs/guides/requirements.md`](docs/guides/requirements.md).
+versions. `--install` installs PETSc, installs `nvcc` only when an NVIDIA GPU
+is present, and compiles Kokkos into `~/.local/kokkos-cpu`/`kokkos-cuda` when
+missing. yaml-cpp and doctest are fetched by CMake. Details:
+[`docs/guides/requirements.md`](docs/guides/requirements.md).
 
 ## Build and test
 

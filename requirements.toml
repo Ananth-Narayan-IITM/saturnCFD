@@ -180,13 +180,15 @@ min_version = "11.0"
 version_regex = 'release (\d+\.\d+)'
 required = false
 group = "gpu"
-apt = ""
-purpose = "Optional CUDA backend (buildGPU)"
+condition = "nvidia-gpu"
+apt = "nvidia-cuda-toolkit"
+purpose = "CUDA backend (buildGPU); installed only when an NVIDIA GPU is present"
 
-[[fetched]]
-id = "kokkos"
+[kokkos]
 version = "4.7.04"
-source = "FetchContent"
+cpu_prefix = "~/.local/kokkos-cpu"
+cuda_prefix = "~/.local/kokkos-cuda"
+source_cache = "~/.cache/saturnCFD/kokkos"
 purpose = "CPU/GPU fields and kernels"
 
 [[fetched]]
@@ -202,9 +204,11 @@ source = "FetchContent or system"
 purpose = "Test framework"
 
 notes = [
-  "Kokkos, yaml-cpp and doctest are fetched and compiled by CMake; network access is required on a clean build.",
-  "The CPU preset uses OpenMP; the GPU preset needs a CUDA-enabled Kokkos and nvcc.",
-  "PETSc is required for saturnLinAlg and the implicit diffusion solve.",
+  "PETSc is installed from apt when missing and is required for saturnLinAlg and implicit diffusion.",
+  "nvcc (nvidia-cuda-toolkit) is installed from apt only when an NVIDIA GPU is detected.",
+  "Kokkos is checked in ~/.local/kokkos-cpu and ~/.local/kokkos-cuda; --install compiles it from source when missing.",
+  "The CPU build uses OpenMP Kokkos; the GPU build needs the CUDA Kokkos at KOKKOS_ROOT.",
+  "yaml-cpp and doctest are fetched by CMake; network access is required on a clean build.",
   "docs and editor tools are optional for a minimal build but needed for the default docs/format workflow.",
-  "Run python3 tools/checkRequirements.py --install to install missing apt packages."
+  "Run python3 tools/checkRequirements.py --install to install apt packages and missing Kokkos."
 ]
