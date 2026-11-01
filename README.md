@@ -1,6 +1,6 @@
 # saturnCFD v1
 
-<img src="docs/logo/saturnCFD.svg" alt="saturnCFD" width="150" align="right">
+<img src="docs/logo/saturnCFD.svg" alt="saturnCFD" width="300" align="right">
 
 A rewrite of saturnCFD as a structured hexahedral finite-volume solver:
 scalar transport (Burgers, heat), Stokes and incompressible Navier–Stokes,

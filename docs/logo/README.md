@@ -1,60 +1,88 @@
 # saturnCFD logo
 
-`saturnCFD.svg` is the project mark. `saturnCFD.png` (1024 px) and
-`saturnCFD.pdf` (vector) are exports for places that cannot use SVG.
+The primary mark is a compact, transparent terminal-style lockup:
+
+```text
+[ Saturn ]   > saturnCFD
+```
+
+`saturnCFD.svg` is the **light/default** version (black Saturn, black
+`saturn`, dark-green rings and `CFD`), and `saturnCFD-dark.svg` is the
+**terminal/dark** version (black Saturn, green rings, white `saturn`,
+bright-green `CFD`). Both SVGs have transparent backgrounds.
 
 ## Design
 
-- A navy Saturn disc with a fine amber rim and fine concentric amber rings.
-- The mark has **no background panel**, so the same files work on light and
-  dark pages: on light backgrounds the navy sphere defines the shape; on dark
-  backgrounds the amber rim, rings and cream wordmark carry it.
-- The wordmark **CFD** sits in the lower gap between the planet and the front
-  ring. The front ring crosses the top of the letters, so the word peeks out
-  from under the ring without becoming unreadable.
-- A small hexagonal polar vortex sits near the pole, drawn as a subtle amber
-  line so it adds identity without competing with the wordmark.
+- Terminal palette: black, green and white; the wordmark is preceded by a
+  green `>` prompt.
+- The wordmark is `saturnCFD` in **JetBrains Mono Bold**, outlined to paths so
+  no font installation is required.
+- The ring is a dense set of fine green lines that wraps the whole planet:
+  back rings are visible behind the planet and the front half crosses it.
+- The planet is black in both versions and keeps the simple round silhouette
+  with a thin ring-colour rim.
+- Compact 800 x 300 canvas with a small emblem-to-text gap.
+- No trailing cursor; `>` is the prompt.
 
-Light and dark previews:
+### Light version
+
+| element | colour |
+|---|---|
+| Saturn | black `#111111` |
+| rings, `>`, `CFD` | dark terminal green `#0B7A3B` |
+| `saturn` | black `#111111` |
+| background | transparent (white pages) |
+
+### Dark terminal version
+
+| element | colour |
+|---|---|
+| Saturn | black |
+| rings, `>`, `CFD` | terminal green `#00E676` |
+| `saturn` | terminal white `#E6E6E6` |
+| background | transparent (black terminal pages) |
+
+`saturn` is white in the dark version only because black would disappear on a
+black terminal background. The black planet is defined by the green rim and
+the ring lines that cross it.
+
+## Preview
 
 <table>
 <tr>
-<td><img src="saturnCFD-on-light.png" width="240" alt="saturnCFD on light"></td>
-<td><img src="saturnCFD-on-dark.png" width="240" alt="saturnCFD on dark"></td>
+<td><img src="saturnCFD-on-light.png" width="360" alt="saturnCFD on light"></td>
+<td><img src="saturnCFD-on-dark.png" width="360" alt="saturnCFD on dark"></td>
 </tr>
 </table>
-
-The mark uses exactly three base colours, with opacity variants only:
-
-| role | colour |
-|---|---|
-| planet, dark contrast | navy `#0D1B2A` |
-| wordmark, atmosphere | cream `#F2E7D0` |
-| rings, rim, vortex | amber `#D89A3A` |
-
-There are no stars, suns or other decorative objects.
 
 ## Usage
 
 ```html
-<img src="docs/logo/saturnCFD.svg" alt="saturnCFD" width="160">
+<!-- light page -->
+<img src="docs/logo/saturnCFD.svg" alt="saturnCFD" width="320">
+
+<!-- black/dark page -->
+<img src="docs/logo/saturnCFD-dark.svg" alt="saturnCFD" width="320">
 ```
 
-In LaTeX:
+In LaTeX, use the vector PDF:
 
 ```latex
-\includegraphics[width=3cm]{saturnCFD.pdf}
+\includegraphics[width=8cm]{saturnCFD.pdf}
 ```
 
-Keep clear space around the mark of at least the width of the outer ring. Do
-not recolour, outline, stretch or crop the mark.
+Keep clear space around the lockup of at least one planet radius. Do not
+recolour, stretch or crop the mark.
 
 ## Files
 
 ```text
-saturnCFD.svg             editable vector source (transparent background)
-saturnCFD.png             1024 px transparent preview
-saturnCFD.pdf             vector export for slides and print
-saturnCFD-on-light.png    512 px preview on white
-saturnCFD-on-dark.png     512 px preview on the logo navy
+saturnCFD.svg             light/default lockup (transparent)
+saturnCFD-dark.svg        terminal/dark lockup (transparent)
+saturnCFD-light.svg       explicit light copy of the default
+saturnCFD.png             light lockup preview (transparent, 1200 x 450)
+saturnCFD.pdf             light vector export
+saturnCFD-on-light.png    600 x 225 preview on white
+saturnCFD-on-dark.png     600 x 225 preview on black
+saturnCFD-preview.png     stacked light/dark preview
 ```

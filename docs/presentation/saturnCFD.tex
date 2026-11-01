@@ -37,15 +37,9 @@
 \begin{document}
 
 \begin{frame}
-  \begin{columns}[c]
-    \begin{column}{0.24\textwidth}
-      \centering
-      \includegraphics[width=\linewidth]{../logo/saturnCFD.pdf}
-    \end{column}
-    \begin{column}{0.72\textwidth}
-      \titlepage
-    \end{column}
-  \end{columns}
+  \centering
+  \includegraphics[width=0.44\textwidth]{../logo/saturnCFD.pdf}\\[0.25em]
+  \titlepage
 \end{frame}
 
 \begin{frame}{Outline}
@@ -253,7 +247,7 @@ time:
         \item 26-neighbour exchange: faces, edges, corners.
       \end{itemize}
     \end{column}
-    \begin{column}{0.42\textwidth}
+    \begin{column}{0.34\textwidth}
       \begin{block}{Shared face, not shared cell}
         Both ranks compute the same face flux from the same valid/ghost pair.
         Each rank updates only its own cell. No double counting.
@@ -481,7 +475,7 @@ time:
     \begin{column}{0.55\textwidth}
       \includegraphics[width=\textwidth]{burgers3DValidation.png}
     \end{column}
-    \begin{column}{0.42\textwidth}
+    \begin{column}{0.34\textwidth}
       \begin{itemize}
         \item 3D conservative flux F(u)=(u$^2$/2,u$^2$/2,u$^2$/2).
         \item Exact diagonal plane wave.
