@@ -5,19 +5,32 @@
 
 ## Design
 
-- A cream Saturn disc on a deep-navy rounded badge.
-- Amber rings, drawn behind the planet and again in front of it.
-- A hexagonal polar vortex with swirl arms, in navy and amber linework.
-- The wordmark **CFD** runs diagonally across the planet and sits behind the
-  front rings, so the rings cross the letters without hiding the word.
+- A navy Saturn disc with a fine amber rim and fine concentric amber rings.
+- The mark has **no background panel**, so the same files work on light and
+  dark pages: on light backgrounds the navy sphere defines the shape; on dark
+  backgrounds the amber rim, rings and cream wordmark carry it.
+- The wordmark **CFD** sits in the lower gap between the planet and the front
+  ring. The front ring crosses the top of the letters, so the word peeks out
+  from under the ring without becoming unreadable.
+- A small hexagonal polar vortex sits near the pole, drawn as a subtle amber
+  line so it adds identity without competing with the wordmark.
+
+Light and dark previews:
+
+<table>
+<tr>
+<td><img src="saturnCFD-on-light.png" width="240" alt="saturnCFD on light"></td>
+<td><img src="saturnCFD-on-dark.png" width="240" alt="saturnCFD on dark"></td>
+</tr>
+</table>
 
 The mark uses exactly three base colours, with opacity variants only:
 
 | role | colour |
 |---|---|
-| badge, wordmark, vortex linework | navy `#0E1B2C` |
-| planet | cream `#F2E5C6` |
-| rings, cloud bands, vortex arms | amber `#D08B2E` |
+| planet, dark contrast | navy `#0D1B2A` |
+| wordmark, atmosphere | cream `#F2E7D0` |
+| rings, rim, vortex | amber `#D89A3A` |
 
 There are no stars, suns or other decorative objects.
 
@@ -33,13 +46,15 @@ In LaTeX:
 \includegraphics[width=3cm]{saturnCFD.pdf}
 ```
 
-Keep clear space around the badge of at least the corner radius. Do not
-recolour the mark, stretch it, or place the wordmark outside the planet.
+Keep clear space around the mark of at least the width of the outer ring. Do
+not recolour, outline, stretch or crop the mark.
 
 ## Files
 
 ```text
-saturnCFD.svg    editable vector source
-saturnCFD.png    1024 px raster preview
-saturnCFD.pdf    vector export for slides and print
+saturnCFD.svg             editable vector source (transparent background)
+saturnCFD.png             1024 px transparent preview
+saturnCFD.pdf             vector export for slides and print
+saturnCFD-on-light.png    512 px preview on white
+saturnCFD-on-dark.png     512 px preview on the logo navy
 ```
