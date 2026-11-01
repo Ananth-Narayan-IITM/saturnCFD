@@ -435,11 +435,13 @@ void printTopic(const std::string& topic) {
            "validates. Unknown keys are errors. -dumpConfig generates the\n"
            "template from the same registration that reads the case.\n\n"
            "output.vtkEvery: N writes <prefix>_<step>.vtu frames and a\n"
-           "<prefix>.pvd ParaView collection; 0 disables it.\n";
+           "<prefix>.pvd ParaView collection; 0 disables it.\n"
+           "output.checkpointEvery: N writes <prefix>_<step>.chk;\n"
+           "restart.file resumes from one.\n";
   } else if (topic == "solvers") {
     std::cout
         << "solvers\n\n"
-           "Registered: saturnBurger (1D/2D scalar Burgers). The 3D\n"
+           "Registered: saturnBurger (1D/2D/3D scalar Burgers). The 3D\n"
            "extension, then heat, stokes and incompressible follow. A user\n"
            "solver is a copy under src/solvers/saturn<Name> with a\n"
            "saturn<Name> target. Use -dumpConfig saturnBurger for its YAML.\n";
