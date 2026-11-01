@@ -65,9 +65,9 @@ ConfigSchema stokesSchema() {
               Dimension::Velocity);
   s.addBool("stokes.periodicY", false,
             "periodic y boundaries (MMS only); otherwise walls");
-  s.addEnum("stokes.linearSolver", "direct", {"direct", "fieldsplit"},
-            "coupled PETSc linear solve: direct LU for validation, "
-            "fieldsplit/Schur for production (being tuned)");
+  s.addEnum("stokes.linearSolver", "fieldsplit", {"direct", "fieldsplit"},
+            "coupled PETSc linear solve: fieldsplit/Schur by default "
+            "(O(N) memory), direct LU for validation or very high memory");
   s.addDouble("stokes.stabilization", 1.0,
               "pressure-stabilisation factor (0 disables)");
   return s;

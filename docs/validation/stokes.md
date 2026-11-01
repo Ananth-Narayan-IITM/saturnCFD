@@ -2,8 +2,9 @@
 
 **Status:** implemented for 2D and 3D on 1/2/4 MPI ranks. Results below are measured.
 
-Solver: `saturnStokes`, coupled pressure–velocity saddle-point formulation with
-PETSc fieldsplit/Schur. Theory:
+Solver: `saturnStokes`, coupled pressure–velocity saddle-point formulation.
+`fieldsplit`/Schur is the default linear solve; `direct` is the validation
+reference. Theory:
 [`../theory/stokes.md`](../theory/stokes.md) and
 [`../theory/coupledSaddlePoint.md`](../theory/coupledSaddlePoint.md).
 

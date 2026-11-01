@@ -52,12 +52,12 @@ The derivation, collocated pressure-Laplacian stabilisation, PETSc
 fieldsplit/Schur preconditioner and Navier–Stokes extension are in
 [`coupledSaddlePoint.md`](coupledSaddlePoint.md).
 
-The reference path uses PETSc's coupled direct LU
+`stokes.linearSolver` defaults to `fieldsplit`, which needs only `O(N)`
+memory. The validation reference uses PETSc's coupled direct LU
 (`stokes.linearSolver: direct`), preferring SuperLU_DIST when the PETSc build
-provides it. Fieldsplit/Schur (`stokes.linearSolver: fieldsplit`) is the
-intended production default because it needs only `O(N)` memory; it is being
-tuned before the schema default changes. Direct LU is retained for validation
-and for users with enough memory.
+provides it. Direct LU is retained for validation and for users with enough
+memory. The fieldsplit path currently passes 3D on 1/2/4 ranks and 2D on 1/2
+ranks; the 2D four-rank Schur case is the next tuning target.
 SIMPLE and SIMPLEC are deliberately not the Stokes default; they remain an
 optional segregated path for incompressible Navier–Stokes.
 

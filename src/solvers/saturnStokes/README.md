@@ -49,12 +49,13 @@ src/solvers/saturnStokes/
   is split along `x`; on `y`/`z` splits they disagree with the DA global
   ordering. The fieldsplit index sets are built from the matrix block owner
   range for the same reason.
-- The validation core uses `stokes.linearSolver: direct` (PETSc
-  `preonly` + `lu`, preferring SuperLU_DIST when available; MUMPS can report a
-  false zero pivot on small multi-periodic saddle-point systems). The
-  `fieldsplit` option configures FGMRES with a Schur fieldsplit
-  (`selfp` + ILU) and is being tuned for production; it currently passes 3D on
-  1/2/4 ranks and 2D on 1/2 ranks.
+- `stokes.linearSolver` defaults to `fieldsplit` (FGMRES + `selfp` Schur +
+  ILU), which needs only `O(N)` memory. `direct` selects PETSc
+  `preonly` + `lu` (SuperLU_DIST when available; MUMPS can report a false zero
+  pivot on small multi-periodic saddle-point systems) and is retained for
+  validation or users with enough memory. The fieldsplit path currently
+  passes 3D on 1/2/4 ranks and 2D on 1/2 ranks; the 2D four-rank Schur setup
+  needs a pressure-nullspace treatment in the next tuning step.
 - 2D cases use the 3D core with `nz = 1`; `w` is constrained to zero.
 - 2D runs on 1/2/4 ranks and 3D on 1/2/4 ranks; the 3D tests no longer skip
   multi-rank runs.
