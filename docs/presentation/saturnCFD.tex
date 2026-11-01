@@ -431,7 +431,8 @@ time:
   \begin{block}{Output and validation}
     One VTU per case contains all four fields \texttt{u,v,w,p}; the example
     script validates both Poiseuille and Couette and draws 2D fields or 3D
-    slice contours. PETSc direct LU is used for this validation slice;
+    velocity-profile surfaces (numerical, analytic, error). PETSc direct LU is
+    used for this validation slice;
     fieldsplit/Schur and 3D multi-rank assembly are the next tuning targets.
   \end{block}
 \end{frame}

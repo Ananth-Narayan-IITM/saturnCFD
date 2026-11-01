@@ -185,7 +185,8 @@ CTest and ship independent `compareAnalytic.py` scripts.
 - **Examples:** `examples/saturnStokes/saturnStokes2D` and `saturnStokes3D`
   each ship independent `compareAnalytic.py` scripts that validate both
   Poiseuille and Couette, write a combined `summary.txt`, and draw 2D fields
-  or 3D slice contours. `output.vtkEvery: 1` writes one `.vtu` with
+  or 3D velocity-profile surfaces (numerical, analytic, error).
+  `output.vtkEvery: 1` writes one `.vtu` with
   `u,v,w,p`.
 
 The coupled direct PETSc solve is used for the validation core. The

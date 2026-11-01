@@ -104,7 +104,7 @@ python3 compareAnalytic.py       # validates both, writes summary.txt
 cd ../saturnStokes3D
 saturnCFD poiseuille.yaml
 saturnCFD couette.yaml
-python3 compareAnalytic.py       # 3D slice contours + summary
+python3 compareAnalytic.py       # 3D profile surfaces + summary
 
 ctest --preset solver
 ```
@@ -112,7 +112,8 @@ ctest --preset solver
 With `output.vtkEvery: 1`, each case writes one `.vtu` containing `u`, `v`,
 `w` and `p` for ParaView. The comparison script plots the numerical field,
 analytic field, error and averaged profile; the 3D version uses colored
-orthogonal slices with analytic reference.
+velocity-profile surfaces for the numerical solution, the analytic solution
+and their error.
 
 ## 7. Observations
 

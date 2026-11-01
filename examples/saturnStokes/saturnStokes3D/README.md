@@ -33,8 +33,8 @@ python3 compareAnalytic.py --case couette
 ```
 
 The script recomputes the analytic profile from the YAML, independent of the
-solver's exact column, validates both cases, and plots 3D colored slices of the
-numerical and analytic fields plus the averaged \(u(y)\) profile.
+solver's exact column, validates both cases, and plots the 3D velocity
+surfaces of the numerical and analytic solution plus the pointwise error.
 
 ## Expected result
 

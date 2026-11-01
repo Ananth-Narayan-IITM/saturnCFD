@@ -3,7 +3,7 @@
 
 Runs (or reuses) both Poiseuille and Couette cases, recomputes the exact profile
 from the YAML parameters, prints a combined error table, and draws either a 2D
-field comparison or a 3D slice-contour comparison.
+field comparison or 3D velocity-profile surfaces.
 
 Usage, from an example directory:
 
@@ -208,110 +208,83 @@ def plot_2d(m, out):
     plt.close(fig)
 
 
-def slice_2d(m, axis, target):
+def surface_grid(m, values, axis, target):
+    """Return X, Y, U for the plane m[axis] == target."""
     plane = np.isclose(m[axis], target)
     if axis == "z":
-        return to_grid(m["x"][plane], m["y"][plane], m["numerical"][plane]), \
-               to_grid(m["x"][plane], m["y"][plane], m["analytic"][plane]), \
-               to_grid(m["x"][plane], m["y"][plane], m["error"][plane])
-    if axis == "x":
-        return to_grid(m["y"][plane], m["z"][plane], m["numerical"][plane]), \
-               to_grid(m["y"][plane], m["z"][plane], m["analytic"][plane]), \
-               to_grid(m["y"][plane], m["z"][plane], m["error"][plane])
-    return to_grid(m["x"][plane], m["z"][plane], m["numerical"][plane]), \
-           to_grid(m["x"][plane], m["z"][plane], m["analytic"][plane]), \
-           to_grid(m["x"][plane], m["z"][plane], m["error"][plane])
+        a, b = m["x"][plane], m["y"][plane]
+    elif axis == "x":
+        a, b = m["z"][plane], m["y"][plane]
+    else:
+        a, b = m["x"][plane], m["z"][plane]
+    au, bu, grid = to_grid(a, b, values[plane])
+    A, B = np.meshgrid(au, bu, indexing="ij")
+    return au, bu, A, B, grid
 
 
-def draw_3d_slices(ax, x, y, z, values, x1, x2, norm, levels, title):
-    del levels
-    cmap = plt.get_cmap("viridis")
-    for x_slice in (x1, x2):
-        plane = np.isclose(x, x_slice)
-        yu, zu, grid_yz = to_grid(y[plane], z[plane], values[plane])
-        Y, Z = np.meshgrid(yu, zu, indexing="ij")
-        X = np.full_like(Y, x_slice)
-        ax.plot_surface(X, Y, Z, facecolors=cmap(norm(grid_yz)),
-                        rstride=1, cstride=1, shade=False,
-                        linewidth=0, antialiased=False)
+def draw_profile_surface(ax, m, values, cmap, norm, title, target=None,
+                         zlabel="u [m/s]", zlim=None):
+    target = midpoint(m["z"]) if target is None else target
+    xu, yu, X, Y, Z = surface_grid(m, values, "z", target)
+    ax.plot_surface(X, Y, Z, cmap=cmap, norm=norm, rstride=1, cstride=1,
+                    linewidth=0.15, edgecolor=(0, 0, 0, 0.12),
+                    antialiased=True, shade=False)
     ax.set_xlabel("x [m]")
     ax.set_ylabel("y [m]")
-    ax.set_zlabel("z [m]")
+    ax.set_zlabel(zlabel)
     ax.set_title(title)
-    ax.view_init(elev=28, azim=-58)
+    ax.view_init(elev=26, azim=-62)
+    ax.set_box_aspect((1.0, 1.0, 0.75))
+    ax.set_xlim(float(xu[0]), float(xu[-1]))
+    ax.set_ylim(float(yu[0]), float(yu[-1]))
+    if zlim is not None:
+        ax.set_zlim(*zlim)
     ax.grid(False)
-    ax.set_box_aspect((1, 1, 1))
-    ax.set_xlim(float(np.min(x)), float(np.max(x)))
-    ax.set_ylim(float(np.min(y)), float(np.max(y)))
-    ax.set_zlim(float(np.min(z)), float(np.max(z)))
+
 
 def plot_3d(m, out):
-    x, y, z = m["x"], m["y"], m["z"]
-    xmid, ymid, zmid = midpoint(x), midpoint(y), midpoint(z)
-    x_slice1, x_slice2 = midpoint(x, 0.25), midpoint(x, 0.75)
+    zmid = midpoint(m["z"])
     vmin = float(min(np.min(m["numerical"]), np.min(m["analytic"])))
     vmax = float(max(np.max(m["numerical"]), np.max(m["analytic"])))
+    if vmax - vmin < 1e-14:
+        vmax = vmin + 1e-14
     norm = Normalize(vmin=vmin, vmax=vmax)
-    levels = np.linspace(vmin, vmax, 24)
+    emax = float(np.max(np.abs(m["error"])))
+    if emax < 1e-30:
+        emax = 1e-30
+    enorm = Normalize(vmin=-emax, vmax=emax)
 
-    fig = plt.figure(figsize=(12.5, 10.0))
-    ax_num = fig.add_subplot(2, 2, 1, projection="3d")
-    ax_exact = fig.add_subplot(2, 2, 2, projection="3d")
-    draw_3d_slices(ax_num, x, y, z, m["numerical"], x_slice1, x_slice2,
-                   norm, levels, "saturnStokes (slices)")
-    draw_3d_slices(ax_exact, x, y, z, m["analytic"], x_slice1, x_slice2,
-                   norm, levels, "analytic (slices)")
+    fig = plt.figure(figsize=(15.5, 5.6))
+    ax_num = fig.add_subplot(1, 3, 1, projection="3d")
+    ax_exact = fig.add_subplot(1, 3, 2, projection="3d")
+    ax_error = fig.add_subplot(1, 3, 3, projection="3d")
+
+    draw_profile_surface(ax_num, m, m["numerical"], "viridis", norm,
+                         "saturnStokes", zmid)
+    draw_profile_surface(ax_exact, m, m["analytic"], "viridis", norm,
+                         "analytic", zmid)
+    draw_profile_surface(ax_error, m, m["error"], "RdBu_r", enorm,
+                         "error (numerical - analytic)", zmid,
+                         zlabel="error [m/s]", zlim=(-1.05 * emax, 1.05 * emax))
 
     sm = ScalarMappable(norm=norm, cmap="viridis")
     sm.set_array([])
     cbar = fig.colorbar(sm, ax=[ax_num, ax_exact], orientation="horizontal",
-                        fraction=0.035, pad=0.03, shrink=0.55)
+                        fraction=0.04, pad=0.02, shrink=0.7)
     cbar.set_label("u [m/s]")
 
-    yu_all = np.unique(y)
-    num_profile = np.array(
-        [np.mean(m["numerical"][np.isclose(y, yy)]) for yy in yu_all]
-    )
-    exact_profile_y = np.array(
-        [np.mean(m["analytic"][np.isclose(y, yy)]) for yy in yu_all]
-    )
-    ax_profile = fig.add_subplot(2, 2, 3)
-    ax_profile.plot(exact_profile_y, yu_all, color="black", linewidth=2.0,
-                    label="analytic")
-    ax_profile.plot(num_profile, yu_all, "o", color="#1f77b4", markersize=2.5,
-                    label="saturnStokes")
-    ax_profile.set_xlabel("u [m/s]")
-    ax_profile.set_ylabel("y [m]")
-    ax_profile.set_title("Profile (averaged over x,z)")
-    ax_profile.legend(loc="best")
-    ax_profile.grid(alpha=0.3)
+    sm_err = ScalarMappable(norm=enorm, cmap="RdBu_r")
+    sm_err.set_array([])
+    cbar_err = fig.colorbar(sm_err, ax=ax_error, orientation="horizontal",
+                            fraction=0.04, pad=0.02, shrink=0.7)
+    cbar_err.set_label("u numerical - analytic [m/s]")
 
-    ax_error = fig.add_subplot(2, 2, 4)
-    ax_error.axis("off")
-    ax_error.set_title("Validation summary")
-    ax_error.text(
-        0.03, 0.92,
-        f"case    : {m['case']}\n"
-        f"samples : {m['samples']}\n"
-        f"L1      : {m['l1']:.4e}\n"
-        f"L2      : {m['l2']:.4e}\n"
-        f"Linf    : {m['linf']:.4e}\n"
-        f"pL2     : {m['pL2']:.4e}\n"
-        f"solver  : {m['solverConsistency']:.2e}",
-        transform=ax_error.transAxes, va="top", family="monospace",
-        fontsize=11,
-    )
-
-    values = m["values"]
     fig.suptitle(
-        f"saturnStokes {m['case']} 3D at "
-        f"{values.get('mesh', {}).get('nx', '?')}x"
-        f"{values.get('mesh', {}).get('ny', '?')}x"
-        f"{values.get('mesh', {}).get('nz', '?')}  "
-        f"L2={m['l2']:.3e}"
+        f"saturnStokes 3D {m['case']} velocity profile at z={zmid:g} m",
+        fontsize=13,
     )
-    fig.subplots_adjust(left=0.05, right=0.95, top=0.91, bottom=0.07,
-                        wspace=0.18, hspace=0.35)
+    fig.subplots_adjust(left=0.02, right=0.98, top=0.88, bottom=0.12,
+                        wspace=0.02)
     fig.savefig(out.with_suffix(".png"), dpi=150)
     fig.savefig(out.with_suffix(".pdf"))
     plt.close(fig)
