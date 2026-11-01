@@ -63,6 +63,25 @@ MeshPartition::~MeshPartition() {
 #endif
 }
 
+PartitionBox MeshPartition::boxForRank(int rank) const {
+  PartitionBox box;
+  int coords[3] = {0, 0, 0};
+#ifdef SATURN_USE_MPI
+  MPI_Cart_coords(mCart, rank, 3, coords);
+#else
+  (void)rank;
+#endif
+  for (int d = 0; d < 3; ++d) {
+    box.global[d] = mGlobal[d];
+    box.periodic[d] = mPeriodic[d];
+    const int base = mGlobal[d] / mDims[d];
+    const int remainder = mGlobal[d] % mDims[d];
+    box.extent[d] = base + (coords[d] < remainder ? 1 : 0);
+    box.origin[d] = coords[d] * base + std::min(coords[d], remainder);
+  }
+  return box;
+}
+
 int MeshPartition::neighbor(int dx, int dy, int dz) const {
   const int dir[3] = {dx, dy, dz};
   int target[3] = {0, 0, 0};

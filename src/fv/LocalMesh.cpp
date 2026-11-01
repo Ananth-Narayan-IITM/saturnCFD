@@ -8,9 +8,16 @@
 
 #include "core/Error.hpp"
 
+#ifdef SATURN_USE_MPI
+#include <mpi.h>
+#endif
+
 namespace saturn {
 
-LocalMesh::LocalMesh(const Mesh& mesh, const MeshPartition& part, int nGrow) {
+LocalMesh::LocalMesh(const Mesh& mesh, const MeshPartition& part, int nGrow)
+    : LocalMesh(mesh, part.box(), nGrow) {}
+
+LocalMesh::LocalMesh(const Mesh& mesh, const PartitionBox& box, int nGrow) {
   if (!mesh.structured)
     throw MeshError("LocalMesh: the global mesh is not structured");
   if (nGrow < 0)
@@ -23,24 +30,39 @@ LocalMesh::LocalMesh(const Mesh& mesh, const MeshPartition& part, int nGrow) {
     throw MeshError("LocalMesh: the global mesh has no faces");
 
   for (int d = 0; d < 3; ++d) {
-    const int global = (d == 0) ? mesh.nx : ((d == 1) ? mesh.ny : mesh.nz);
-    if (part.globalExtent(d) != global)
-      throw MeshError(
-          "LocalMesh: MeshPartition global extent does not match the mesh");
-    mGlobal[d] = global;
-    mDevice.global[d] = global;
-    mHost.global[d] = global;
-    mDevice.origin[d] = part.localOrigin(d);
-    mHost.origin[d] = part.localOrigin(d);
-    mDevice.extent[d] = part.localExtent(d);
-    mHost.extent[d] = part.localExtent(d);
-    mDevice.periodic[d] = part.periodic(d);
-    mHost.periodic[d] = part.periodic(d);
+    mGlobal[d] = box.global[d];
+    mDevice.global[d] = box.global[d];
+    mHost.global[d] = box.global[d];
+    mDevice.origin[d] = box.origin[d];
+    mHost.origin[d] = box.origin[d];
+    mDevice.extent[d] = box.extent[d];
+    mHost.extent[d] = box.extent[d];
+    mDevice.periodic[d] = box.periodic[d];
+    mHost.periodic[d] = box.periodic[d];
   }
-  mDevice.nGrow = nGrow;
-  mHost.nGrow = nGrow;
+  mGlobalCellCount =
+      static_cast<BigIndex>(mGlobal[0]) * mGlobal[1] * mGlobal[2];
   mDevice.dimension = mesh.dimension;
   mHost.dimension = mesh.dimension;
+
+  allocate(nGrow, mesh.dimension);
+  build(mesh);
+
+  Kokkos::deep_copy(mDevice.mVolume, mHost.mVolume);
+  Kokkos::deep_copy(mDevice.mCentroid, mHost.mCentroid);
+  Kokkos::deep_copy(mDevice.mFaceArea, mHost.mFaceArea);
+  Kokkos::deep_copy(mDevice.mFaceNormal, mHost.mFaceNormal);
+  Kokkos::deep_copy(mDevice.mFaceCentroid, mHost.mFaceCentroid);
+  Kokkos::deep_copy(mDevice.mFaceDistance, mHost.mFaceDistance);
+  Kokkos::deep_copy(mDevice.mFacePatch, mHost.mFacePatch);
+  Kokkos::deep_copy(mDevice.mCellId, mHost.mCellId);
+}
+
+void LocalMesh::allocate(int nGrow, int dimension) {
+  mDevice.nGrow = nGrow;
+  mHost.nGrow = nGrow;
+  mDevice.dimension = dimension;
+  mHost.dimension = dimension;
 
   const int nxg = mDevice.extent[0] + 2 * nGrow;
   const int nyg = mDevice.extent[1] + 2 * nGrow;
@@ -59,6 +81,7 @@ LocalMesh::LocalMesh(const Mesh& mesh, const MeshPartition& part, int nGrow) {
       DeviceData::real4("saturn::lm_face_distance", nxg, nyg, nzg, 6);
   mDevice.mFacePatch =
       DeviceData::int4("saturn::lm_face_patch", nxg, nyg, nzg, 6);
+  mDevice.mCellId = DeviceData::int3("saturn::lm_cell_id", nxg, nyg, nzg);
 
   mHost.mVolume = Kokkos::create_mirror_view(mDevice.mVolume);
   mHost.mCentroid = Kokkos::create_mirror_view(mDevice.mCentroid);
@@ -67,20 +90,18 @@ LocalMesh::LocalMesh(const Mesh& mesh, const MeshPartition& part, int nGrow) {
   mHost.mFaceCentroid = Kokkos::create_mirror_view(mDevice.mFaceCentroid);
   mHost.mFaceDistance = Kokkos::create_mirror_view(mDevice.mFaceDistance);
   mHost.mFacePatch = Kokkos::create_mirror_view(mDevice.mFacePatch);
-
-  build(mesh, part);
-
-  Kokkos::deep_copy(mDevice.mVolume, mHost.mVolume);
-  Kokkos::deep_copy(mDevice.mCentroid, mHost.mCentroid);
-  Kokkos::deep_copy(mDevice.mFaceArea, mHost.mFaceArea);
-  Kokkos::deep_copy(mDevice.mFaceNormal, mHost.mFaceNormal);
-  Kokkos::deep_copy(mDevice.mFaceCentroid, mHost.mFaceCentroid);
-  Kokkos::deep_copy(mDevice.mFaceDistance, mHost.mFaceDistance);
-  Kokkos::deep_copy(mDevice.mFacePatch, mHost.mFacePatch);
+  mHost.mCellId = Kokkos::create_mirror_view(mDevice.mCellId);
+  Kokkos::deep_copy(mHost.mVolume, Real(0));
+  Kokkos::deep_copy(mHost.mCentroid, Real(0));
+  Kokkos::deep_copy(mHost.mFaceArea, Real(0));
+  Kokkos::deep_copy(mHost.mFaceNormal, Real(0));
+  Kokkos::deep_copy(mHost.mFaceCentroid, Real(0));
+  Kokkos::deep_copy(mHost.mFaceDistance, Real(0));
+  Kokkos::deep_copy(mHost.mFacePatch, -1);
+  Kokkos::deep_copy(mHost.mCellId, -1);
 }
 
-void LocalMesh::build(const Mesh& mesh, const MeshPartition& part) {
-  (void)part;
+void LocalMesh::build(const Mesh& mesh) {
   const int nCells = static_cast<int>(mesh.cells.size());
   std::vector<std::vector<int>> cellFaces(nCells);
   for (int f = 0; f < static_cast<int>(mesh.faces.size()); ++f) {
@@ -107,6 +128,7 @@ void LocalMesh::build(const Mesh& mesh, const MeshPartition& part) {
         const int kk = mHost.localIndex(k, 2);
 
         mHost.mVolume(ii, jj, kk) = mesh.cellVolume[cell];
+        mHost.mCellId(ii, jj, kk) = cell;
         const Vec3& centre = mesh.cellCentroid[cell];
         mHost.mCentroid(ii, jj, kk, 0) = centre.x;
         mHost.mCentroid(ii, jj, kk, 1) = centre.y;
@@ -224,6 +246,174 @@ void LocalMesh::build(const Mesh& mesh, const MeshPartition& part) {
       }
     }
   }
+}
+
+LocalMesh::Serialized LocalMesh::pack() const {
+  const int nxg = mHost.extent[0] + 2 * mHost.nGrow;
+  const int nyg = mHost.extent[1] + 2 * mHost.nGrow;
+  const int nzg = mHost.extent[2] + 2 * mHost.nGrow;
+  const int cells = nxg * nyg * nzg;
+  Serialized out;
+  out.reals.reserve(static_cast<std::size_t>(cells) * 52);
+  out.ints.reserve(static_cast<std::size_t>(cells) * 7);
+  for (int k = 0; k < nzg; ++k) {
+    for (int j = 0; j < nyg; ++j) {
+      for (int i = 0; i < nxg; ++i) {
+        out.reals.push_back(mHost.mVolume(i, j, k));
+        for (int c = 0; c < 3; ++c)
+          out.reals.push_back(mHost.mCentroid(i, j, k, c));
+        for (int c = 0; c < 6; ++c)
+          out.reals.push_back(mHost.mFaceArea(i, j, k, c));
+        for (int c = 0; c < 18; ++c)
+          out.reals.push_back(mHost.mFaceNormal(i, j, k, c));
+        for (int c = 0; c < 18; ++c)
+          out.reals.push_back(mHost.mFaceCentroid(i, j, k, c));
+        for (int c = 0; c < 6; ++c)
+          out.reals.push_back(mHost.mFaceDistance(i, j, k, c));
+        for (int c = 0; c < 6; ++c)
+          out.ints.push_back(mHost.mFacePatch(i, j, k, c));
+        out.ints.push_back(mHost.mCellId(i, j, k));
+      }
+    }
+  }
+  out.patches = mPatchNames;
+  return out;
+}
+
+LocalMesh LocalMesh::unpack(const PartitionBox& box, int nGrow,
+                            const Serialized& data) {
+  LocalMesh local;
+  const int dimension = (box.global[2] > 1) ? 3 : ((box.global[1] > 1) ? 2 : 1);
+  for (int d = 0; d < 3; ++d) {
+    local.mGlobal[d] = box.global[d];
+    local.mDevice.global[d] = box.global[d];
+    local.mHost.global[d] = box.global[d];
+    local.mDevice.origin[d] = box.origin[d];
+    local.mHost.origin[d] = box.origin[d];
+    local.mDevice.extent[d] = box.extent[d];
+    local.mHost.extent[d] = box.extent[d];
+    local.mDevice.periodic[d] = box.periodic[d];
+    local.mHost.periodic[d] = box.periodic[d];
+  }
+  local.mGlobalCellCount =
+      static_cast<BigIndex>(box.global[0]) * box.global[1] * box.global[2];
+  local.allocate(nGrow, dimension);
+  local.mPatchNames = data.patches;
+
+  const std::size_t expectedReals =
+      static_cast<std::size_t>(local.mHost.extent[0] + 2 * nGrow) *
+      (local.mHost.extent[1] + 2 * nGrow) *
+      (local.mHost.extent[2] + 2 * nGrow) * 52;
+  const std::size_t expectedInts =
+      static_cast<std::size_t>(local.mHost.extent[0] + 2 * nGrow) *
+      (local.mHost.extent[1] + 2 * nGrow) *
+      (local.mHost.extent[2] + 2 * nGrow) * 7;
+  if (data.reals.size() != expectedReals || data.ints.size() != expectedInts)
+    throw MeshError("LocalMesh::unpack: local geometry size mismatch");
+
+  std::size_t r = 0;
+  std::size_t q = 0;
+  const int nxg = local.mHost.extent[0] + 2 * nGrow;
+  const int nyg = local.mHost.extent[1] + 2 * nGrow;
+  const int nzg = local.mHost.extent[2] + 2 * nGrow;
+  for (int k = 0; k < nzg; ++k) {
+    for (int j = 0; j < nyg; ++j) {
+      for (int i = 0; i < nxg; ++i) {
+        local.mHost.mVolume(i, j, k) = data.reals[r++];
+        for (int c = 0; c < 3; ++c)
+          local.mHost.mCentroid(i, j, k, c) = data.reals[r++];
+        for (int c = 0; c < 6; ++c)
+          local.mHost.mFaceArea(i, j, k, c) = data.reals[r++];
+        for (int c = 0; c < 18; ++c)
+          local.mHost.mFaceNormal(i, j, k, c) = data.reals[r++];
+        for (int c = 0; c < 18; ++c)
+          local.mHost.mFaceCentroid(i, j, k, c) = data.reals[r++];
+        for (int c = 0; c < 6; ++c)
+          local.mHost.mFaceDistance(i, j, k, c) = data.reals[r++];
+        for (int c = 0; c < 6; ++c)
+          local.mHost.mFacePatch(i, j, k, c) = data.ints[q++];
+        local.mHost.mCellId(i, j, k) = data.ints[q++];
+      }
+    }
+  }
+
+  Kokkos::deep_copy(local.mDevice.mVolume, local.mHost.mVolume);
+  Kokkos::deep_copy(local.mDevice.mCentroid, local.mHost.mCentroid);
+  Kokkos::deep_copy(local.mDevice.mFaceArea, local.mHost.mFaceArea);
+  Kokkos::deep_copy(local.mDevice.mFaceNormal, local.mHost.mFaceNormal);
+  Kokkos::deep_copy(local.mDevice.mFaceCentroid, local.mHost.mFaceCentroid);
+  Kokkos::deep_copy(local.mDevice.mFaceDistance, local.mHost.mFaceDistance);
+  Kokkos::deep_copy(local.mDevice.mFacePatch, local.mHost.mFacePatch);
+  Kokkos::deep_copy(local.mDevice.mCellId, local.mHost.mCellId);
+  return local;
+}
+
+LocalMesh LocalMesh::distributed(const Mesh& mesh, const MeshPartition& part,
+                                 int nGrow) {
+#ifndef SATURN_USE_MPI
+  return LocalMesh(mesh, part, nGrow);
+#else
+  int rank = 0;
+  int size = 1;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+  if (size == 1)
+    return LocalMesh(mesh, part.box(), nGrow);
+
+  if (rank == 0) {
+    LocalMesh local(mesh, part.box(), nGrow);
+    for (int target = 1; target < size; ++target) {
+      PartitionBox box = part.boxForRank(target);
+      LocalMesh temp(mesh, box, nGrow);
+      Serialized data = temp.pack();
+
+      std::string blob;
+      for (const std::string& name : data.patches) {
+        blob += name;
+        blob.push_back('\0');
+      }
+      int sizes[3] = {static_cast<int>(data.reals.size()),
+                      static_cast<int>(data.ints.size()),
+                      static_cast<int>(blob.size())};
+      MPI_Send(sizes, 3, MPI_INT, target, 700, MPI_COMM_WORLD);
+      if (!data.reals.empty())
+        MPI_Send(data.reals.data(), sizes[0], MPI_DOUBLE, target, 701,
+                 MPI_COMM_WORLD);
+      if (!data.ints.empty())
+        MPI_Send(data.ints.data(), sizes[1], MPI_INT, target, 702,
+                 MPI_COMM_WORLD);
+      if (!blob.empty())
+        MPI_Send(blob.data(), sizes[2], MPI_CHAR, target, 703, MPI_COMM_WORLD);
+    }
+    return local;
+  }
+
+  int sizes[3] = {0, 0, 0};
+  MPI_Recv(sizes, 3, MPI_INT, 0, 700, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  Serialized data;
+  data.reals.resize(static_cast<std::size_t>(sizes[0]));
+  data.ints.resize(static_cast<std::size_t>(sizes[1]));
+  std::string blob(static_cast<std::size_t>(sizes[2]), '\0');
+  if (sizes[0] > 0)
+    MPI_Recv(data.reals.data(), sizes[0], MPI_DOUBLE, 0, 701, MPI_COMM_WORLD,
+             MPI_STATUS_IGNORE);
+  if (sizes[1] > 0)
+    MPI_Recv(data.ints.data(), sizes[1], MPI_INT, 0, 702, MPI_COMM_WORLD,
+             MPI_STATUS_IGNORE);
+  if (sizes[2] > 0)
+    MPI_Recv(blob.data(), sizes[2], MPI_CHAR, 0, 703, MPI_COMM_WORLD,
+             MPI_STATUS_IGNORE);
+
+  std::size_t start = 0;
+  while (start < blob.size()) {
+    const std::size_t end = blob.find('\0', start);
+    if (end == std::string::npos)
+      break;
+    data.patches.emplace_back(blob.substr(start, end - start));
+    start = end + 1;
+  }
+  return unpack(part.box(), nGrow, data);
+#endif
 }
 
 int LocalMesh::patchIndex(const std::string& name) const {

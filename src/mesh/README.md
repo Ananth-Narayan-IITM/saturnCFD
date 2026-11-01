@@ -7,6 +7,8 @@ finite-volume layer.
 
 - `GmshReader` — Gmsh 2.2 ASCII first, 4.1 next.
 - `Mesh` — points, cells, faces, patches, geometry arrays.
+- `makeMeshForSolver` — rank-0 load/build plus metadata broadcast; local
+  geometry is sent by `LocalMesh::distributed`.
 - `checkMesh` — topology, volume, orientation, patches, quality metrics.
 - `StructuredMesh` — `(i,j,k)` mapping and neighbour tables for the solver.
 - `VtuWriter` — default `.vtu`; `-writeVTK` adds per-patch `.vtp` and `.pvd`.

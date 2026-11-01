@@ -11,8 +11,8 @@ adapter, structured `LocalMesh`, interpolation/gradient/divergence,
 non-orthogonal Laplacian, Dirichlet/Neumann ghost fill, upwind/Rusanov/MUSCL
 convection, advection–diffusion and divergence-theorem tests, a simplified
 Rhie–Chow flux, the explicit solver/time loop (forward Euler, SSPRK2/3,
-diagnostics, registry), and the registered 1D `saturnBurger` solver are in
-place. PETSc 3.19.6 is linked through the separate `saturnLinAlg` library; the
+diagnostics, registry), rank-0 mesh load with local-geometry distribution, and
+the registered 1D/2D/3D `saturnBurger` solver are in place. PETSc 3.19.6 is linked through the separate `saturnLinAlg` library; the
 1D/3D Poisson and all-Neumann tests pass on 1/2/4 ranks. The 1D/2D/3D Burgers
 solver, VTK field export and checkpoint/restart are done; implicit time
 schemes, the heat solver and FV Poisson matrix assembler are next.

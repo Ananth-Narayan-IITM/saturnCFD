@@ -77,7 +77,7 @@ ConfigSchema burgersSchema() {
 }
 
 std::unique_ptr<Solver> makeSaturnBurger(const Config& cfg) {
-  Mesh mesh = makeMeshFromConfig(cfg);
+  Mesh mesh = makeMeshForSolver(cfg);
   if (mesh.dimension < 1 || mesh.dimension > 3)
     throw ConfigError("saturnBurger supports structured 1D, 2D and 3D meshes");
   if (mesh.dimension == 2 && mesh.nz != 1)

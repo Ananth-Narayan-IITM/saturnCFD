@@ -93,7 +93,9 @@ expected orders, rank/backend matrix and pitfalls are in
   checkerboard pressure;
 - periodic 3D gradient MMS: observed order 1.967 and 1.992;
 - periodic 3D divergence MMS: observed order 1.967 and 1.992;
-- all cases run on 1, 2 and 4 ranks.
+- all cases run on 1, 2 and 4 ranks;
+- `fv: distributed LocalMesh` checks rank-0 extraction against direct local
+  extraction on every rank.
 
 The same binary is run under `mpirun -np 1/2/4`; a failure on any rank fails the
 CTest test. A CUDA build adds the `gpu` label and `ctest --preset gpu` runs the

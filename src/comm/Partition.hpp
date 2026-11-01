@@ -13,6 +13,13 @@ namespace saturn {
 
 constexpr int kProcNull = -1;
 
+struct PartitionBox {
+  int global[3] = {0, 0, 0};
+  int origin[3] = {0, 0, 0};
+  int extent[3] = {0, 0, 0};
+  bool periodic[3] = {false, false, false};
+};
+
 struct IndexBox {
   std::array<int, 3> lo{0, 0, 0};
   std::array<int, 3> hi{-1, -1, -1};
@@ -53,6 +60,13 @@ class MeshPartition {
 
   /// Rank owning the block in direction (dx,dy,dz), or kProcNull.
   int neighbor(int dx, int dy, int dz) const;
+
+  /// Box of this rank.
+  PartitionBox box() const { return boxForRank(mRank); }
+
+  /// Box of an arbitrary rank in the same Cartesian partition. Used by the
+  /// rank-0 mesh distributor to extract each rank's local geometry.
+  PartitionBox boxForRank(int rank) const;
 
   /// Global ghost region in direction (dx,dy,dz); may lie outside the domain.
   IndexBox ghostBox(int nGrow, int dx, int dy, int dz) const;

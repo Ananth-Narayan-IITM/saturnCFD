@@ -132,9 +132,22 @@ The scalable path:
    arrays and the local coordinate patch with ghosts;
 4. every rank builds its local `CellField`/`FaceField` storage.
 
-For a first implementation, reading the mesh on every rank is acceptable for
-small tests, but it is not the production path. The `MeshPartition` object must
-hide this choice so the solver does not care.
+Implemented:
+
+- `makeMeshForSolver` builds/reads the global mesh only on rank 0 and broadcasts
+  metadata (dimensions, dimension, bbox, patch names).
+- `LocalMesh::distributed` has rank 0 extract each rank's local+ghost geometry
+  and send it with point-to-point messages.
+- Non-root ranks receive only their block; they do not read or build the full
+  mesh.
+- `SaturnBurger` uses `mLocal` for centroids, volumes, face geometry, patch
+  names and global cell ids. The full `Mesh` remains available only where VTK
+  output is written (rank 0).
+
+This is the production path for the solver. A fully distributed Gmsh reader
+(rank 0 parses and scatters point/face data) is already covered by the same
+distribution step; the remaining future work is overlapping mesh distribution
+with initialization.
 
 The local mesh stores:
 

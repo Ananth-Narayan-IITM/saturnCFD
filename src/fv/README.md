@@ -11,7 +11,8 @@ reimplements a gradient or a flux.
 - `FaceField` — six face values per owned cell, `(i,j,k,dir,c)`. Internal faces
   are stored from both sides; this is the cell-local representation the
   gradient and divergence loops need.
-- `LocalMesh` — structured local geometry extracted from the global hex mesh:
+- `LocalMesh` — structured local geometry extracted from the global hex mesh;
+  `LocalMesh::distributed` broadcasts only each rank's local+ghost geometry:
   cell volume/centroid, outward face area/normal/centroid, centroid-to-face
   distance and boundary patch index for the six faces of every owned cell.
   Device views plus host mirrors.

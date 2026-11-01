@@ -1061,3 +1061,41 @@ TEST_CASE("fv: Burgers constant flux has zero divergence") {
     CHECK(div(0, 0, 0, 0) == doctest::Approx(0.0).epsilon(1e-12));
   }
 }
+
+TEST_CASE("fv: distributed LocalMesh matches direct local extraction") {
+  const int n = 8;
+  Mesh mesh = test::makeUniformBoxMesh(n, n, n);
+  MeshPartition part(n, n, n);
+  LocalMesh direct(mesh, part, 2);
+  LocalMesh distributed = LocalMesh::distributed(mesh, part, 2);
+
+  CHECK(distributed.globalCellCount() == static_cast<BigIndex>(n) * n * n);
+  CHECK(distributed.numPatches() == direct.numPatches());
+  for (int p = 0; p < direct.numPatches(); ++p)
+    CHECK(distributed.patchName(p) == direct.patchName(p));
+
+  for (int k = part.localOrigin(2);
+       k < part.localOrigin(2) + part.localExtent(2); ++k) {
+    for (int j = part.localOrigin(1);
+         j < part.localOrigin(1) + part.localExtent(1); ++j) {
+      for (int i = part.localOrigin(0);
+           i < part.localOrigin(0) + part.localExtent(0); ++i) {
+        CHECK(distributed.cellId(i, j, k) == direct.cellId(i, j, k));
+        CHECK(distributed.cellVolume(i, j, k) ==
+              doctest::Approx(direct.cellVolume(i, j, k)).epsilon(1e-14));
+        CHECK(distributed.cellCentroid(i, j, k).x ==
+              doctest::Approx(direct.cellCentroid(i, j, k).x).epsilon(1e-14));
+        CHECK(distributed.cellCentroid(i, j, k).y ==
+              doctest::Approx(direct.cellCentroid(i, j, k).y).epsilon(1e-14));
+        CHECK(distributed.cellCentroid(i, j, k).z ==
+              doctest::Approx(direct.cellCentroid(i, j, k).z).epsilon(1e-14));
+        for (int dir = 0; dir < 6; ++dir) {
+          CHECK(distributed.faceArea(i, j, k, dir) ==
+                doctest::Approx(direct.faceArea(i, j, k, dir)).epsilon(1e-14));
+          CHECK(distributed.facePatch(i, j, k, dir) ==
+                direct.facePatch(i, j, k, dir));
+        }
+      }
+    }
+  }
+}

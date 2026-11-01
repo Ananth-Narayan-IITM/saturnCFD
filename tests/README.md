@@ -75,6 +75,8 @@ ctest --test-dir buildCPU -L fv --output-on-failure
 
 - No test writes into the source tree.
 - No test depends on the current working directory.
+- `fv: distributed LocalMesh` checks rank-0 extraction against direct local
+  extraction on every rank.
 - MPI test targets set `OMP_NUM_THREADS=1`; otherwise several ranks
   oversubscribe the node and `fv_np4` becomes very slow.
 - A failing regression is fixed or rebaselined with a reason, never deleted.

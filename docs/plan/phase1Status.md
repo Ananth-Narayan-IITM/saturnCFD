@@ -21,6 +21,7 @@ verification are next. The parallel design is in
 | SI-only validation; non-SI rejected | done |
 | Gmsh 2.2 ASCII reader | done |
 | structured-mesh detection and 1D/2D/3D rule | done |
+| rank-0 mesh build + local geometry distribution | done |
 | `checkMesh` text + JSON report | done |
 | default `.vtu` + `.json` output | done |
 | optional `-writeVTK` `.vtp`/`.pvd` | done |

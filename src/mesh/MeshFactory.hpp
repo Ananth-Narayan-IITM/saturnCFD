@@ -17,4 +17,8 @@ namespace saturn {
 /// the topology permits it.
 Mesh makeMeshFromConfig(const Config& cfg);
 
+/// Load/build the mesh once on rank 0 and give every other rank metadata only.
+/// The solver's LocalMesh distributor then sends each rank its local geometry.
+Mesh makeMeshForSolver(const Config& cfg);
+
 }  // namespace saturn

@@ -46,7 +46,7 @@ SaturnBurger::SaturnBurger(Mesh mesh, BurgersOptions options)
       mPart(mMesh.nx, mMesh.ny, mMesh.nz, mOptions.periodic && mMesh.nx > 1,
             mOptions.periodic && mMesh.dimension >= 2 && mMesh.ny > 1,
             mOptions.periodic && mMesh.dimension >= 3 && mMesh.nz > 1),
-      mLocal(mMesh, mPart, 2),
+      mLocal(LocalMesh::distributed(mMesh, mPart, 2)),
       mHalo(mPart, 2, 1),
       mFieldHalo(mHalo, 1),
       mU(mPart, 2, 1, "saturnBurger::u"),
@@ -71,15 +71,17 @@ SaturnBurger::SaturnBurger(Mesh mesh, BurgersOptions options)
   if (!mOptions.periodic && !mOptions.dirichlet)
     throw std::invalid_argument(
         "saturnBurger: non-periodic boundaries need a Dirichlet callback");
-  if (mMesh.cellVolume.size() != mMesh.cells.size() ||
-      mMesh.cellCentroid.size() != mMesh.cells.size())
-    throw std::invalid_argument(
-        "saturnBurger: computeGeometry() must run before the solver");
-
   Real minH = std::numeric_limits<Real>::max();
   const Real exponent = Real(1) / static_cast<Real>(mMesh.dimension);
-  for (Real volume : mMesh.cellVolume)
-    minH = std::min(minH, std::pow(volume, exponent));
+  for (int k = mPart.localOrigin(2);
+       k < mPart.localOrigin(2) + mPart.localExtent(2); ++k) {
+    for (int j = mPart.localOrigin(1);
+         j < mPart.localOrigin(1) + mPart.localExtent(1); ++j) {
+      for (int i = mPart.localOrigin(0);
+           i < mPart.localOrigin(0) + mPart.localExtent(0); ++i)
+        minH = std::min(minH, std::pow(mLocal.cellVolume(i, j, k), exponent));
+    }
+  }
   if (!(minH > 0))
     throw std::invalid_argument("saturnBurger: non-positive cell size");
   mMinCellSize = minH;
@@ -97,13 +99,10 @@ void SaturnBurger::applyInitialConditions() {
          j < mPart.localOrigin(1) + mPart.localExtent(1); ++j) {
       for (int i = mPart.localOrigin(0);
            i < mPart.localOrigin(0) + mPart.localExtent(0); ++i) {
-        const int cell = mMesh.cellAt(i, j, k);
-        if (cell < 0)
-          throw std::runtime_error("saturnBurger: missing owned cell");
         const int ii = i - (mU.origin(0) - mU.nGrow());
         const int jj = j - (mU.origin(1) - mU.nGrow());
         const int kk = k - (mU.origin(2) - mU.nGrow());
-        host(ii, jj, kk, 0) = mOptions.initial(mMesh.cellCentroid[cell]);
+        host(ii, jj, kk, 0) = mOptions.initial(mLocal.cellCentroid(i, j, k));
       }
     }
   }
@@ -116,7 +115,7 @@ void SaturnBurger::applyBoundaryConditions() {
   if (mOptions.periodic)
     return;
 
-  std::vector<BoundaryCondition> conditions(mMesh.patches.size());
+  std::vector<BoundaryCondition> conditions(mLocal.numPatches());
   const Real time = mTime;
   for (std::size_t p = 0; p < conditions.size(); ++p) {
     conditions[p].type = BCType::Dirichlet;
@@ -171,10 +170,10 @@ std::vector<ProfilePoint> SaturnBurger::profile(Real time,
   for (int k = k0; k < k0 + nz; ++k) {
     for (int j = j0; j < j0 + ny; ++j) {
       for (int i = i0; i < i0 + nx; ++i) {
-        const int cell = mMesh.cellAt(i, j, k);
+        const int cell = mLocal.cellId(i, j, k);
         if (cell < 0)
           throw std::runtime_error("saturnBurger: missing owned cell");
-        const Vec3& centre = mMesh.cellCentroid[cell];
+        const Vec3 centre = mLocal.cellCentroid(i, j, k);
         const std::size_t base = static_cast<std::size_t>(6) * a;
         local[base + 0] = centre.x;
         local[base + 1] = centre.y;
@@ -265,7 +264,8 @@ ExactError SaturnBurger::exactError(Real time) const {
 }
 
 std::vector<Real> SaturnBurger::globalState() const {
-  std::vector<Real> values(mMesh.cells.size(), 0);
+  std::vector<Real> values(static_cast<std::size_t>(mLocal.globalCellCount()),
+                           0);
   const std::vector<ProfilePoint> points = profile(0, false);
   for (const ProfilePoint& point : points) {
     if (point.cell >= 0 && static_cast<std::size_t>(point.cell) < values.size())
@@ -275,7 +275,7 @@ std::vector<Real> SaturnBurger::globalState() const {
 }
 
 void SaturnBurger::setGlobalState(const std::vector<Real>& values) {
-  if (values.size() != mMesh.cells.size())
+  if (values.size() != static_cast<std::size_t>(mLocal.globalCellCount()))
     throw std::invalid_argument(
         "saturnBurger: checkpoint field size does not match the mesh");
 
@@ -289,7 +289,7 @@ void SaturnBurger::setGlobalState(const std::vector<Real>& values) {
          j < mPart.localOrigin(1) + mPart.localExtent(1); ++j) {
       for (int i = mPart.localOrigin(0);
            i < mPart.localOrigin(0) + mPart.localExtent(0); ++i) {
-        const int cell = mMesh.cellAt(i, j, k);
+        const int cell = mLocal.cellId(i, j, k);
         if (cell < 0)
           throw std::runtime_error("saturnBurger: missing owned cell");
         host(i - gi0, j - gj0, k - gk0, 0) =

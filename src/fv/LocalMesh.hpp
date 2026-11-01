@@ -30,6 +30,7 @@ template <class MemorySpace>
 struct LocalMeshData {
   using real3 = Kokkos::View<Real***, Kokkos::LayoutLeft, MemorySpace>;
   using real4 = Kokkos::View<Real****, Kokkos::LayoutLeft, MemorySpace>;
+  using int3 = Kokkos::View<int***, Kokkos::LayoutLeft, MemorySpace>;
   using int4 = Kokkos::View<int****, Kokkos::LayoutLeft, MemorySpace>;
 
   real3 mVolume;        ///< cell volume
@@ -39,6 +40,7 @@ struct LocalMeshData {
   real4 mFaceCentroid;  ///< (i,j,k,dir*3+axis) face centroid
   real4 mFaceDistance;  ///< (i,j,k,6) centroid-to-face normal distance
   int4 mFacePatch;      ///< (i,j,k,6) patch index, or -1 for an internal face
+  int3 mCellId;         ///< global mesh cell id; -1 for ghosts
 
   int origin[3] = {0, 0, 0};
   int extent[3] = {0, 0, 0};
@@ -120,6 +122,11 @@ struct LocalMeshData {
     return mFacePatch(localIndex(i, 0), localIndex(j, 1), localIndex(k, 2),
                       dir);
   }
+
+  KOKKOS_INLINE_FUNCTION
+  int cellId(int i, int j, int k) const {
+    return mCellId(localIndex(i, 0), localIndex(j, 1), localIndex(k, 2));
+  }
 };
 
 /// Structured local geometry extracted from a global hex mesh.
@@ -136,6 +143,13 @@ class LocalMesh {
 
   LocalMesh() = default;
   LocalMesh(const Mesh& mesh, const MeshPartition& part, int nGrow = 2);
+  LocalMesh(const Mesh& mesh, const PartitionBox& box, int nGrow = 2);
+
+  /// Build the local geometry on every rank. Rank 0 has the full mesh; it
+  /// extracts and sends each rank's local+ghost geometry. Other ranks receive
+  /// only their own block and never read the global mesh.
+  static LocalMesh distributed(const Mesh& mesh, const MeshPartition& part,
+                               int nGrow = 2);
 
   const DeviceData& device() const { return mDevice; }
   const HostData& host() const { return mHost; }
@@ -149,6 +163,7 @@ class LocalMesh {
   bool periodic(int d) const { return mDevice.periodic[d]; }
 
   int numPatches() const { return static_cast<int>(mPatchNames.size()); }
+  BigIndex globalCellCount() const { return mGlobalCellCount; }
   int patchIndex(const std::string& name) const;
   const std::string& patchName(int index) const;
 
@@ -173,14 +188,26 @@ class LocalMesh {
   int facePatch(int i, int j, int k, int dir) const {
     return mHost.boundaryPatch(i, j, k, dir);
   }
+  int cellId(int i, int j, int k) const { return mHost.cellId(i, j, k); }
 
  private:
   DeviceData mDevice;
   HostData mHost;
   std::vector<std::string> mPatchNames;
   int mGlobal[3] = {0, 0, 0};
+  BigIndex mGlobalCellCount = 0;
 
-  void build(const Mesh& mesh, const MeshPartition& part);
+  struct Serialized {
+    std::vector<Real> reals;
+    std::vector<int> ints;
+    std::vector<std::string> patches;
+  };
+
+  void build(const Mesh& mesh);
+  void allocate(int nGrow, int dimension);
+  Serialized pack() const;
+  static LocalMesh unpack(const PartitionBox& box, int nGrow,
+                          const Serialized& data);
 };
 
 }  // namespace saturn
