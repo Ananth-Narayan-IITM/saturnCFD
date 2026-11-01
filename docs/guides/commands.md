@@ -254,6 +254,7 @@ ctest --preset fv            # fields, LocalMesh, operators, MMS, Burgers
 ctest --preset burgers       # YAML Burgers validation on 1/2/4 ranks
 ctest --preset burgers2d     # 2D Burgers YAML validation
 ctest --preset burgers3d     # 3D Burgers YAML validation
+ctest --preset heat          # heat/Fourier YAML validation on 1/2/4 ranks
 ctest --preset vtk           # VTK field-export test
 ctest --preset checkpoint    # checkpoint/restart test
 ctest --preset petsc         # PETSc Poisson/nullspace on 1/2/4 ranks
