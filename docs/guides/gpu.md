@@ -141,8 +141,8 @@ binaries and reads `wallSeconds` from each JSON summary:
 
 ```bash
 python3 tools/benchmarkBurgers.py \
-  --cpu buildCPU/saturnCFD \
-  --gpu buildGPU/saturnCFD \
+  --cpu saturnCPU \
+  --gpu saturnGPU \
   --nx 256 --ny 256 --t-end 0.2
 ```
 

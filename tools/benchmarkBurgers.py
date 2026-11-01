@@ -7,7 +7,7 @@ reads the ``wallSeconds`` field from each JSON summary.
 Example (from the repository root):
 
     python3 tools/benchmarkBurgers.py \
-        --cpu buildCPU/saturnCFD --gpu buildGPU/saturnCFD \
+        --cpu saturnCPU --gpu saturnGPU \
         --nx 256 --ny 256 --t-end 0.2
 
 The GPU executable must be a CUDA build (``cmake --preset gpu`` with a
@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -85,9 +86,9 @@ def write_case(path: Path, nx: int, ny: int, t_end: float, nu: float,
     )
 
 
-def run(cli: Path, case: Path, cwd: Path, env: dict[str, str]) -> dict:
+def run(cli: str, case: Path, cwd: Path, env: dict[str, str]) -> dict:
     result = subprocess.run(
-        [str(cli), case.name],
+        [cli, case.name],
         cwd=cwd,
         env=env,
         text=True,
@@ -103,8 +104,10 @@ def run(cli: Path, case: Path, cwd: Path, env: dict[str, str]) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--cpu", type=Path, default=ROOT / "buildCPU/saturnCFD")
-    parser.add_argument("--gpu", type=Path, default=ROOT / "buildGPU/saturnCFD")
+    parser.add_argument("--cpu", default="saturnCPU",
+                        help="CPU command or build-tree binary")
+    parser.add_argument("--gpu", default="saturnGPU",
+                        help="GPU command or build-tree binary")
     parser.add_argument("--nx", type=int, default=256)
     parser.add_argument("--ny", type=int, default=256)
     parser.add_argument("--nu", type=float, default=0.02)
@@ -115,16 +118,20 @@ def main() -> int:
                         default=ROOT / "results/burgers/benchmark")
     args = parser.parse_args()
 
-    cpu = args.cpu.resolve()
-    gpu = args.gpu.resolve()
-    if not cpu.exists():
-        raise SystemExit(f"missing CPU executable: {cpu}")
-    if not gpu.exists():
+    def resolve_cli(value: str) -> str:
+        path = Path(value)
+        if path.exists():
+            return str(path.resolve())
+        found = shutil.which(value)
+        if found:
+            return found
         raise SystemExit(
-            f"missing GPU executable: {gpu}\n"
-            "build it with a CUDA-enabled Kokkos: "
-            "KOKKOS_ROOT=/path/to/kokkos-cuda cmake --preset gpu"
+            f"missing executable: {value}\n"
+            "install the backends with tools/compileSaturnCFD, or pass a path"
         )
+
+    cpu = resolve_cli(args.cpu)
+    gpu = resolve_cli(args.gpu)
 
     work = args.work.resolve()
     work.mkdir(parents=True, exist_ok=True)
