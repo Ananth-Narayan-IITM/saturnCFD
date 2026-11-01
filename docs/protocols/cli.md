@@ -26,7 +26,7 @@ subcommands: everything is `saturnCFD -option ...`.
 | `-dumpConfig` | `solver\|common` | print the generated YAML template |
 | `-writeTemplate` | `file` | write the template; `.yaml` is appended if absent |
 | `-mesh` | `mesh.msh` | give `-dumpConfig` the actual patch names |
-| `-threads` | `N` | override the Kokkos thread count |
+| `-threads` | `N` | CPU threads per process (Kokkos OpenMP) |
 | `-completion` | `bash\|zsh\|fish` | print a shell completion script |
 
 ## Examples
@@ -173,7 +173,7 @@ options:
   -report <path>       JSON report path; .json is appended if absent
   -writeVTK <prefix>   also write .vtp patches and .pvd
   -mesh <file>         patch names for -dumpConfig
-  -threads <N>         Kokkos thread count
+  -threads <N>         CPU threads per process (default: auto)
   -completion <shell>  bash, zsh or fish
 
 notes:

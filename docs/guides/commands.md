@@ -446,23 +446,27 @@ python3 compareAnalytic.py
 The same form runs any registered solver:
 
 ```bash
-mpirun -np 4 saturnCFD case.yaml
-mpirun -np 1 saturnCFD case.yaml      # one GPU, one rank
+mpirun -np 4 saturnCPU -threads 1 case.yaml
+mpirun -np 1 saturnGPU case.yaml      # one GPU, one rank
+mpirun -np 2 saturnGPU case.yaml      # two GPUs, one rank each
 ```
 
-With MPI, the CLI sets `OMP_NUM_THREADS = max(1, cores/ranks)` when it is not
-already set, so 4 ranks on a 24-core node use 6 OpenMP threads each instead of
-oversubscribing. Override it explicitly for hybrid runs:
+With more than one CPU rank, the CLI sets
+`OMP_NUM_THREADS = max(1, cores/ranks)` when it is not already set, so 4 ranks
+on a 24-core node use 6 OpenMP threads each instead of oversubscribing.
+Override it explicitly for hybrid runs:
 
 ```bash
-OMP_NUM_THREADS=1 mpirun -np 4 saturnCFD case.yaml
+mpirun -np 4 saturnCPU -threads 6 case.yaml
+OMP_NUM_THREADS=1 mpirun -np 4 saturnCPU case.yaml
 ```
 
 Every run prints its simulation wall-clock time and stores it as
 `wallSeconds` in the JSON summary.
 
-Kokkos/GPU execution and the one-GPU benchmark land with the FVM layer. The
-decomposition, ghost-cell and benchmark plan is in
+CPU and GPU backends are both built and verified; the single-GPU benchmark,
+thread guidance and multi-GPU commands are in [`gpu.md`](gpu.md). The
+decomposition plan is in
 [`../plan/mpiGpuDesign.md`](../plan/mpiGpuDesign.md). The benchmark and
 Valgrind/Compute Sanitizer commands are in [`profiling.md`](profiling.md) and
 [`../plan/parallelTesting.md`](../plan/parallelTesting.md).

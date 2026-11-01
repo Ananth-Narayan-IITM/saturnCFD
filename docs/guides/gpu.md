@@ -105,14 +105,34 @@ For one GPU, use one MPI rank:
 mpirun -np 1 saturnGPU case.yaml
 ```
 
-For four GPUs, one rank per GPU:
+One GPU means **one MPI rank**:
 
 ```bash
-mpirun -np 4 saturnGPU case.yaml
+mpirun -np 1 saturnGPU case.yaml
 ```
 
+Two GPUs, one rank per GPU:
+
+```bash
+CUDA_VISIBLE_DEVICES=0,1 mpirun -np 2 saturnGPU case.yaml
+```
+
+Four GPUs:
+
+```bash
+CUDA_VISIBLE_DEVICES=0,1,2,3 mpirun -np 4 saturnGPU case.yaml
+```
+
+On SLURM, ask for one GPU per task:
+
+```bash
+srun --ntasks=2 --gpus-per-task=1 saturnGPU case.yaml
+```
+
+Each rank selects its GPU by local rank. Do **not** use `mpirun -np 4` on a
+single GPU; that puts four ranks on one device and is not a multi-GPU run.
 `mpirun` is not CPU-only; each rank's compiled Kokkos backend decides whether
-it uses a CPU or a GPU. Do not benchmark multi-GPU scaling on one GPU.
+it uses a CPU or a GPU.
 
 ## CPU/GPU benchmark
 
@@ -161,24 +181,62 @@ Keep that product at or below the number of physical cores. Four MPI ranks with
 12 threads each on a 24-core node means 48 threads competing for 24 cores; that
 is why `fv_np4` was slow.
 
+### Explicit control
+
+For a CPU run:
+
+```bash
+saturnCPU -threads 1 case.yaml       # one CPU thread
+saturnCPU -threads 12 case.yaml      # twelve CPU threads
+```
+
+or use the environment variable:
+
+```bash
+OMP_NUM_THREADS=1 saturnCPU case.yaml
+```
+
+For MPI + OpenMP:
+
+```bash
+mpirun -np 4 saturnCPU -threads 6 case.yaml
+# total = 4 ranks x 6 threads = 24 CPU threads
+```
+
+`-threads` and `OMP_NUM_THREADS` both mean "CPU threads per rank/process".
+`-threads` is the CLI override; the environment variable is the standard one.
+
+### Automatic behavior
+
+For a **CPU** build:
+
+- one rank and no `OMP_NUM_THREADS`: Kokkos chooses its default (often all
+  available cores);
+- more than one rank and no `OMP_NUM_THREADS`: `saturnCFD` sets
+  `OMP_NUM_THREADS = max(1, cores/ranks)`;
+- `-threads N` or an exported `OMP_NUM_THREADS=N` always wins.
+
+For a **GPU** build, `OMP_NUM_THREADS` does not control the GPU. Use one MPI
+rank per GPU and leave `OMP_NUM_THREADS` alone.
+
 Rules of thumb:
 
 | situation | starting point |
 |---|---|
-| pure MPI on CPU | `OMP_NUM_THREADS=1`, one rank per core |
+| pure MPI on CPU | `-threads 1`, one rank per physical core |
 | hybrid MPI+OpenMP | `ranks * threads = physical cores` |
-| small 1D/2D cases | fewer threads often faster; kernel overhead dominates |
-| large 3D cases | one rank per NUMA domain, several threads per rank |
-| GPU | one MPI rank per GPU; `OMP_NUM_THREADS` is irrelevant |
+| small 1D cases | fewer threads often faster; kernel overhead dominates |
+| dense 2D/3D cases | more threads per rank; benchmark |
+| one GPU | one MPI rank; no `OMP_NUM_THREADS` tuning |
+| several GPUs | one MPI rank per GPU |
 
 Useful pinning:
 
 ```bash
 export OMP_PROC_BIND=spread
 export OMP_PLACES=threads
-mpirun --bind-to core -np 4 ./buildCPU/saturnCFD case.yaml
+mpirun --bind-to core -np 4 saturnCPU -threads 1 case.yaml
 ```
 
-The `saturnCFD` CLI chooses `max(1, cores/ranks)` automatically for MPI runs
-when `OMP_NUM_THREADS` is not set. The CTest MPI targets set it to `1` so tests
-stay fast and reproducible. An explicit user value always wins.
+The CTest MPI targets set `OMP_NUM_THREADS=1` so tests stay fast and
+reproducible. An explicit user value always wins.

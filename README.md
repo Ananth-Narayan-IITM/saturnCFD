@@ -140,6 +140,29 @@ Build the installed Kokkos for the target architecture (for example
 verified locally; the exact Kokkos build commands and the CPU/GPU benchmark
 are in [`docs/guides/gpu.md`](docs/guides/gpu.md).
 
+## CPU threads and GPUs
+
+```bash
+saturnCPU -threads 1 case.yaml       # one CPU thread
+saturnCPU -threads 12 case.yaml      # twelve CPU threads
+mpirun -np 4 saturnCPU -threads 6 case.yaml   # 4 x 6 = 24 CPU threads
+```
+
+- `-threads N` / `OMP_NUM_THREADS` are **CPU threads per process**, not GPU
+  threads.
+- Total CPU threads = `MPI ranks x threads`; keep it at or below the physical
+  cores.
+- With more than one CPU rank, the CLI defaults to
+  `max(1, cores/ranks)` if neither is set. One rank keeps the Kokkos default.
+- One GPU means one MPI rank: `mpirun -np 1 saturnGPU case.yaml`.
+- Several GPUs: one rank per GPU, e.g.
+  `CUDA_VISIBLE_DEVICES=0,1 mpirun -np 2 saturnGPU case.yaml`.
+- Do not run `mpirun -np 4 saturnGPU` on a single GPU.
+
+Small 1D cases often run fastest with one thread per rank; dense 2D/3D cases
+benefit from more threads. Benchmark both settings. Full guidance:
+[`docs/guides/gpu.md`](docs/guides/gpu.md).
+
 ```bash
 saturnCFD -version
 saturnCFD -listSolvers

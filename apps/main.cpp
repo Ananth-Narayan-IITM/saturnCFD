@@ -46,8 +46,12 @@ using namespace saturn;
 /// OMP_NUM_THREADS explicitly.
 ///
 /// Returns 0 when Kokkos should keep its default (one rank, env unset).
-int configureThreadCount(int ranks) {
+int configureThreadCount(int ranks, int requested) {
 #if defined(SATURN_USE_KOKKOS) && defined(_OPENMP)
+  if (requested > 0) {
+    ::setenv("OMP_NUM_THREADS", std::to_string(requested).c_str(), 1);
+    return requested;
+  }
   if (ranks > 1) {
     if (const char* env = std::getenv("OMP_NUM_THREADS"))
       return std::max(1, std::atoi(env));
@@ -59,6 +63,7 @@ int configureThreadCount(int ranks) {
   }
 #else
   (void)ranks;
+  (void)requested;
 #endif
   return 0;
 }
@@ -78,16 +83,16 @@ void configureOpenMPBinding() {
 /// MPI/Kokkos lifecycle for a case run. Constructed only when a solver runs,
 /// so mesh/config commands stay lightweight.
 struct Runtime {
-  Runtime(int& argc, char**& argv) {
+  Runtime(int& argc, char**& argv, int requestedThreads) {
     int threads = 0;
 #ifdef SATURN_USE_MPI
     int provided = 0;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
     int ranks = 1;
     MPI_Comm_size(MPI_COMM_WORLD, &ranks);
-    threads = configureThreadCount(ranks);
+    threads = configureThreadCount(ranks, requestedThreads);
 #else
-    threads = configureThreadCount(1);
+    threads = configureThreadCount(1, requestedThreads);
 #endif
     configureOpenMPBinding();
 #ifdef SATURN_USE_KOKKOS
@@ -218,7 +223,7 @@ void printGeneralHelp() {
          "  -writeTemplate <f>   write the template; .yaml is appended if "
          "absent\n"
          "  -mesh <file>         mesh patch names for -dumpConfig\n"
-         "  -threads <N>         reserved for Kokkos thread count\n"
+         "  -threads <N>         CPU threads per process (default: auto)\n"
          "  -completion <shell>  print shell completion (bash|zsh|fish)\n\n"
          "notes:\n"
          "  - units are SI only in v1.0; non-SI input is rejected\n"
@@ -454,13 +459,14 @@ void printTopic(const std::string& topic) {
            "--oversubscribe is needed. On a machine with fewer slots than\n"
            "requested ranks, configure with:\n"
            "  cmake -S . -B buildCPU -DSATURN_MPI_PREFLAGS=--oversubscribe\n\n"
-           "Solver runs (Phase 2+):\n\n"
-           "  mpirun -np 4 saturnCFD case.yaml\n"
-           "  mpirun -np 1 saturnCFD case.yaml     # one GPU, one rank\n\n"
-           "Current saturnCFD is a serial mesh/config tool; the FVM\n"
-           "operators are tested through testSaturnFV, not the app.\n"
-           "One rank per GPU for performance. On the cluster use srun or\n"
-           "mpirun with the allocated tasks.\n";
+           "Solver runs:\n\n"
+           "  mpirun -np 4 saturnCPU -threads 1 case.yaml\n"
+           "  mpirun -np 1 saturnGPU case.yaml     # one GPU, one rank\n"
+           "  mpirun -np 2 saturnGPU case.yaml     # two GPUs, one each\n\n"
+           "CPU threads = ranks x -threads/OMP_NUM_THREADS; keep it at or\n"
+           "below the physical cores. One rank per GPU, never several ranks\n"
+           "on one GPU. On the cluster use srun or mpirun with the allocated\n"
+           "tasks.\n";
   } else if (topic == "build") {
     std::cout
         << "build\n\n"
@@ -536,9 +542,13 @@ void printTopic(const std::string& topic) {
            "P620; see docs/guides/gpu.md for the Kokkos build commands and\n"
            "the CPU/GPU benchmark.\n\n"
            "Runtime, one rank per GPU:\n\n"
-           "  mpirun -np 1 saturnCFD case.yaml    # one GPU\n"
-           "  mpirun -np 4 saturnCFD case.yaml    # four GPUs, one rank "
+           "  mpirun -np 1 saturnGPU case.yaml    # one GPU\n"
+           "  mpirun -np 2 saturnGPU case.yaml    # two GPUs, one rank "
+           "each\n"
+           "  mpirun -np 4 saturnGPU case.yaml    # four GPUs, one rank "
            "each\n\n"
+           "OMP_NUM_THREADS does not control GPU threads. One MPI rank per\n"
+           "GPU; do not put several ranks on one GPU.\n\n"
            "mpirun is not CPU-only: it launches MPI ranks. Each rank's\n"
            "compiled Kokkos backend decides whether that rank uses a CPU or\n"
            "a GPU. Rank-to-device mapping is by local rank; a rank beyond\n"
@@ -546,8 +556,8 @@ void printTopic(const std::string& topic) {
            "GPU tests (FV halo, MMS, reference parity):\n\n"
            "  ctest --preset gpu\n\n"
            "The gpu preset keeps PETSc off until a GPU PETSc build is\n"
-           "configured. Install the CPU/PETSc build last if you need the\n"
-           "host PETSc solvers.\n\n"
+           "configured. CPU and GPU installs are separate; saturnCFD is CPU\n"
+           "unless installed with --default gpu.\n\n"
            "Do not benchmark MPI+GPU scaling on one GPU. One GPU is enough\n"
            "for correctness and single-GPU performance; multi-GPU scaling is\n"
            "a cluster measurement.\n";
@@ -1012,7 +1022,7 @@ int main(int argc, char** argv) {
     if (!cli.dumpSolver.empty())
       return runDumpConfig(cli);
 
-    Runtime runtime(argc, argv);
+    Runtime runtime(argc, argv, cli.threads);
     return runCase(cli);
   } catch (const SaturnError& e) {
     std::cerr << "error: " << e.what() << "\n";
