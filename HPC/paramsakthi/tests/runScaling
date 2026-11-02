@@ -279,6 +279,11 @@ def pyplot():
                  "python3 -m pip install --user matplotlib")
 
 
+def legend(ax):
+    if ax.get_legend_handles_labels()[1]:
+        ax.legend()
+
+
 def save(plt, fig, outdir, name):
     fig.tight_layout()
     fig.savefig(outdir / f"{name}.png", dpi=150)
@@ -290,6 +295,10 @@ def plot_strong(rows, outdir):
     plt = pyplot()
     cpu = series(rows, "cpu", "heatStrong128")
     gpu = series(rows, "gpu", "heatStrong128")
+    threads = series(rows, "cpu", "heatStrong128", threads=CORES_PER_NODE)
+    if len(cpu) < 2 and len(gpu) < 2:
+        print("  fewer than two 128^3 points: skipping scaling figures")
+        return
 
     fig, axes = plt.subplots(1, 2, figsize=(9, 3.8))
     for ax, data, label in ((axes[0], cpu, "CPU ranks"),
@@ -312,7 +321,7 @@ def plot_strong(rows, outdir):
         ax.set_xlabel(label)
         ax.set_ylabel("speedup")
         ax.grid(True, which="both", alpha=.3)
-        ax.legend()
+        legend(ax)
     fig.suptitle("Strong scaling, 128$^3$")
     save(plt, fig, outdir, "speedup")
 
@@ -334,7 +343,7 @@ def plot_strong(rows, outdir):
         ax.set_xlabel(label)
         ax.set_ylabel("parallel efficiency [%]")
         ax.grid(True, which="both", alpha=.3)
-        ax.legend()
+        legend(ax)
     fig.suptitle("Strong-scaling efficiency, 128$^3$")
     save(plt, fig, outdir, "efficiency")
 
@@ -344,7 +353,6 @@ def plot_strong(rows, outdir):
             continue
         ax.plot([r["units"] for r in data], [r["spt"] for r in data],
                 "o-", label=label)
-    threads = series(rows, "cpu", "heatStrong128", threads=CORES_PER_NODE)
     if threads:
         ax.plot([threads[0]["units"]], [threads[0]["spt"]], "D",
                 label="CPU, 1 rank x 48 threads")
@@ -353,7 +361,7 @@ def plot_strong(rows, outdir):
     ax.set_xlabel("ranks / GPUs")
     ax.set_ylabel("seconds per step")
     ax.grid(True, which="both", alpha=.3)
-    ax.legend()
+    legend(ax)
     ax.set_title("Time per step, 128$^3$")
     save(plt, fig, outdir, "timePerStep")
 
@@ -389,7 +397,7 @@ def plot_strong(rows, outdir):
     ax.set_xlabel("ranks / GPUs")
     ax.set_ylabel("L2 error")
     ax.grid(True, which="both", alpha=.3)
-    ax.legend()
+    legend(ax)
     ax.set_title("Accuracy, 128$^3$")
     save(plt, fig, outdir, "accuracy")
 
@@ -405,7 +413,8 @@ def plot_weak(rows, outdir):
     plt = pyplot()
     data = {backend: ones(rows, backend) for backend in ("cpu", "gpu")}
     data = {k: v for k, v in data.items() if v}
-    if not data:
+    if not data or max(len(v) for v in data.values()) < 2:
+        print("  fewer than two weak points: skipping figures")
         return
 
     fig, ax = plt.subplots(figsize=(6, 4))
@@ -418,7 +427,7 @@ def plot_weak(rows, outdir):
     ax.set_xlabel("ranks / GPUs (32$^3$ per unit)")
     ax.set_ylabel("weak efficiency [%]")
     ax.grid(True, which="both", alpha=.3)
-    ax.legend()
+    legend(ax)
     ax.set_title("Weak scaling")
     save(plt, fig, outdir, "efficiency")
 
@@ -431,7 +440,7 @@ def plot_weak(rows, outdir):
     ax.set_xlabel("ranks / GPUs (32$^3$ per unit)")
     ax.set_ylabel("seconds per step")
     ax.grid(True, which="both", alpha=.3)
-    ax.legend()
+    legend(ax)
     ax.set_title("Weak scaling, time per step")
     save(plt, fig, outdir, "timePerStep")
 
@@ -443,7 +452,7 @@ def plot_weak(rows, outdir):
     ax.set_xlabel("ranks / GPUs (32$^3$ per unit)")
     ax.set_ylabel("L2 error")
     ax.grid(True, which="both", alpha=.3)
-    ax.legend()
+    legend(ax)
     ax.set_title("Weak scaling, accuracy")
     save(plt, fig, outdir, "accuracy")
 
