@@ -1,54 +1,148 @@
 #!/bin/bash
-# Submit the CPU Heat scaling chain. Jobs run one after another through Slurm
-# dependencies, so timings are not disturbed by this campaign's other jobs.
+# Submit the CPU Heat scaling chain.
+#
+# Jobs are submitted one at a time and the script waits for each one, so the
+# queue limits are respected and the timings are not disturbed by other runs
+# of this campaign.
+#
+#   ./submitCpu                 full chain (waits for every job)
+#   DRY_RUN=1 ./submitCpu       print the sbatch commands, submit nothing
+#   WAIT=0 ./submitCpu          queue everything without waiting
+#
+# Run it in tmux/nohup: it stays in the foreground by design.
 
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$HERE"
-mkdir -p logs results
+mkdir -p logs results/cpu
+
 BIN="${BIN:-$HERE/../../buildCPUHPC/saturnCFD}"
 if [ ! -x "$BIN" ]; then
   echo "error: missing binary $BIN"
-  echo "       run ./cpuBuild or ./gpuBuild first"
+  echo "       run ./cpuBuild first, then ./writeRuntime cpu"
   exit 1
 fi
+
+CORES_PER_NODE=48
+
+logFor() {
+  local jid="$1"
+  ls -t logs/*"$jid"*.out 2>/dev/null | head -n1
+}
 
 waitForJob() {
   local jid="$1"
   if [ "${WAIT:-1}" = "0" ]; then
     return 0
   fi
-  while squeue -h -j "$jid" | grep -q .; do
+  while squeue -h -j "$jid" 2>/dev/null | grep -q .; do
     sleep 20
   done
 }
 
+jobState() {
+  local jid="$1" state=""
+  if [ "${WAIT:-1}" = "0" ]; then
+    echo ""
+    return 0
+  fi
+  for _ in 1 2 3 4 5 6; do
+    state="$(sacct -j "$jid" --format=State -n 2>/dev/null |
+      awk 'NF{print $1; exit}' || true)"
+    [ -n "$state" ] && break
+    sleep 5
+  done
+  echo "$state"
+}
+
+checkCase() {
+  local case="$1"
+  if [ ! -f "$HERE/cases/${case}.yaml" ]; then
+    echo "error: missing case $HERE/cases/${case}.yaml"
+    echo "       run: python3 generateCases.py"
+    exit 1
+  fi
+}
+
+# runJob <script> <ntasks> <cpus-per-task> <case> <job name>
 runJob() {
-  local script="$1" partition="$2" nodes="$3" ntasks="$4" cpus="$5"
-  local case="$6" name="$7" extra="${8:-}"
-  local out jid
+  local script="$1" ntasks="$2" cpus="$3" case="$4" name="$5"
+  local partition nodes pernode out jid state log
+  checkCase "$case"
+  if [ "$ntasks" -le "$CORES_PER_NODE" ]; then
+    partition=small
+    nodes=1
+    pernode="$ntasks"
+  else
+    partition=medium
+    nodes=$(( (ntasks + CORES_PER_NODE - 1) / CORES_PER_NODE ))
+    pernode=$(( (ntasks + nodes - 1) / nodes ))
+  fi
+  if [ "${DRY_RUN:-0}" = "1" ]; then
+    printf 'sbatch -p %s -N %d -n %d --ntasks-per-node=%d -c %d' \
+      "$partition" "$nodes" "$ntasks" "$pernode" "$cpus"
+    printf ' --export=ALL,CASE=%s,SATURN_HPC_DIR=%s %s\n' \
+      "$case" "$HERE" "$script"
+    return 0
+  fi
   out=$(sbatch --parsable --partition="$partition" --nodes="$nodes" \
-    --ntasks="$ntasks" --cpus-per-task="$cpus" --time=04:00:00 \
+    --ntasks="$ntasks" --ntasks-per-node="$pernode" \
+    --cpus-per-task="$cpus" --time=04:00:00 \
     --job-name="$name" --exclusive \
-    --export="ALL,CASE=${case},SATURN_HPC_DIR=${HERE}" $extra "$script")
+    --export="ALL,CASE=${case},SATURN_HPC_DIR=${HERE}" "$script")
   jid="${out%%;*}"
   if [[ ! "$jid" =~ ^[0-9]+$ ]]; then
     echo "error: sbatch failed for $name: $out"
     exit 1
   fi
-  echo "submitted $name  job=$jid"
+  echo "submitted $name  case=$case  ranks=$ntasks  threads=$cpus  job=$jid"
   waitForJob "$jid"
-  state="$(sacct -j "$jid" --format=State -n 2>/dev/null | head -n1 | tr -d ' ')"
+  state="$(jobState "$jid")"
   if [ -n "$state" ]; then
     echo "  state=$state"
     case "$state" in
-      FAILED*|CANCELLED*|TIMEOUT*|NODE_FAIL*)
-        echo "error: $name failed; inspect logs/${script}-${jid}.out"
+      FAILED*|CANCELLED*|TIMEOUT*|NODE_FAIL*|OUT_OF_MEMORY*)
+        log="$(logFor "$jid")"
+        echo "error: $name failed; log: ${log:-none}"
+        [ -n "$log" ] && tail -n 40 "$log"
         exit 1
         ;;
     esac
+    log="$(logFor "$jid")"
+    [ -n "$log" ] && echo "  log=$log"
   fi
 }
 
+echo "CPU campaign from $HERE"
+echo "binary: $BIN"
+
+echo
+echo "== smoke test: 64^3 on one core =="
+runJob cpuStrong 1 1 heatStrong64 heatCpu1x64
+
+echo
+echo "== one node, one rank, 48 OpenMP threads =="
+runJob cpuThreads 1 48 heatStrong128 heatCpu1node128
+
+echo
+echo "== strong scaling, 128^3 (1 thread per rank) =="
+for n in 1 2 4 8 16 24 48 96 192 384; do
+  runJob cpuStrong "$n" 1 heatStrong128 "heatCpu${n}x128"
+done
+
+echo
+echo "== weak scaling, 32^3 per rank, 100 fixed steps =="
+runJob cpuWeak 1 1 heatWeak032 heatCpuWeak1x032
+runJob cpuWeak 8 1 heatWeak064 heatCpuWeak8x064
+runJob cpuWeak 27 1 heatWeak096 heatCpuWeak27x096
+runJob cpuWeak 64 1 heatWeak128 heatCpuWeak64x128
+
+echo
+echo "== dense, 256^3 =="
+runJob cpuStrong 48 1 heatStrong256 heatCpu48x256
+runJob cpuStrong 192 1 heatStrong256 heatCpu192x256
+runJob cpuStrong 384 1 heatStrong256 heatCpu384x256
+
+echo
 echo "CPU campaign finished"
-echo "collect with: python3 collectResults.py"
+echo "collect with: python3 collectResults.py && python3 plotScaling.py"

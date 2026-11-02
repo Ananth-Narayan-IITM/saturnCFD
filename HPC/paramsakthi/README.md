@@ -108,7 +108,8 @@ cd HPC/paramsakthi
   `/opt/ohpc` Lmod path. Regenerate the runtime files if you change modules.
 - Kokkos is cloned into `~/.cache/saturnCFD` and installed under
   `~/.local/kokkos-cpu-4.7.04` / `~/.local/kokkos-cuda-4.7.04`.
-- Binaries are `buildCPU/saturnCFD` and `buildGPU/saturnCFD` in the repository.
+- Binaries are `buildCPUHPC/saturnCFD` and `buildGPUHPC/saturnCFD` in the
+  repository root.
 
 If a module name differs, edit `envCpu`/`envGpu`; the module list on the login
 node shows `compiler/gcc/12.4`, `compiler/openmpi/5.0.6` and
@@ -160,10 +161,40 @@ This is why the script stays in the foreground: it waits for the first job,
 then submits the second, and so on. Run it in `tmux`/`nohup`, not in a login
 shell you intend to close.
 
-The first CPU job is `heatStrong64` on one core; the first GPU job is
-`heatStrong64` on one A100. They are quick smoke tests. The full chain then
-covers 128³ strong scaling, weak scaling, the 48-thread run, and the dense
-256³ points.
+Point list (`./submitCpu`):
+
+| point | case | ranks × threads |
+|---|---|---|
+| smoke test | `heatStrong64` | 1 × 1 |
+| one node, threads | `heatStrong128` | 1 × 48 |
+| strong 128³ | `heatStrong128` | 1, 2, 4, 8, 16, 24, 48 ranks × 1 |
+| strong 128³, multi-node | `heatStrong128` | 96 (2 nodes), 192 (4), 384 (8) |
+| weak | `heatWeak032/064/096/128` | 1, 8, 27, 64 ranks |
+| dense 256³ | `heatStrong256` | 48, 192, 384 ranks |
+
+Point list (`./submitGpu`):
+
+| point | case | GPUs |
+|---|---|---|
+| smoke test | `heatStrong64` | 1 |
+| one A100 | `heatStrong128` | 1 |
+| strong 128³ | `heatStrong128` | 2, 4, 8 |
+| dense 256³ | `heatStrong256` | 8 |
+| weak, 32³/GPU | `heatWeak032`, `heatWeak064` | 1, 8 |
+
+The weak GPU series has only 1 and 8 GPUs because only those give an integer
+cube with exactly 32³ cells per GPU; strong scaling carries the 2/4/8 GPU
+curve.
+
+Preview the chain without submitting anything:
+
+```bash
+DRY_RUN=1 ./submitCpu
+DRY_RUN=1 ./submitGpu
+```
+
+A successful job prints `state=COMPLETED` and `log=logs/...`. A failed job
+prints `state=FAILED`, the log path and its last 40 lines, then the chain stops.
 
 Watch progress:
 
