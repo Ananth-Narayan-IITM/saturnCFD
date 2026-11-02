@@ -4,11 +4,40 @@
 
 set -euo pipefail
 
+# A batch shell inherits the login node's module function and LMOD_CMD. If
+# that path is not present on the compute node, reinitialize Lmod.
+module_ok=false
+if [ -n "${LMOD_CMD:-}" ] && [ -x "${LMOD_CMD}" ]; then
+  module_ok=true
+fi
+if [ "${module_ok}" = false ]; then
+  unset -f module 2>/dev/null || true
+  unset LMOD_CMD LMOD_DIR LMOD_PKG LMOD_ROOT LMOD_SETTARG_CMD MODULESHOME 2>/dev/null || true
+  for init in /etc/profile.d/lmod.sh /etc/profile.d/modules.sh \
+              /usr/share/lmod/lmod/init/bash \
+              /opt/ohpc/admin/lmod/lmod/init/bash; do
+    if [ -r "$init" ]; then
+      # shellcheck disable=SC1090
+      . "$init" && break
+    fi
+  done
+fi
+if [ -d /home/apps/modulefiles ]; then
+  module use /home/apps/modulefiles 2>/dev/null || true
+fi
+
 module purge
 # GCC supplies a C++20 host compiler; nvhpc supplies CUDA and HPC-X.
 module load compiler/gcc/12.4
 module load nvhpc-24.5/nvhpc-hpcx-cuda12/24.5
 module load python/3.12 2>/dev/null || true
+for tool in mpirun nvcc; do
+  command -v "$tool" >/dev/null || {
+    echo "error: $tool missing after loading the nvhpc/HPC-X modules"
+    module list 2>&1 || true
+    exit 1
+  }
+done
 
 export PATH="$HOME/.local/bin:$PATH"
 if [ -n "${CONDA_PREFIX:-}" ] && [ -x "$CONDA_PREFIX/bin/cmake" ]; then
