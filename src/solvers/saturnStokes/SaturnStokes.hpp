@@ -37,6 +37,13 @@ struct StokesOptions {
   Real wallTopU = 0;
   Real stabilization = 1.0;
   bool direct = true;
+  /// Fieldsplit sub-solver choices. The defaults are the production
+  /// configuration (GAMG/GAMG); the comparison example can select ILU and
+  /// Jacobi for serial low-memory runs.
+  std::string velocityKsp = "gmres";
+  std::string velocityPc = "gamg";
+  std::string pressureKsp = "preonly";
+  std::string pressurePc = "gamg";
 
   std::function<Vec3(const Vec3&)> bodyForce;
   /// Right-hand side of the stabilised continuity equation. Zero for the

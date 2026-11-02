@@ -112,5 +112,7 @@ python3 compareAnalytic.py --case couette
 The Stokes scripts compare the numerical velocity with the exact Poiseuille
 parabola or Couette line, validate both cases together, and plot 2D fields
 plus the averaged profile, or 3D velocity-profile surfaces (numerical,
-analytic, error). A `summary.txt` records the combined validation table. With
+analytic, error). A `compareSolvers.py` runs the same case with `direct` and `fieldsplit` and
+reports wall time, peak process-tree memory and the solution difference.
+A `summary.txt` records the combined validation table. With
 `output.vtkEvery` enabled, one `.vtu` contains `u`, `v`, `w` and `p`.

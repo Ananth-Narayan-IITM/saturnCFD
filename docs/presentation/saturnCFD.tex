@@ -430,6 +430,20 @@ time:
     \end{tabular}
   \end{center}
 
+  \begin{center}
+    \small
+    \begin{tabular}{llrrr}
+      \toprule
+      case & solver & wall [s] & RSS [MB] & $L^2$ \\
+      \midrule
+      2D $128^2$ & direct & 4.7 & 600 & $7.63\times10^{-6}$ \\
+      2D $128^2$ & fieldsplit & 8.4 & 175 & $7.63\times10^{-6}$ \\
+      3D $24^3$ & direct & 93.7 & 1493 & $2.17\times10^{-4}$ \\
+      3D $24^3$ & fieldsplit & 1.7 & 165 & $2.17\times10^{-4}$ \\
+      \bottomrule
+    \end{tabular}
+  \end{center}
+
   \begin{block}{Output and validation}
     One VTU per case contains all four fields \texttt{u,v,w,p}; the example
     script validates both Poiseuille and Couette and draws 2D fields or 3D

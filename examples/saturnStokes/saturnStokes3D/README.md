@@ -73,3 +73,16 @@ meshes.
 With `output.vtkEvery: 1` the steady solver writes one `prefix.vtu` containing
 all four cell arrays `u`, `v`, `w` and `p`. Open it directly in ParaView; no
 per-variable files are created.
+
+## Solver comparison
+
+`compareSolvers.py` runs the same case with the direct LU and fieldsplit
+solvers and reports wall time, peak process-tree memory, the analytic error
+and the fieldsplit-vs-direct solution difference:
+
+```bash
+python3 compareSolvers.py --cli ../../../buildCPU/saturnCFD
+```
+
+The results and interpretation are in
+[`docs/validation/fieldsplit.md`](../../../docs/validation/fieldsplit.md).

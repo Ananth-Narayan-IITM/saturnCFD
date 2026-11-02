@@ -34,6 +34,14 @@ ConfigSchema stokesSchema() {
   s.addEnum("stokes.linearSolver", "fieldsplit", {"direct", "fieldsplit"},
             "coupled PETSc linear solve: fieldsplit/Schur by default "
             "(O(N) memory), direct LU for validation or very high memory");
+  s.addEnum("stokes.velocityKsp", "gmres", {"gmres", "preonly"},
+            "fieldsplit velocity Krylov method");
+  s.addEnum("stokes.velocityPc", "gamg", {"gamg", "ilu", "jacobi"},
+            "fieldsplit velocity preconditioner");
+  s.addEnum("stokes.pressureKsp", "preonly", {"preonly", "gmres"},
+            "fieldsplit pressure Krylov method");
+  s.addEnum("stokes.pressurePc", "gamg", {"gamg", "jacobi", "ilu"},
+            "fieldsplit pressure preconditioner");
   s.addDouble("stokes.stabilization", 1.0,
               "pressure-stabilisation factor (0 disables)");
   return s;
@@ -54,6 +62,10 @@ std::unique_ptr<Solver> makeSaturnStokes(const Config& cfg) {
   options.periodicY = cfg.getBool("stokes.periodicY", false);
   options.direct =
       cfg.getString("stokes.linearSolver", "fieldsplit") == "direct";
+  options.velocityKsp = cfg.getString("stokes.velocityKsp", "gmres");
+  options.velocityPc = cfg.getString("stokes.velocityPc", "gamg");
+  options.pressureKsp = cfg.getString("stokes.pressureKsp", "preonly");
+  options.pressurePc = cfg.getString("stokes.pressurePc", "gamg");
   options.force = {cfg.getDouble("stokes.forceX", 0.0),
                    cfg.getDouble("stokes.forceY", 0.0),
                    cfg.getDouble("stokes.forceZ", 0.0)};
@@ -119,6 +131,12 @@ std::unique_ptr<Solver> makeSaturnStokes(const Config& cfg) {
   } else {
     throw ConfigError("unsupported stokes.case '" + test + "'");
   }
+
+  if (!options.direct && options.periodicY)
+    throw ConfigError(
+        "stokes.linearSolver: fieldsplit does not support a fully periodic "
+        "Stokes domain yet (constant pressure and velocity nullspaces); use "
+        "linearSolver: direct or keep y as a wall pair");
 
   return std::make_unique<SaturnStokes>(std::move(mesh), std::move(options));
 }

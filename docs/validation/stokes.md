@@ -29,9 +29,10 @@ cases verify the formal order. The exit-boundary case is the bridge to the
 - Cell-centred finite volume on a structured hexahedral box.
 - Coupled $u,v,w,p$ saddle-point matrix; Brezzi–Pitkäranta pressure stabilisation.
 - PETSc `MPIAIJ`, GMRES/FGMRES, fieldsplit/Schur preconditioner.
-- Velocity block: GAMG/ILU; pressure block: GAMG/HYPRE.
+- Velocity block: GMRES + GAMG (production) or GMRES + ILU (serial-tuned); pressure block: preonly + GAMG or Jacobi.
 - Pressure nullspace for all-Neumann cases.
-- Tolerances: outer `rtol = 1e-10`, `atol = 1e-12`; failure is an error.
+- Tolerances: outer `rtol = 1e-12`, `atol = 1e-14`; velocity inner `rtol = 1e-10`; failure is an error.
+- The fully periodic case is direct-only until both nullspaces are attached.
 
 ## 3. Error norms
 
@@ -125,6 +126,20 @@ fixed: the old momentum rows were volume-integrated while the continuity rows
 were per-volume, which scaled the solved pressure by the cell volume and made
 the Schur complement `O(1/(mu h^3))`. MMS and the Sankhla & Das exit-boundary
 cases remain planned.
+
+## 4b. Direct versus fieldsplit
+
+The solver-cost comparison is in
+[`fieldsplit.md`](fieldsplit.md). On the same Poiseuille case, serial:
+
+| case | solver | wall [s] | peak RSS [MB] | L2 |
+|---|---|---:|---:|---:|
+| 2D 128^2 | direct | 4.71 | 600 | 7.63e-6 |
+| 2D 128^2 | fieldsplit | 8.36 | 175 | 7.63e-6 |
+| 3D 24^3 | direct | 93.7 | 1493 | 2.17e-4 |
+| 3D 24^3 | fieldsplit | 1.67 | 165 | 2.17e-4 |
+
+The fieldsplit and direct solutions agree to ~1e-13.
 
 ## 5. Test/CTest plan
 

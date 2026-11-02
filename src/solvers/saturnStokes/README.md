@@ -52,7 +52,11 @@ src/solvers/saturnStokes/
 - `stokes.linearSolver` defaults to `fieldsplit`, which needs only `O(N)`
   memory: outer FGMRES, `PC_COMPOSITE_SCHUR` with `fact_type full` and
   `selfp`, GMRES + GAMG on the velocity block (`rtol 1e-10`), and
-  preonly + GAMG on the pressure block. The outer tolerance is `1e-12`.
+  preonly + GAMG on the pressure block. The outer tolerance is `1e-12`. The
+  sub-solver choices are schema keys: `stokes.velocityKsp`,
+  `stokes.velocityPc`, `stokes.pressureKsp`, `stokes.pressurePc`.
+  `examples/saturnStokes/*/compareSolvers.py` compares time, memory and
+  accuracy against direct LU; see `docs/validation/fieldsplit.md`.
   This gives 11-20 outer iterations in 2D and 3-13 in 3D on 1/2/4/8 ranks.
   `direct` selects PETSc `preonly` + `lu` (SuperLU_DIST when available; MUMPS
   can report a false zero pivot on small multi-periodic saddle-point systems)
@@ -60,6 +64,9 @@ src/solvers/saturnStokes/
 - 2D cases use the 3D core with `nz = 1`; `w` is constrained to zero.
 - 2D runs on 1/2/4/8 ranks and 3D on 1/2/4 ranks; the 3D tests no longer skip
   multi-rank runs. A fieldsplit-vs-direct test guards the default solver.
+- A fully periodic domain is direct-only until the pressure and velocity
+  nullspaces are attached to the fieldsplit path; requesting fieldsplit there
+  raises a configuration error.
 
 ## Cases
 

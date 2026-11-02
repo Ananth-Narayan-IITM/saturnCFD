@@ -228,11 +228,15 @@ void SaturnStokes::createSolver() {
   // mesh-independent. The velocity split must iterate (GMRES) because the
   // Schur coupling needs an accurate A^{-1}; a single ILU/AMG application
   // is too weak and makes the outer FGMRES stagnate on fine meshes.
-  PetscOptionsSetValue(nullptr, "-fieldsplit_velocity_ksp_type", "gmres");
-  PetscOptionsSetValue(nullptr, "-fieldsplit_velocity_pc_type", "gamg");
+  PetscOptionsSetValue(nullptr, "-fieldsplit_velocity_ksp_type",
+                       mOptions.velocityKsp.c_str());
+  PetscOptionsSetValue(nullptr, "-fieldsplit_velocity_pc_type",
+                       mOptions.velocityPc.c_str());
   PetscOptionsSetValue(nullptr, "-fieldsplit_velocity_ksp_rtol", "1e-10");
-  PetscOptionsSetValue(nullptr, "-fieldsplit_pressure_ksp_type", "preonly");
-  PetscOptionsSetValue(nullptr, "-fieldsplit_pressure_pc_type", "gamg");
+  PetscOptionsSetValue(nullptr, "-fieldsplit_pressure_ksp_type",
+                       mOptions.pressureKsp.c_str());
+  PetscOptionsSetValue(nullptr, "-fieldsplit_pressure_pc_type",
+                       mOptions.pressurePc.c_str());
   SATURN_PETSC_CHECK(KSPSetTolerances(mKsp, 1e-12, 1e-14, PETSC_DEFAULT, 500));
   SATURN_PETSC_CHECK(KSPSetFromOptions(mKsp));
   SATURN_PETSC_CHECK(KSPSetOperators(mKsp, mA, mA));
