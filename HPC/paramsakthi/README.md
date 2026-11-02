@@ -14,6 +14,7 @@ Both are Python 3 and are run from this directory.
 ```bash
 cd HPC/paramsakthi
 ./tools/compileSaturnCFD          # check + build CPU and GPU
+./tests/runScaling --smoke        # one 64^3 point per backend
 ./tests/runScaling --dry-run      # print the jobs
 ./tests/runScaling                # run everything (tmux/nohup, takes ~1 h CPU)
 ```

@@ -4,6 +4,7 @@
     ./tests/runScaling                  # CPU + GPU, strong and weak
     ./tests/runScaling cpu              # CPU only
     ./tests/runScaling gpu --stage weak # one stage
+    ./tests/runScaling --smoke          # one 64^3 point per backend
     ./tests/runScaling --dry-run        # print the jobs, submit nothing
 
 Every point is one Slurm job submitted with `sbatch --wait`, so the queue
@@ -452,17 +453,23 @@ def main(argv=None):
                     help="print the jobs, submit nothing")
     ap.add_argument("--plot-only", action="store_true",
                     help="re-plot the existing results")
+    ap.add_argument("--smoke", action="store_true",
+                    help="only one 64^3 point per backend")
     args = ap.parse_args(argv)
 
     if not args.dry_run:
         pyplot()  # fail before the campaign, not after an hour
     stages = ("strong", "weak") if args.stage == "both" else (args.stage,)
+    if args.smoke:
+        stages = ("strong",)
     if not args.plot_only:
         for backend in args.backends or list(BINARY):
             env = None if args.dry_run else load_backend(backend)
             for stage in stages:
                 print("\n== %s %s ==" % (backend, stage))
-                for case, units, threads in points(backend, stage):
+                todo = ([("heatStrong64", 1, 1)] if args.smoke
+                        else points(backend, stage))
+                for case, units, threads in todo:
                     submit(backend, stage, case, units, threads, env,
                            args.dry_run)
 
