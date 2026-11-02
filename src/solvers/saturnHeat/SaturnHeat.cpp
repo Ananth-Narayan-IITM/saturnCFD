@@ -8,6 +8,8 @@
 
 #include <Kokkos_Core.hpp>
 
+#include "core/Policy.hpp"
+
 #ifdef SATURN_USE_MPI
 #include <mpi.h>
 #endif
@@ -19,10 +21,8 @@
 namespace saturn {
 namespace {
 
-using Policy3 = Kokkos::MDRangePolicy<Kokkos::Rank<3>, Kokkos::IndexType<int>>;
-
-Policy3 ownedPolicy(const CellField& field) {
-  return Policy3(
+Policy3d ownedPolicy(const CellField& field) {
+  return Policy3d(
       {field.origin(0), field.origin(1), field.origin(2)},
       {field.origin(0) + field.extent(0), field.origin(1) + field.extent(1),
        field.origin(2) + field.extent(2)});
@@ -88,9 +88,8 @@ void SaturnHeat::initialize() {
   const int k0 = mesh.origin[2];
   Kokkos::parallel_for(
       "saturnHeat::velocity_faces",
-      Kokkos::MDRangePolicy<Kokkos::Rank<3>, Kokkos::IndexType<int>>(
-          {i0, j0, k0},
-          {i0 + mesh.extent[0], j0 + mesh.extent[1], k0 + mesh.extent[2]}),
+      Policy3d({i0, j0, k0},
+               {i0 + mesh.extent[0], j0 + mesh.extent[1], k0 + mesh.extent[2]}),
       KOKKOS_LAMBDA(int i, int j, int k) {
         for (int dir = 0; dir < 2 * mesh.dimension; ++dir)
           un(i, j, k, dir, 0) = dot(velocity, mesh.faceNormal(i, j, k, dir));

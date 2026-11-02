@@ -4,6 +4,8 @@
 
 #include "fv/Operators.hpp"
 
+#include "core/Policy.hpp"
+
 namespace saturn {
 
 void laplacian(const CellField& phi, CellField& out,
@@ -28,9 +30,7 @@ void laplacian(const CellField& phi, CellField& out,
   CellField o = out;
 
   Kokkos::parallel_for(
-      "saturn::laplacian",
-      Kokkos::MDRangePolicy<Kokkos::Rank<3>, Kokkos::IndexType<int>>(
-          {i0, j0, k0}, {i0 + nx, j0 + ny, k0 + nz}),
+      "saturn::laplacian", Policy3d({i0, j0, k0}, {i0 + nx, j0 + ny, k0 + nz}),
       KOKKOS_LAMBDA(int i, int j, int k) {
         for (int c = 0; c < nc; ++c) {
           Real sum = 0;
@@ -88,8 +88,7 @@ void laplacian(const CellField& phi, FaceField& face, CellField& grad,
 
   Kokkos::parallel_for(
       "saturn::laplacian_localmesh",
-      Kokkos::MDRangePolicy<Kokkos::Rank<3>, Kokkos::IndexType<int>>(
-          {i0, j0, k0}, {i0 + nx, j0 + ny, k0 + nz}),
+      Policy3d({i0, j0, k0}, {i0 + nx, j0 + ny, k0 + nz}),
       KOKKOS_LAMBDA(int i, int j, int k) {
         Real sum = 0;
         for (int dir = 0; dir < 2 * m.dimension; ++dir) {

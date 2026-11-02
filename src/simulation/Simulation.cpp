@@ -7,6 +7,8 @@
 
 #include <Kokkos_Core.hpp>
 
+#include "core/Policy.hpp"
+
 #ifdef SATURN_USE_MPI
 #include <mpi.h>
 #endif
@@ -34,10 +36,8 @@ double globalMax(double value) {
 #endif
 }
 
-using Policy3 = Kokkos::MDRangePolicy<Kokkos::Rank<3>, Kokkos::IndexType<int>>;
-
-Policy3 ownedPolicy(const CellField& field) {
-  return Policy3(
+Policy3d ownedPolicy(const CellField& field) {
+  return Policy3d(
       {field.origin(0), field.origin(1), field.origin(2)},
       {field.origin(0) + field.extent(0), field.origin(1) + field.extent(1),
        field.origin(2) + field.extent(2)});

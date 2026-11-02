@@ -4,6 +4,8 @@
 
 #include "fv/Operators.hpp"
 
+#include "core/Policy.hpp"
+
 namespace saturn {
 namespace {
 
@@ -131,8 +133,7 @@ void faceNormalVelocity(const CellField& velocity, FaceField& velocityFaces,
 
   Kokkos::parallel_for(
       "saturn::face_normal_velocity",
-      Kokkos::MDRangePolicy<Kokkos::Rank<3>, Kokkos::IndexType<int>>(
-          {i0, j0, k0}, {i0 + nx, j0 + ny, k0 + nz}),
+      Policy3d({i0, j0, k0}, {i0 + nx, j0 + ny, k0 + nz}),
       KOKKOS_LAMBDA(int i, int j, int k) {
         for (int dir = 0; dir < 2 * m.dimension; ++dir) {
           const Vec3 n = m.faceNormal(i, j, k, dir);
@@ -169,8 +170,7 @@ void convectiveFlux(const FaceField& normalVelocity, const CellField& phi,
 
   Kokkos::parallel_for(
       "saturn::convective_flux",
-      Kokkos::MDRangePolicy<Kokkos::Rank<3>, Kokkos::IndexType<int>>(
-          {i0, j0, k0}, {i0 + nx, j0 + ny, k0 + nz}),
+      Policy3d({i0, j0, k0}, {i0 + nx, j0 + ny, k0 + nz}),
       KOKKOS_LAMBDA(int i, int j, int k) {
         for (int dir = 0; dir < 2 * m.dimension; ++dir) {
           int di = 0, dj = 0, dk = 0;
@@ -230,8 +230,7 @@ void burgersFlux(const CellField& u, FaceField& flux, const LocalMesh& mesh,
 
   Kokkos::parallel_for(
       "saturn::burgers_flux",
-      Kokkos::MDRangePolicy<Kokkos::Rank<3>, Kokkos::IndexType<int>>(
-          {i0, j0, k0}, {i0 + nx, j0 + ny, k0 + nz}),
+      Policy3d({i0, j0, k0}, {i0 + nx, j0 + ny, k0 + nz}),
       KOKKOS_LAMBDA(int i, int j, int k) {
         for (int dir = 0; dir < 2 * m.dimension; ++dir) {
           int di = 0, dj = 0, dk = 0;
@@ -312,9 +311,7 @@ void rhieChowFlux(const CellField& velocity, const CellField& pressure,
   FaceField un = normalVelocity;
 
   Kokkos::parallel_for(
-      "saturn::rhie_chow",
-      Kokkos::MDRangePolicy<Kokkos::Rank<3>, Kokkos::IndexType<int>>(
-          {i0, j0, k0}, {i0 + nx, j0 + ny, k0 + nz}),
+      "saturn::rhie_chow", Policy3d({i0, j0, k0}, {i0 + nx, j0 + ny, k0 + nz}),
       KOKKOS_LAMBDA(int i, int j, int k) {
         for (int dir = 0; dir < 2 * m.dimension; ++dir) {
           int di = 0, dj = 0, dk = 0;

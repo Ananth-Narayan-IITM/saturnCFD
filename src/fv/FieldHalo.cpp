@@ -8,6 +8,8 @@
 
 #ifdef SATURN_USE_MPI
 #include <mpi.h>
+
+#include "core/Policy.hpp"
 #endif
 
 namespace saturn {
@@ -65,9 +67,7 @@ void FieldHalo::pack(int sendIndex, const CellField& field) {
   CellField f = field;
 
   Kokkos::parallel_for(
-      "saturn::halo_pack",
-      Kokkos::MDRangePolicy<Kokkos::Rank<3>, Kokkos::IndexType<int>>(
-          {0, 0, 0}, {nx, ny, nz}),
+      "saturn::halo_pack", Policy3d({0, 0, 0}, {nx, ny, nz}),
       KOKKOS_LAMBDA(int ii, int jj, int kk) {
         for (int c = 0; c < nc; ++c) {
           const std::size_t t =
@@ -97,9 +97,7 @@ void FieldHalo::unpack(int recvIndex, CellField& field) {
   CellField f = field;
 
   Kokkos::parallel_for(
-      "saturn::halo_unpack",
-      Kokkos::MDRangePolicy<Kokkos::Rank<3>, Kokkos::IndexType<int>>(
-          {0, 0, 0}, {nx, ny, nz}),
+      "saturn::halo_unpack", Policy3d({0, 0, 0}, {nx, ny, nz}),
       KOKKOS_LAMBDA(int ii, int jj, int kk) {
         for (int c = 0; c < nc; ++c) {
           const std::size_t t =
@@ -123,9 +121,7 @@ void FieldHalo::copyLocal(int recvIndex, CellField& field) {
   CellField f = field;
 
   Kokkos::parallel_for(
-      "saturn::halo_local",
-      Kokkos::MDRangePolicy<Kokkos::Rank<3>, Kokkos::IndexType<int>>(
-          {0, 0, 0}, {nx, ny, nz}),
+      "saturn::halo_local", Policy3d({0, 0, 0}, {nx, ny, nz}),
       KOKKOS_LAMBDA(int ii, int jj, int kk) {
         for (int c = 0; c < nc; ++c)
           f(dst.lo[0] + ii, dst.lo[1] + jj, dst.lo[2] + kk, c) =

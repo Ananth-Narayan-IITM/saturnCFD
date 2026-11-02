@@ -90,10 +90,9 @@ Strong cases run 100 adaptive steps (`end 0.1`, `dtMax 1e-3`); weak cases run
 100 fixed steps (`dt 5e-4`). The GPU weak series has only 1 and 8 GPUs because
 only those give an integer cube with 32³ cells per GPU.
 
-Expected wall time for the full CPU chain is about one hour, dominated by the
-single-core 128³ point (~26 min at ~2 s/step, measured from the 64³ smoke
-test). GPU points take seconds to minutes. Run the campaign in `tmux` or
-`nohup`.
+Expected wall time for the full CPU chain is about 45 minutes, dominated by
+the single-core 128³ point (~16 min). GPU points take seconds to minutes. Run
+the campaign in `tmux` or `nohup`.
 
 ## Outputs
 
@@ -113,6 +112,20 @@ cells, l2`). All figures are PNG at 150 dpi.
 
 If a job fails, `runScaling` prints the Slurm log tail and stops, so the
 campaign never continues on a broken environment.
+
+## Performance note
+
+The 3D kernels iterate with `Iterate::Left` (`src/core/Policy.hpp`) so that the
+first index, which is contiguous in the `LayoutLeft` fields, is the fastest
+one. Kokkos' default is the opposite order, which walks the fields with a
+`ny*nz` stride. On one core the 32³ weak case (100 steps) went from 31.6 s to
+19.4 s with `l1/l2/linf` unchanged to the last digit, and the test suite stays
+at 47/47. The GPU build benefits from the same change through coalesced loads.
+
+The measured single-core cost is about 5–6 µs per cell-step for the
+MUSCL + Laplacian + SSPRK3 scheme (three RHS evaluations per step, eight
+kernels each). That is the number behind the campaign length, and it is the
+same on the login node and on a compute node.
 
 ## Fairness
 

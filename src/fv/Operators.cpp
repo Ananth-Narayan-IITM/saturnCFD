@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+#include "core/Policy.hpp"
+
 namespace saturn {
 namespace {
 
@@ -44,8 +46,7 @@ void interpolate(const CellField& phi, FaceField& face, const LocalMesh& mesh) {
 
   Kokkos::parallel_for(
       "saturn::interpolate",
-      Kokkos::MDRangePolicy<Kokkos::Rank<3>, Kokkos::IndexType<int>>(
-          {i0, j0, k0}, {i0 + nx, j0 + ny, k0 + nz}),
+      Policy3d({i0, j0, k0}, {i0 + nx, j0 + ny, k0 + nz}),
       KOKKOS_LAMBDA(int i, int j, int k) {
         for (int dir = 0; dir < 2 * m.dimension; ++dir) {
           int di = 0, dj = 0, dk = 0;
@@ -105,9 +106,7 @@ void gradient(const CellField& phi, FaceField& face, CellField& grad,
   CellField g = grad;
 
   Kokkos::parallel_for(
-      "saturn::gradient",
-      Kokkos::MDRangePolicy<Kokkos::Rank<3>, Kokkos::IndexType<int>>(
-          {i0, j0, k0}, {i0 + nx, j0 + ny, k0 + nz}),
+      "saturn::gradient", Policy3d({i0, j0, k0}, {i0 + nx, j0 + ny, k0 + nz}),
       KOKKOS_LAMBDA(int i, int j, int k) {
         Vec3 sum{};
         for (int dir = 0; dir < 2 * m.dimension; ++dir) {
@@ -143,9 +142,7 @@ void divergence(const FaceField& face, CellField& div, const LocalMesh& mesh) {
   const int ncomp = face.ncomp();
 
   Kokkos::parallel_for(
-      "saturn::divergence",
-      Kokkos::MDRangePolicy<Kokkos::Rank<3>, Kokkos::IndexType<int>>(
-          {i0, j0, k0}, {i0 + nx, j0 + ny, k0 + nz}),
+      "saturn::divergence", Policy3d({i0, j0, k0}, {i0 + nx, j0 + ny, k0 + nz}),
       KOKKOS_LAMBDA(int i, int j, int k) {
         Real sum = 0;
         for (int dir = 0; dir < 2 * m.dimension; ++dir) {
