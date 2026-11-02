@@ -199,6 +199,12 @@ def submit(backend, stage, case, units, threads, env, dry):
         sys.stderr.write(proc.stdout + proc.stderr)
         show_log(tag)
         sys.exit("error: %s failed (rc=%d)" % (tag, proc.returncode))
+    if backend == "gpu":
+        meta = json.loads((outdir / f"{tag}.json").read_text())
+        backend_name = str(meta.get("backend", ""))
+        if "GPU" not in backend_name:
+            sys.exit("error: %s ran on %r, not the GPU backend"
+                     % (tag, backend_name))
     print("  %-32s %7.1f s" % (tag, time.time() - started))
 
 
