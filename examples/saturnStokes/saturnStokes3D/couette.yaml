@@ -28,7 +28,6 @@ stokes:
   case: couette
   mu: 1.0
   wallVelocityX: 1.0
-  linearSolver: direct
 
 output:
   prefix: results/saturnStokes3D/couette

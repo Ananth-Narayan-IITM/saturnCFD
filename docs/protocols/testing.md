@@ -193,8 +193,8 @@ The coupled direct PETSc solve is used for the validation core, with
 SuperLU_DIST preferred for parallel LU. The linear-algebra fieldsplit/Schur
 path is tested separately by
 `petsc: coupled saddle-point fieldsplit solves a 2-field block` on 1/2/4
-ranks; production tuning is a follow-up. Both 2D and 3D Stokes tests run on
-1/2/4 ranks. See [`../validation/stokes.md`](../validation/stokes.md).
+ranks. Both 2D and 3D Stokes tests run on 1/2/4 ranks; 2D also runs on 8
+ranks, and a fieldsplit-vs-direct check guards the default solver. See [`../validation/stokes.md`](../validation/stokes.md).
 
 ## PETSc tests
 

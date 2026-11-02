@@ -139,6 +139,10 @@ void SaturnStokes::createDmda() {
       mDa, mXmin, mMesh.bboxMax.x, mYmin, mMesh.bboxMax.y, mZmin, mZmin + mHz));
 
   SATURN_PETSC_CHECK(DMCreateMatrix(mDa, &mA));
+  // Fieldsplit ISs select u,v,w or p, which cut across the DMDA's 4-dof
+  // blocks. A scalar-blocked matrix keeps the extracted submatrices
+  // consistent for ILU/GAMG on every rank.
+  SATURN_PETSC_CHECK(MatSetBlockSize(mA, 1));
   SATURN_PETSC_CHECK(DMCreateGlobalVector(mDa, &mB));
   SATURN_PETSC_CHECK(VecDuplicate(mB, &mX));
   SATURN_PETSC_CHECK(
@@ -156,7 +160,8 @@ void SaturnStokes::createSolver() {
   PetscInt rowStart = 0, rowEnd = 0, blockSize = 0;
   SATURN_PETSC_CHECK(MatGetOwnershipRange(mA, &rowStart, &rowEnd));
   SATURN_PETSC_CHECK(MatGetBlockSize(mA, &blockSize));
-  if (blockSize != kDof || (rowEnd - rowStart) / kDof != nodes)
+  if ((rowEnd - rowStart) / kDof != nodes ||
+      (blockSize != 1 && blockSize != kDof))
     throw PetscError("saturnStokes: unexpected DMDA matrix ownership layout");
   const PetscInt firstNode = rowStart / kDof;
   std::vector<PetscInt> velocity;
@@ -207,24 +212,29 @@ void SaturnStokes::createSolver() {
   SATURN_PETSC_CHECK(PCFieldSplitSetType(pc, PC_COMPOSITE_SCHUR));
   SATURN_PETSC_CHECK(
       PCFieldSplitSetSchurFactType(pc, PC_FIELDSPLIT_SCHUR_FACT_FULL));
+  SATURN_PETSC_CHECK(
+      PCFieldSplitSetSchurPre(pc, PC_FIELDSPLIT_SCHUR_PRE_SELFP, nullptr));
   SATURN_PETSC_CHECK(PCFieldSplitSetIS(pc, "velocity", mVelocityIS));
   SATURN_PETSC_CHECK(PCFieldSplitSetIS(pc, "pressure", mPressureIS));
 
   SATURN_PETSC_CHECK(KSPSetOptionsPrefix(mKsp, "stokes_"));
-  // The velocity block is 3x3 per cell and the pressure block is 1x1, so the
-  // a11 Schur preconditioner has the wrong size. The pressure stabilisation
-  // gives a genuine pressure Laplacian; use it (selfp) instead.
-  PetscOptionsSetValue(nullptr, "-stokes_pc_fieldsplit_schur_precondition",
-                       "selfp");
-  PetscOptionsSetValue(nullptr, "-stokes_fieldsplit_velocity_ksp_type",
-                       "preonly");
-  PetscOptionsSetValue(nullptr, "-stokes_fieldsplit_velocity_pc_type", "ilu");
-  PetscOptionsSetValue(nullptr, "-stokes_fieldsplit_pressure_ksp_type",
-                       "preonly");
-  PetscOptionsSetValue(nullptr, "-stokes_fieldsplit_pressure_pc_type", "ilu");
-  SATURN_PETSC_CHECK(KSPSetTolerances(mKsp, 1e-10, 1e-12, PETSC_DEFAULT, 500));
+  SATURN_PETSC_CHECK(PCSetOptionsPrefix(pc, "stokes_"));
+  // The velocity block is 2x2 (2D) or 3x3 (3D) per cell and the pressure
+  // block is 1x1, so the a11 Schur preconditioner has the wrong size. The
+  // stabilisation supplies a genuine pressure Laplacian; selfp uses it as
+  // the Schur preconditioner.
+  //
+  // Both blocks use GAMG: memory stays O(N) and the inner solves are
+  // mesh-independent. The velocity split must iterate (GMRES) because the
+  // Schur coupling needs an accurate A^{-1}; a single ILU/AMG application
+  // is too weak and makes the outer FGMRES stagnate on fine meshes.
+  PetscOptionsSetValue(nullptr, "-fieldsplit_velocity_ksp_type", "gmres");
+  PetscOptionsSetValue(nullptr, "-fieldsplit_velocity_pc_type", "gamg");
+  PetscOptionsSetValue(nullptr, "-fieldsplit_velocity_ksp_rtol", "1e-10");
+  PetscOptionsSetValue(nullptr, "-fieldsplit_pressure_ksp_type", "preonly");
+  PetscOptionsSetValue(nullptr, "-fieldsplit_pressure_pc_type", "gamg");
+  SATURN_PETSC_CHECK(KSPSetTolerances(mKsp, 1e-12, 1e-14, PETSC_DEFAULT, 500));
   SATURN_PETSC_CHECK(KSPSetFromOptions(mKsp));
-
   SATURN_PETSC_CHECK(KSPSetOperators(mKsp, mA, mA));
 }
 
@@ -461,8 +471,10 @@ void SaturnStokes::assemble() {
           bv[k][j][i][2] += f.z;
           addMomentum(2, cols, vals);
         } else {
+          // 2D: w is a dummy unknown. Scale the identity row like the
+          // diffusion rows so the velocity block has a uniform scale.
           std::vector<MatStencil> cols{stencil(i, j, k, 2)};
-          std::vector<PetscScalar> vals{1.0};
+          std::vector<PetscScalar> vals{cx};
           addMomentum(2, cols, vals);
         }
 

@@ -53,11 +53,12 @@ fieldsplit/Schur preconditioner and Navier–Stokes extension are in
 [`coupledSaddlePoint.md`](coupledSaddlePoint.md).
 
 `stokes.linearSolver` defaults to `fieldsplit`, which needs only `O(N)`
-memory. The validation reference uses PETSc's coupled direct LU
+memory: outer FGMRES, `selfp` Schur, GMRES + GAMG on velocity and
+preonly + GAMG on pressure. It gives 11–20 outer iterations in 2D and 3–13 in
+3D on 1/2/4/8 ranks. The validation reference uses PETSc's coupled direct LU
 (`stokes.linearSolver: direct`), preferring SuperLU_DIST when the PETSc build
 provides it. Direct LU is retained for validation and for users with enough
-memory. The fieldsplit path currently passes 3D on 1/2/4 ranks and 2D on 1/2
-ranks; the 2D four-rank Schur case is the next tuning target.
+memory.
 SIMPLE and SIMPLEC are deliberately not the Stokes default; they remain an
 optional segregated path for incompressible Navier–Stokes.
 
@@ -152,7 +153,7 @@ finite-volume coupled saddle-point discretisation, not BEM.
 | Poiseuille 3D | 24$^2	imes8$ | 2.17e-4 | extruded channel |
 | Couette 3D | 24$^2	imes8$ | 5.7e-12 | exact line |
 
-Both 2D and 3D cases pass on 1/2/4 ranks.
+Both 2D and 3D cases pass on 1/2/4 ranks; 2D also passes on 8 ranks.
 
 ## 8. Next steps
 

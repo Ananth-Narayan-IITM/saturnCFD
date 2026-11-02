@@ -49,16 +49,17 @@ src/solvers/saturnStokes/
   is split along `x`; on `y`/`z` splits they disagree with the DA global
   ordering. The fieldsplit index sets are built from the matrix block owner
   range for the same reason.
-- `stokes.linearSolver` defaults to `fieldsplit` (FGMRES + `selfp` Schur +
-  ILU), which needs only `O(N)` memory. `direct` selects PETSc
-  `preonly` + `lu` (SuperLU_DIST when available; MUMPS can report a false zero
-  pivot on small multi-periodic saddle-point systems) and is retained for
-  validation or users with enough memory. The fieldsplit path currently
-  passes 3D on 1/2/4 ranks and 2D on 1/2 ranks; the 2D four-rank Schur setup
-  needs a pressure-nullspace treatment in the next tuning step.
+- `stokes.linearSolver` defaults to `fieldsplit`, which needs only `O(N)`
+  memory: outer FGMRES, `PC_COMPOSITE_SCHUR` with `fact_type full` and
+  `selfp`, GMRES + GAMG on the velocity block (`rtol 1e-10`), and
+  preonly + GAMG on the pressure block. The outer tolerance is `1e-12`.
+  This gives 11-20 outer iterations in 2D and 3-13 in 3D on 1/2/4/8 ranks.
+  `direct` selects PETSc `preonly` + `lu` (SuperLU_DIST when available; MUMPS
+  can report a false zero pivot on small multi-periodic saddle-point systems)
+  and is retained for validation or users with enough memory.
 - 2D cases use the 3D core with `nz = 1`; `w` is constrained to zero.
-- 2D runs on 1/2/4 ranks and 3D on 1/2/4 ranks; the 3D tests no longer skip
-  multi-rank runs.
+- 2D runs on 1/2/4/8 ranks and 3D on 1/2/4 ranks; the 3D tests no longer skip
+  multi-rank runs. A fieldsplit-vs-direct test guards the default solver.
 
 ## Cases
 
@@ -90,7 +91,7 @@ Output is CSV (`x,y,z,u,v,w,p,u_exact,v_exact,w_exact,p_exact,error`) and JSON
 - `tests/TestSaturnStokes.cpp` — 2D Poiseuille order 2, 2D Couette exact,
   3D Poiseuille, 3D Couette.
 - `tests/CMakeLists.txt` — `stokes_np1/2/4` under the `solver` label.
-- Both 2D and 3D run on 1/2/4 ranks.
+- Both 2D and 3D run on 1/2/4 ranks; 2D is also run on 8 ranks.
 
 ## Examples and validation
 

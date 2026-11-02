@@ -90,3 +90,19 @@ TEST_CASE("saturnStokes: 3D Couette is exact") {
   CHECK(e.l2 < 1e-10);
   CHECK(e.pL2 < 1e-10);
 }
+
+TEST_CASE("saturnStokes: fieldsplit matches direct") {
+  const VectorError d2 = solve(poiseuille(32, 32, 1, 1.0, 1.0));
+  StokesCase f2 = poiseuille(32, 32, 1, 1.0, 1.0);
+  f2.options.direct = false;
+  const VectorError s2 = solve(std::move(f2));
+  MESSAGE("Stokes 2D fieldsplit L2: " << s2.l2 << " direct " << d2.l2);
+  CHECK(std::abs(s2.l2 - d2.l2) < 1e-8);
+  CHECK(s2.l2 < 1.05 * d2.l2);
+
+  StokesCase f3 = poiseuille(16, 16, 4, 1.0, 1.0);
+  f3.options.direct = false;
+  const VectorError s3 = solve(std::move(f3));
+  MESSAGE("Stokes 3D fieldsplit L2: " << s3.l2);
+  CHECK(s3.l2 < 1e-3);
+}

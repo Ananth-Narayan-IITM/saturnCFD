@@ -1,6 +1,6 @@
 # Stokes validation
 
-**Status:** implemented for 2D and 3D on 1/2/4 MPI ranks. Results below are measured.
+**Status:** implemented for 2D on 1/2/4/8 MPI ranks and 3D on 1/2/4. Results below are measured.
 
 Solver: `saturnStokes`, coupled pressure–velocity saddle-point formulation.
 `fieldsplit`/Schur is the default linear solve; `direct` is the validation
@@ -60,8 +60,8 @@ $$
 | MMS pressure | observed order $p\ge 1.8$ on the finest pair |
 | continuity | $\|D\|_2$ below the linear-solve tolerance scale |
 | nullspace | mean pressure stable; no drift with iterations |
-| rank parity | 2D and 3D norms agree on 1/2/4 ranks |
-| fieldsplit | GMRES converges without manual per-case tuning |
+| rank parity | 2D and 3D norms agree on 1/2/4 ranks (2D also on 8) |
+| fieldsplit | FGMRES + GAMG converges without manual per-case tuning |
 
 ## 4a. Measured results
 
@@ -76,18 +76,36 @@ $$
 
 Multi-rank parity after the DMDA assembly fix:
 
-| case | 1 rank | 2 ranks | 4 ranks |
-|---|---:|---:|---:|
-| Poiseuille 2D $64^2$ | 3.0518e-5 | 3.0518e-5 | 3.0518e-5 |
-| Couette 2D $64^2$ | 5.04e-13 | 5.06e-13 | 5.06e-13 |
-| Poiseuille 3D $24^2\times8$ | 2.1701e-4 | 2.1701e-4 | 2.1701e-4 |
-| Couette 3D $24^2\times8$ | 3.19e-13 | 4.85e-13 | 2.29e-14 |
+| case | 1 rank | 2 ranks | 4 ranks | 8 ranks |
+|---|---:|---:|---:|---:|
+| Poiseuille 2D $64^2$ | 3.0518e-5 | 3.0518e-5 | 3.0518e-5 | 3.0518e-5 |
+| Couette 2D $64^2$ | 5.04e-13 | 5.06e-13 | 5.06e-13 | 5.42e-13 |
+| Poiseuille 3D $24^2\times8$ | 2.1701e-4 | 2.1701e-4 | 2.1701e-4 | — |
+| Couette 3D $24^2\times8$ | 3.19e-13 | 4.85e-13 | 2.29e-14 | — |
 
-Both dimensions now run on 1/2/4 ranks. The `z`-dependent body-force sampling
-and the per-volume row scaling were also fixed: the old momentum rows were
-volume-integrated while the continuity rows were per-volume, which scaled the
-solved pressure by the cell volume and made the Schur complement
-`O(1/(mu h^3))`. MMS and the Sankhla & Das exit-boundary cases remain planned.
+These are direct-LU results (the round-off floor).
+
+### Fieldsplit default
+
+The examples now use the default fieldsplit: outer FGMRES (rtol $10^{-12}$),
+`selfp` Schur, GMRES + GAMG velocity (rtol $10^{-10}$), and preonly + GAMG
+pressure. Measured on the example meshes:
+
+| case | ranks | outer iterations | $L^2$ | pL2 |
+|---|---|---:|---:|---:|
+| Poiseuille 2D $64^2$ | 1 / 2 / 4 / 8 | 18 / 20 / 20 / 20 | 3.05e-5 | 2–4e-12 |
+| Couette 2D $64^2$ | 1 / 2 / 4 / 8 | 11 / 11 / 11 / 11 | 4.0e-11 | 2e-9 |
+| Poiseuille 3D $24^2\times8$ | 1 / 2 / 4 | 13 / 12 / 13 | 2.17e-4 | 5–10e-12 |
+| Couette 3D $24^2\times8$ | 1 / 2 / 4 | 3 / 5 / 6 | 1.2e-11 | 4e-10 |
+
+The Couette values are the linear-solve error, not the discretisation error:
+the pressure pL2 stays below the example tolerance of $10^{-8}$.
+
+The `z`-dependent body-force sampling and the per-volume row scaling were also
+fixed: the old momentum rows were volume-integrated while the continuity rows
+were per-volume, which scaled the solved pressure by the cell volume and made
+the Schur complement `O(1/(mu h^3))`. MMS and the Sankhla & Das exit-boundary
+cases remain planned.
 
 ## 5. Test/CTest plan
 
@@ -100,7 +118,8 @@ cli_checkConfig_example_stokes3d
 ```
 
 The `testSaturnStokes` binary covers Poiseuille and Couette in 2D/3D on
-1/2/4 ranks. Each example writes `u`, `v`, `w`, `p`, the analytic comparison
+1/2/4/8 ranks (2D) and 1/2/4 ranks (3D), and checks fieldsplit against
+direct. Each example writes `u`, `v`, `w`, `p`, the analytic comparison
 and the PETSc iteration diagnostics. The CTest label is `solver`.
 
 ## 6. Reproduction

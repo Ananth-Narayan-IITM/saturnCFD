@@ -160,7 +160,7 @@ approximation. GMRES handles the remaining coupling.
 |---|---|---|---|
 | coupled outer | GMRES/FGMRES | fieldsplit | explicit `rtol`, `atol`, `max_it` |
 | velocity split | preonly | GAMG or ILU | vector Laplacian, one V-cycle |
-| pressure split | preonly | GAMG or HYPRE BoomerAMG | scalar pressure Laplacian |
+| pressure split | preonly | GAMG or HYPRE BoomerAMG | scalar pressure Laplacian; no local LU |
 | small validation | preonly | LU (SuperLU_DIST preferred) | direct reference solution |
 
 Typical options:
@@ -170,12 +170,13 @@ Typical options:
 -pc_fieldsplit_type schur
 -pc_fieldsplit_schur_fact_type full
 -pc_fieldsplit_schur_precondition selfp
--fieldsplit_velocity_ksp_type preonly
+-fieldsplit_velocity_ksp_type gmres
 -fieldsplit_velocity_pc_type gamg
+-fieldsplit_velocity_ksp_rtol 1e-10
 -fieldsplit_pressure_ksp_type preonly
 -fieldsplit_pressure_pc_type gamg
 -ksp_type fgmres
--ksp_rtol 1e-10
+-ksp_rtol 1e-12
 ```
 
 The pressure stabilisation gives a genuine pressure Laplacian, so `selfp`
@@ -188,10 +189,12 @@ and the pressure sub-block. The pressure mean is removed for error norms and
 reported separately.
 
 The current `fieldsplit` implementation is `FGMRES + PC_COMPOSITE_SCHUR`,
-`fact_type full`, `selfp`, ILU on both blocks. It converges in 2–3 outer
-iterations on the validation meshes in 3D on 1/2/4 ranks and in 2D on 1/2
-ranks; the 2D four-rank Schur setup still needs a pressure-nullspace treatment
-before it becomes the default.
+`fact_type full`, `selfp`, GMRES + GAMG on the velocity block and
+preonly + GAMG on the pressure block. The velocity inner tolerance is `1e-10`
+and the outer tolerance is `1e-12`. This keeps memory `O(N)`, avoids local
+factorisations of the singular Neumann pressure block, and converges in 11–20
+outer iterations in 2D and 3–13 in 3D on 1/2/4/8 ranks. It is the schema
+default; `direct` remains the validation reference.
 
 ## 5. Navier–Stokes extension
 

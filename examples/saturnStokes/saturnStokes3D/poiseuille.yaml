@@ -28,7 +28,6 @@ stokes:
   case: poiseuille
   mu: 1.0
   forceX: 1.0
-  linearSolver: direct
 
 output:
   prefix: results/saturnStokes3D/poiseuille

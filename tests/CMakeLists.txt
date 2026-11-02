@@ -99,7 +99,7 @@ if(SATURN_ENABLE_PETSC)
     saturn::Stokes doctest::doctest)
 
   if(SATURN_ENABLE_MPI)
-    foreach(ranks 1 2 4)
+    foreach(ranks 1 2 4 8)
       add_test(NAME stokes_np${ranks}
         COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${ranks}
                 ${SATURN_MPI_PREFLAGS} $<TARGET_FILE:testSaturnStokes>)

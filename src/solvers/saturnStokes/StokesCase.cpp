@@ -86,7 +86,8 @@ std::unique_ptr<Solver> makeSaturnStokes(const Config& cfg) {
   options.periodicX = true;
   options.periodicZ = true;
   options.periodicY = cfg.getBool("stokes.periodicY", false);
-  options.direct = cfg.getString("stokes.linearSolver", "direct") == "direct";
+  options.direct =
+      cfg.getString("stokes.linearSolver", "fieldsplit") == "direct";
   options.force = {cfg.getDouble("stokes.forceX", 0.0),
                    cfg.getDouble("stokes.forceY", 0.0),
                    cfg.getDouble("stokes.forceZ", 0.0)};

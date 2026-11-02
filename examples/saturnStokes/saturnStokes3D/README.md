@@ -50,7 +50,7 @@ Couette   : L2 ≈ 5.7e-12,  Linf ≈ 6.6e-11
 The 3D core is validated on 1/2/4 ranks. Matrix entries are inserted with
 `MatSetValuesStencil`, so PETSc's DMDA global ordering is respected on any
 `x`, `y` or `z` split; the previous hand-built id formula only worked when the
-DA was split along `x`. The CTest `stokes_np1/2/4` runs both 2D and 3D.
+DA was split along `x`. The CTest `stokes_np1/2/4/8` runs both 2D and 3D; the 2D cases also run on 8 ranks.
 
 ## Files
 
