@@ -1,12 +1,12 @@
-# saturnStokes wall-bounded MMS
+# saturnStokes 3D wall-bounded MMS
 #
 # Manufactured steady Stokes solution with no-slip walls at y = 0 and y = 1:
-#   u = pi sin(2*pi*y) sin(2*pi*x)
-#   v = -2*pi sin^2(pi*y) cos(2*pi*x)
-#   p = cos(2*pi*x) cos(pi*y)
+#   u = pi sin(2*pi*y) sin(2*pi*x) sin(2*pi*z)
+#   v = -2*pi sin^2(pi*y) cos(2*pi*x) sin(2*pi*z)
+#   p = cos(2*pi*x) cos(pi*y) cos(2*pi*z)
 # The momentum and continuity sources are supplied by the `mms` case.
 #
-# The exact velocity vanishes on the walls and is periodic in x.
+# The exact velocity vanishes on the walls and is periodic in x and z.
 
 solver: saturnStokes
 
@@ -15,9 +15,9 @@ units:
 
 mesh:
   type: box
-  nx: 32
-  ny: 32
-  nz: 1
+  nx: 16
+  ny: 16
+  nz: 16
   box:
     xmin: 0.0
     xmax: 1.0
@@ -32,7 +32,7 @@ stokes:
   mu: 1.0
 
 output:
-  prefix: results/saturnStokes2D/mms_wall
+  prefix: results/saturnStokes3D/mmsWall
   csv: true
   json: true
   exact: true

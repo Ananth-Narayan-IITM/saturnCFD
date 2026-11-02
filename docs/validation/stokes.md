@@ -168,24 +168,20 @@ and the PETSc iteration diagnostics. The CTest label is `solver`.
 ## 6. Reproduction
 
 ```bash
-cd examples/saturnStokes/saturnStokes2D
-saturnCFD poiseuille.yaml
-saturnCFD couette.yaml
-python3 compareAnalytic.py       # validates both, writes summary.txt
-
-cd ../saturnStokes3D
-saturnCFD poiseuille.yaml
-saturnCFD couette.yaml
-python3 compareAnalytic.py       # 3D profile surfaces + summary
+cd examples/saturnStokes
+python3 validate.py --dim 2d --cli saturnCPU
+python3 validate.py --dim 3d --cli saturnCPU   # all cases + figures
+python3 validate.py --dim both --cli saturnCPU # combined summary
 
 ctest --preset solver
 ```
 
 With `output.vtkEvery: 1`, each case writes one `.vtu` containing `u`, `v`,
-`w` and `p` for ParaView. The comparison script plots the numerical field,
-analytic field, error and averaged profile; the 3D version uses colored
-velocity-profile surfaces for the numerical solution, the analytic solution
-and their error.
+`w` and `p` for ParaView. `validate.py` writes the organized
+`results/<dim>/figures/` tree: per-case validation/solver figures and the
+wall-MMS convergence plot. The 2D validation plots show the fields and the
+averaged profile; the 3D version shows velocity-profile surfaces for the
+numerical solution, the analytic solution and their error.
 
 ## 7. Observations
 

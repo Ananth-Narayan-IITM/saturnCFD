@@ -490,6 +490,14 @@ saturnCFD saturnBurger3D.yaml
 python3 compareAnalytic.py
 ```
 
+Stokes examples use one shared validation driver:
+
+```bash
+cd examples/saturnStokes
+python3 validate.py --dim 2d --cli saturnCPU
+python3 validate.py --dim 3d --cli saturnCPU
+```
+
 The same form runs any registered solver:
 
 ```bash

@@ -185,9 +185,10 @@ fieldsplit regression:
 - **Couette 3D:** 12$^2\times4$; linear profile to roundoff.
 - **Pressure gauge:** mean-removed pressure error at roundoff.
 - **Examples:** `examples/saturnStokes/saturnStokes2D` and `saturnStokes3D`
-  each ship independent `compareAnalytic.py` scripts that validate both
-  Poiseuille and Couette, write a combined `summary.txt`, and draw 2D fields
-  or 3D velocity-profile surfaces (numerical, analytic, error).
+  each ship three YAML cases (Poiseuille, Couette, wall MMS); one shared
+  `examples/saturnStokes/validate.py` runs all of them with direct and
+  fieldsplit, measures time/memory/error, writes `results/summary.txt`, and
+  draws per-case validation and solver-comparison figures.
   `output.vtkEvery: 1` writes one `.vtu` with
   `u,v,w,p`.
 

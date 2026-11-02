@@ -419,10 +419,9 @@ future option for the incompressible solver, not the Stokes validation core.
 Ranks: 2D 1/2/4/8, 3D 1/2/4; fieldsplit-vs-direct test included.
 
 **Figures:**
-`examples/saturnStokes/saturnStokes2D/results/saturnStokes2D/comparison_poiseuille.png`,
-`comparison_couette.png`; the 3D equivalents; and
-`examples/saturnStokes/*/results/solvers/*_comparison.png` for the solver-cost
-plots.
+`examples/saturnStokes/results/{2d,3d}/figures/poiseuille_validation.png`,
+`couette_validation.png`, the matching `*_solvers.png` plots, and
+`examples/saturnStokes/results/summary.txt`.
 
 ---
 
@@ -503,21 +502,18 @@ show the order table and the `docs/validation/fieldsplit.md` solver comparison.
 |---|---|---|
 | Burgers is second order | 1D/2D convergence | `docs/validation/figures/burgersValidation.png`, `burgers2DValidation.png` |
 | Heat is second order and rank/GPU consistent | 2D/3D Fourier mode | `docs/validation/figures/heat2DValidation.png`, `heat3DValidation.png` |
-| Stokes matches the parabola/line | field + profile + error | `examples/saturnStokes/*/results/saturnStokes*/comparison_*.png` |
-| Fieldsplit matches direct | solution diff, time, memory | `examples/saturnStokes/*/results/solvers/*_comparison.png` |
+| Stokes matches the parabola/line | field + profile + error | `examples/saturnStokes/results/{2d,3d}/figures/*_validation.png` |
+| Fieldsplit matches direct | solution diff, time, memory | `examples/saturnStokes/results/{2d,3d}/figures/*_solvers.png` |
 | MMS is second order | order tables | `docs/validation/stokes.md`, this page |
 | Mesh/config is checked | `-checkMesh`/`-checkConfig` logs | run the commands live |
 
 Regenerate the example plots:
 
 ```bash
-cd examples/saturnStokes/saturnStokes2D
-python3 compareAnalytic.py --cli saturnCPU
-python3 compareSolvers.py --cli saturnCPU
-
-cd ../saturnStokes3D
-python3 compareAnalytic.py --cli saturnCPU
-python3 compareSolvers.py --cli saturnCPU
+cd examples/saturnStokes
+python3 validate.py --dim 2d --cli saturnCPU
+python3 validate.py --dim 3d --cli saturnCPU
+python3 validate.py --dim both --cli saturnCPU
 ```
 
 ---

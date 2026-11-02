@@ -28,15 +28,16 @@ examples/
       compareAnalytic.py
       README.md
   saturnStokes/
-    saturnStokes2D/        # 2D Poiseuille/Couette coupled Stokes
+    validate.py            # shared validation + direct/fieldsplit comparison
+    saturnStokes2D/        # 2D Poiseuille/Couette/wall-MMS Stokes
       poiseuille.yaml
       couette.yaml
-      compareAnalytic.py
+      mmsWall.yaml
       README.md
-    saturnStokes3D/        # 3D extruded Poiseuille/Couette
+    saturnStokes3D/        # 3D extruded Poiseuille/Couette/wall-MMS
       poiseuille.yaml
       couette.yaml
-      compareAnalytic.py
+      mmsWall.yaml
       README.md
   saturnIncompressible/    # later
 ```
@@ -98,21 +99,16 @@ the analytic field, the error and a cut/diagonal profile.
 ## Running the Stokes examples
 
 ```bash
-cd saturnStokes/saturnStokes2D
-saturnCFD poiseuille.yaml
-python3 compareAnalytic.py --case poiseuille
-python3 compareAnalytic.py --case couette
-
-cd ../saturnStokes3D
-saturnCFD poiseuille.yaml
-python3 compareAnalytic.py --case poiseuille
-python3 compareAnalytic.py --case couette
+cd saturnStokes
+python3 validate.py --dim 2d --cli saturnCPU
+python3 validate.py --dim 3d --cli saturnCPU
+python3 validate.py --dim both --cli saturnCPU
 ```
 
-The Stokes scripts compare the numerical velocity with the exact Poiseuille
-parabola or Couette line, validate both cases together, and plot 2D fields
-plus the averaged profile, or 3D velocity-profile surfaces (numerical,
-analytic, error). A `compareSolvers.py` runs the same case with `direct` and `fieldsplit` and
-reports wall time, peak process-tree memory and the solution difference.
-A `summary.txt` records the combined validation table. With
-`output.vtkEvery` enabled, one `.vtu` contains `u`, `v`, `w` and `p`.
+The single `validate.py` runs every case (Poiseuille, Couette and wall MMS)
+with direct LU and fieldsplit, measures wall time and peak process-tree
+memory, checks the analytic error and the direct-vs-fieldsplit difference,
+runs the MMS convergence study, and writes the organized results tree under
+`examples/saturnStokes/results/` (summary, CSV/JSON, logs and per-case
+validation/solver figures). With `output.vtkEvery` enabled, one `.vtu`
+contains `u`, `v`, `w` and `p`.

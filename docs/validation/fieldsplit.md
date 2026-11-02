@@ -97,28 +97,29 @@ stokes:
 
 ## Measured comparison
 
-`examples/saturnStokes/*/compareSolvers.py` runs the same Poiseuille case with
-both solvers and reports wall time, peak process-tree RSS, analytic error and
-the difference between the two numerical solutions. The serial-tuned
-fieldsplit configuration is used for these runs.
+`examples/saturnStokes/validate.py` runs every example case with both solvers
+and reports wall time, peak process-tree RSS, analytic error and the
+difference between the two numerical solutions. The serial-tuned fieldsplit
+configuration is used for these runs; the table below is the Poiseuille
+slice of `results/summary.txt`.
 
 2D, $128^2$, 1 rank:
 
 | solver | iterations | wall [s] | peak RSS [MB] | $L^2$ | pL2 |
 |---|---:|---:|---:|---:|---:|
-| direct | 1 | 4.71 | 600 | 7.63e-6 | 1.7e-14 |
-| fieldsplit | 3 | 8.36 | 175 | 7.63e-6 | 3.8e-13 |
+| direct | 1 | 4.92 | 600 | 7.63e-6 | 3.8e-15 |
+| fieldsplit | 3 | 8.32 | 175 | 7.63e-6 | 3.9e-13 |
 
 3D, $24^3$, 1 rank:
 
 | solver | iterations | wall [s] | peak RSS [MB] | $L^2$ | pL2 |
 |---|---:|---:|---:|---:|---:|
-| direct | 1 | 93.7 | 1493 | 2.17e-4 | 1.9e-15 |
-| fieldsplit | 2 | 1.67 | 165 | 2.17e-4 | 5.3e-13 |
+| direct | 1 | 94.8 | 1486 | 2.17e-4 | 7.5e-16 |
+| fieldsplit | 2 | 1.73 | 166 | 2.17e-4 | 5.3e-13 |
 
-The fieldsplit and direct velocities differ by $2.9\times10^{-14}$
+The fieldsplit and direct velocities differ by $3.1\times10^{-14}$
 (2D) and $5.5\times10^{-14}$ (3D) in RMS; the pressures differ by
-$3.8\times10^{-13}$ and $5.3\times10^{-13}$ after mean removal.
+$3.9\times10^{-13}$ and $5.3\times10^{-13}$ after mean removal.
 
 Interpretation:
 
@@ -132,19 +133,16 @@ Interpretation:
 ## Reproduction
 
 ```bash
-cd examples/saturnStokes/saturnStokes2D
-python3 compareSolvers.py --cli ../../../buildCPU/saturnCFD
-python3 compareSolvers.py --cli ../../../buildCPU/saturnCFD --n 256
-
-cd ../saturnStokes3D
-python3 compareSolvers.py --cli ../../../buildCPU/saturnCFD
-python3 compareSolvers.py --cli ../../../buildCPU/saturnCFD --n 32
+cd examples/saturnStokes
+python3 validate.py --dim 2d --cli saturnCPU
+python3 validate.py --dim 3d --cli saturnCPU
 ```
 
-The script writes `results/solvers/<tag>_summary.txt` and
-`results/solvers/<tag>_comparison.png`. For `--ranks > 1` it switches to the
-production GAMG/GAMG configuration and reports the summed RSS of the launcher
-and its MPI children, sampled from `/proc`.
+The script writes `results/summary.txt` and, per dimension,
+`results/<dim>/figures/<case>_{validation,solvers}.png` plus
+`summary_solvers.png`. For `--ranks > 1` it switches to the production
+GAMG/GAMG configuration and reports the summed RSS of the launcher and its MPI
+children, sampled from `/proc`.
 
 ## Limitations
 
