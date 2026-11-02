@@ -30,7 +30,7 @@ runJob() {
   out=$(sbatch --parsable --partition="$partition" --nodes="$nodes" \
     --ntasks="$ntasks" --cpus-per-task="$cpus" --time=04:00:00 \
     --job-name="$name" --exclusive \
-    --export="ALL,CASE=${case}" $extra "$script")
+    --export="ALL,CASE=${case},SATURN_HPC_DIR=${HERE}" $extra "$script")
   jid="${out%%;*}"
   if [[ ! "$jid" =~ ^[0-9]+$ ]]; then
     echo "error: sbatch failed for $name: $out"

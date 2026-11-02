@@ -41,7 +41,7 @@ runGpu() {
     --ntasks="$gpus" --ntasks-per-node="$pernode" --cpus-per-task=4 \
     --time=04:00:00 --job-name="$name" --exclusive \
     --gpus-per-task=1 \
-    --export="ALL,CASE=${case},GPUS_PER_NODE=${pernode}" gpuStrong)
+    --export="ALL,CASE=${case},GPUS_PER_NODE=${pernode},SATURN_HPC_DIR=${HERE}" gpuStrong)
   jid="${out%%;*}"
   echo "submitted $name  gpus=$gpus  job=$jid"
   waitForJob "$jid"

@@ -8,7 +8,7 @@
 #SBATCH --output=logs/heatCpuStrong-%j.out
 
 set -euo pipefail
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HERE="${SATURN_HPC_DIR:-${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}}"
 REPO="$(cd "$HERE/../.." && pwd)"
 source "$HERE/envCpu"
 
