@@ -86,3 +86,15 @@ python3 compareSolvers.py --cli ../../../buildCPU/saturnCFD
 
 The results and interpretation are in
 [`docs/validation/fieldsplit.md`](../../../docs/validation/fieldsplit.md).
+
+## Manufactured solution
+
+`mms_wall.yaml` runs the wall-bounded manufactured solution (no-slip walls at
+`y = 0, 1`, periodic in the other directions). The `mms` case supplies both
+the momentum source and the continuity source.
+
+```bash
+saturnCFD mms_wall.yaml
+```
+
+3D wall MMS (16^3): velocity order ~2; the pressure order is measured at 1.53 on 24^3 -> 32^3.

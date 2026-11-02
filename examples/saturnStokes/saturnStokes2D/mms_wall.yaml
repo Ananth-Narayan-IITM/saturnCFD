@@ -1,0 +1,39 @@
+# saturnStokes wall-bounded MMS
+#
+# Manufactured steady Stokes solution with no-slip walls at y = 0 and y = 1:
+#   u = pi sin(2*pi*y) sin(2*pi*x)
+#   v = -2*pi sin^2(pi*y) cos(2*pi*x)
+#   p = cos(2*pi*x) cos(pi*y)
+# The momentum and continuity sources are supplied by the `mms` case.
+#
+# The exact velocity vanishes on the walls and is periodic in x.
+
+solver: saturnStokes
+
+units:
+  system: SI
+
+mesh:
+  type: box
+  nx: 32
+  ny: 32
+  nz: 1
+  box:
+    xmin: 0.0
+    xmax: 1.0
+    ymin: 0.0
+    ymax: 1.0
+    zmin: 0.0
+    zmax: 1.0
+
+stokes:
+  case: mms
+  mmsWall: true
+  mu: 1.0
+
+output:
+  prefix: results/saturnStokes2D/mms_wall
+  csv: true
+  json: true
+  exact: true
+  vtkEvery: 1
