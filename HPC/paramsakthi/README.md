@@ -135,6 +135,42 @@ timestep and 100 steps, so work per rank is constant.
 ./submitGpu     # 1 GPU on sgpu, 2/4/8 GPUs on gpu
 ```
 
+### What the submit scripts do
+
+`submitCpu` and `submitGpu` do **not** run the solver themselves. They:
+
+1. check that the matching binary and case file exist;
+2. submit one `sbatch` job with the right partition, nodes, tasks, GPUs and
+   `CASE`;
+3. wait until `squeue` no longer lists the job;
+4. read the final state with `sacct` and stop immediately on
+   `FAILED`/`CANCELLED`/`TIMEOUT`;
+5. repeat for the next point.
+
+This is why the script stays in the foreground: it waits for the first job,
+then submits the second, and so on. Run it in `tmux`/`nohup`, not in a login
+shell you intend to close.
+
+The first CPU job is `heatStrong64` on one core; the first GPU job is
+`heatStrong64` on one A100. They are quick smoke tests. The full chain then
+covers 128³ strong scaling, weak scaling, the 48-thread run, and the dense
+256³ points.
+
+Watch progress:
+
+```bash
+squeue -u "$USER"
+tail -f logs/heatCpuStrong-*.out
+ls -lt results/cpu results/gpu
+```
+
+If a job fails, the submit script stops; inspect the log named in the error
+and run `./diagnose cpu` or `./diagnose gpu`.
+
+`WAIT=0 ./submitCpu` queues all points without waiting, but then the queue
+limits and cross-job timing noise apply. The default `WAIT=1` is the clean
+mode.
+
 The job scripts write YAML copies with a unique `output.prefix` under
 `results/`. Each job stores its JSON and log.
 
