@@ -10,7 +10,11 @@
 set -euo pipefail
 HERE="${SATURN_HPC_DIR:-${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}}"
 REPO="$(cd "$HERE/../.." && pwd)"
-source "$HERE/envCpu"
+if [ -r "$HERE/envCpuRuntime" ]; then
+  source "$HERE/envCpuRuntime"
+else
+  source "$HERE/envCpu"
+fi
 
 CASE="${CASE:-heatStrong128}"
 BIN="${BIN:-$REPO/buildCPUHPC/saturnCFD}"

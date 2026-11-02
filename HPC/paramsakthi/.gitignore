@@ -2,3 +2,5 @@ logs/
 results/
 cases/run-*
 __pycache__/
+envCpuRuntime
+envGpuRuntime

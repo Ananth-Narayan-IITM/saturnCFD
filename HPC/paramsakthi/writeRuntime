@@ -1,0 +1,17 @@
+#!/bin/bash
+# Capture the working login-node environment for compute-node batch jobs.
+# Usage: ./writeRuntime cpu|gpu
+
+set -euo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+case "${1:-}" in
+  cpu) source "$HERE/envCpu"; out="$HERE/envCpuRuntime" ;;
+  gpu) source "$HERE/envGpu"; out="$HERE/envGpuRuntime" ;;
+  *) echo "usage: $0 cpu|gpu"; exit 2 ;;
+esac
+
+export -p \
+  | grep -vE 'BASH_FUNC|declare -x (_|PWD|OLDPWD|SHLVL)=' \
+  > "$out"
+echo "wrote $out"

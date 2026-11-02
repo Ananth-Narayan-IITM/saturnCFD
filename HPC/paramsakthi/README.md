@@ -97,6 +97,15 @@ cd HPC/paramsakthi
   environment if it already provides `cmake`.
 - Run the builds from `HPC/paramsakthi`; they write `buildCPUHPC` and
   `buildGPUHPC` in the repository root.
+- After a successful build, capture the login-node environment for the batch
+  nodes:
+  ```bash
+  ./writeRuntime cpu
+  ./writeRuntime gpu
+  ```
+  The jobs source `envCpuRuntime`/`envGpuRuntime` instead of calling Lmod.
+  This is needed because the compute nodes do not initialize the login-node
+  `/opt/ohpc` Lmod path. Regenerate the runtime files if you change modules.
 - Kokkos is cloned into `~/.cache/saturnCFD` and installed under
   `~/.local/kokkos-cpu-4.7.04` / `~/.local/kokkos-cuda-4.7.04`.
 - Binaries are `buildCPU/saturnCFD` and `buildGPU/saturnCFD` in the repository.
