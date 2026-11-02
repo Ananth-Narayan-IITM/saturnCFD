@@ -37,11 +37,21 @@ def at_least(found: tuple[int, ...], minimum: tuple[int, ...]) -> bool:
 
 
 def run_requirement(req: dict, default_regex: str):
-    command = shutil.which(req["command"])
-    if command is None:
-        return "missing", None, None
+    if req.get("module"):
+        command = shutil.which("python3")
+        if command is None:
+            return "missing", None, None
+        module = req["module"]
+        args = [
+            command, "-c",
+            f"import {module}; print({module}.__version__)",
+        ]
+    else:
+        command = shutil.which(req["command"])
+        if command is None:
+            return "missing", None, None
+        args = [command] + list(req.get("args", ["--version"]))
 
-    args = [command] + list(req.get("args", ["--version"]))
     try:
         proc = subprocess.run(
             args, capture_output=True, text=True, timeout=20, check=False
@@ -50,6 +60,10 @@ def run_requirement(req: dict, default_regex: str):
         return "error", None, str(exc)
 
     output = (proc.stdout or "") + (proc.stderr or "")
+    if proc.returncode != 0:
+        lines = [line.strip() for line in output.splitlines() if line.strip()]
+        detail = lines[-1] if lines else f"module {req.get('module')} missing"
+        return "missing", None, detail
     version = parse_version(output, req.get("version_regex", default_regex))
     first_line = next((line.strip() for line in output.splitlines() if line.strip()), "")
     return "found", version, first_line

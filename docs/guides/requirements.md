@@ -37,10 +37,12 @@ python3 tools/checkRequirements.py --install
 python3 tools/checkRequirements.py --install --core-only
 ```
 
-`--install` does three things:
+`--install` does four things:
 
 1. runs `apt-get update` and installs the `apt` packages declared in
-   `requirements.toml`, using `sudo` when needed;
+   `requirements.toml`, using `sudo` when needed (including
+   `python3-numpy` and `python3-matplotlib` when the plotting scripts need
+   them);
 2. installs PETSc (`petsc-dev`) when it is missing;
 3. installs `nvcc` through `nvidia-cuda-toolkit` **only when an NVIDIA GPU is
    detected**;
@@ -86,7 +88,8 @@ still works on a clean build and needs network access.
 
 | group | examples | required |
 |---|---|---|
-| core | cmake, C++20 compiler, make, git, Python, MPI, pkg-config, PETSc | yes |
+| core | cmake, C++20 compiler, make, git, Python, mpiexec/mpirun, MPI C++ wrapper, pkg-config, PETSc | yes |
+| python | numpy, matplotlib (example comparison and validation plots) | optional, installed by `--install` |
 | docs | Doxygen, Graphviz, latexmk, pdflatex, bibtex | optional, needed for docs |
 | editor | clang-format, clangd | optional |
 | gpu | nvcc / CUDA toolkit (`nvidia-cuda-toolkit`) | optional, installed only when an NVIDIA GPU is present |

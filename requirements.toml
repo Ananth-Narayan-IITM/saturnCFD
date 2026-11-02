@@ -61,6 +61,16 @@ apt = "python3"
 purpose = "Requirements checker and documentation filter"
 
 [[requirements]]
+id = "mpiexec"
+command = "mpiexec"
+args = ["--version"]
+min_version = "4.0"
+required = true
+group = "core"
+apt = "openmpi-bin"
+purpose = "MPI launches in the comparison and validation scripts"
+
+[[requirements]]
 id = "mpi"
 command = "mpirun"
 args = ["--version"]
@@ -99,6 +109,24 @@ required = true
 group = "core"
 apt = "petsc-dev"
 purpose = "Linear algebra and implicit diffusion"
+
+[[requirements]]
+id = "numpy"
+module = "numpy"
+min_version = "1.21"
+required = false
+group = "python"
+apt = "python3-numpy"
+purpose = "Analytic-comparison and validation scripts"
+
+[[requirements]]
+id = "matplotlib"
+module = "matplotlib"
+min_version = "3.4"
+required = false
+group = "python"
+apt = "python3-matplotlib"
+purpose = "Validation and solver-comparison figures"
 
 [[requirements]]
 id = "doxygen"
@@ -210,5 +238,6 @@ notes = [
   "The CPU build uses OpenMP Kokkos; the GPU build needs the CUDA Kokkos at KOKKOS_ROOT.",
   "yaml-cpp and doctest are fetched by CMake; network access is required on a clean build.",
   "docs and editor tools are optional for a minimal build but needed for the default docs/format workflow.",
+  "numpy and matplotlib are optional for the core build but required for the example comparison and validation plots; --install installs python3-numpy and python3-matplotlib.",
   "Run python3 tools/checkRequirements.py --install to install apt packages and missing Kokkos."
 ]
