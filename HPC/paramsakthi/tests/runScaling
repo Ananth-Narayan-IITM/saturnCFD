@@ -1,0 +1,486 @@
+#!/usr/bin/env python3
+"""Run the Heat CPU/GPU scaling campaign on PARAM Shakthi and plot it.
+
+    ./tests/runScaling                  # CPU + GPU, strong and weak
+    ./tests/runScaling cpu              # CPU only
+    ./tests/runScaling gpu --stage weak # one stage
+    ./tests/runScaling --dry-run        # print the jobs, submit nothing
+
+Every point is one Slurm job submitted with `sbatch --wait`, so the queue
+limits are respected and no two points of this campaign overlap.
+
+Outputs:
+
+    tests/scaling/strong/  one JSON per run + strong.csv + figures
+    tests/scaling/weak/    one JSON per run + weak.csv   + figures
+    tests/scaling/cases/   the generated YAML cases
+    tests/scaling/logs/    the Slurm logs
+
+Run ./tools/compileSaturnCFD first: it writes the login environment
+(tools/envCpu.json, tools/envGpu.json) that each job inherits.
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import json
+import os
+import re
+import shlex
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+TESTS = Path(__file__).resolve().parent
+HPC = TESTS.parent
+REPO = HPC.parents[1]
+SCALE = TESTS / "scaling"
+CASES = SCALE / "cases"
+LOGS = SCALE / "logs"
+
+BINARY = {"cpu": REPO / "buildCPUHPC" / "saturnCFD",
+          "gpu": REPO / "buildGPUHPC" / "saturnCFD"}
+ENVFILE = {"cpu": HPC / "tools" / "envCpu.json",
+           "gpu": HPC / "tools" / "envGpu.json"}
+
+STRONG = {"heatStrong64": 64, "heatStrong128": 128, "heatStrong256": 256}
+WEAK = {"heatWeak032": 32, "heatWeak064": 64,
+        "heatWeak096": 96, "heatWeak128": 128}
+
+STRONG_END, STRONG_DT = 0.1, 1e-3     # 100 adaptive steps
+WEAK_END, WEAK_DT = 0.05, 5e-4        # 100 fixed steps
+CPU_RANKS = (1, 2, 4, 8, 16, 24, 48, 96, 192, 384)
+GPU_COUNT = (1, 2, 4, 8)
+CORES_PER_NODE = 48
+
+TAG = re.compile(r"^(heat\w+)-(cpu|gpu)-(\d+)u-(\d+)t$")
+
+
+def case_yaml(name, n, end, adaptive, dt, prefix):
+    return f"""# saturnHeat 3D scaling case: {name}
+solver: saturnHeat
+
+units:
+  system: SI
+
+mesh:
+  type: box
+  nx: {n}
+  ny: {n}
+  nz: {n}
+  box:
+    xmin: 0.0
+    xmax: 1.0
+    ymin: 0.0
+    ymax: 1.0
+    zmin: 0.0
+    zmax: 1.0
+
+time:
+  start: 0.0
+  end: {end}
+  scheme: ssprk3
+  adaptive: {"true" if adaptive else "false"}
+  cfl: 0.3
+  dtMax: {dt}
+  maxSteps: 100000
+
+heat:
+  alpha: 0.01
+  velocityX: 1.0
+  velocityY: 0.5
+  velocityZ: 0.25
+  source: 0.0
+  periodic: true
+  initial: fourier
+  amplitude: 1.0
+  kx: 6.283185307179586
+  ky: 6.283185307179586
+  kz: 6.283185307179586
+
+numerics:
+  convection: muscl
+  limiter: vanLeer
+
+output:
+  prefix: {prefix}
+  csv: false
+  json: true
+  exact: true
+  vtkEvery: 0
+"""
+
+
+def points(backend, stage):
+    """(case, units, threads) for one backend and stage."""
+    if stage == "strong" and backend == "cpu":
+        return ([("heatStrong64", 1, 1)]
+                + [("heatStrong128", n, 1) for n in CPU_RANKS]
+                + [("heatStrong128", 1, CORES_PER_NODE)]
+                + [("heatStrong256", n, 1) for n in (48, 192, 384)])
+    if stage == "strong":
+        return ([("heatStrong64", 1, 1)]
+                + [("heatStrong128", n, 1) for n in GPU_COUNT]
+                + [("heatStrong256", 8, 1)])
+    if backend == "cpu":
+        return [("heatWeak032", 1, 1), ("heatWeak064", 8, 1),
+                ("heatWeak096", 27, 1), ("heatWeak128", 64, 1)]
+    return [("heatWeak032", 1, 1), ("heatWeak064", 8, 1)]
+
+
+def placement(backend, units, threads):
+    """(partition, nodes, tasks/node, cpus/task, gpus/task)."""
+    if backend == "gpu":
+        return ("sgpu", 1, 1, 4, 1) if units == 1 else \
+               ("gpu", units // 2, 2, 4, 1)
+    if units <= CORES_PER_NODE:
+        return "small", 1, units, threads, 0
+    nodes = (units + CORES_PER_NODE - 1) // CORES_PER_NODE
+    return "medium", nodes, (units + nodes - 1) // nodes, 1, 0
+
+
+def command(backend, units, threads, yaml):
+    binary = str(BINARY[backend])
+    yaml = str(yaml)
+    if backend == "gpu":
+        pernode = 2 if units > 1 else 1
+        inner = (f"export CUDA_VISIBLE_DEVICES="
+                 f"$(( ${{SLURM_LOCALID:-0}} % {pernode} )); "
+                 f"exec mpirun -np {units} --map-by ppr:{pernode}:node "
+                 f"--bind-to none {binary} {yaml}")
+        return shlex.join(["bash", "-c", inner])
+    if threads == 1:
+        return shlex.join(["mpirun", "-np", str(units), "--bind-to", "core",
+                           "--map-by", "core", binary, yaml])
+    return shlex.join(["env", f"OMP_NUM_THREADS={threads}",
+                       "OMP_PROC_BIND=close", "OMP_PLACES=cores",
+                       binary, "-threads", str(threads), str(yaml)])
+
+
+def show_log(tag):
+    logs = sorted(LOGS.glob(f"{tag}-*.out"), key=lambda p: p.stat().st_mtime)
+    if not logs:
+        return
+    print("  --- %s" % logs[-1])
+    print("".join(logs[-1].read_text().splitlines(True)[-25:]))
+
+
+def submit(backend, stage, case, units, threads, env, dry):
+    outdir = SCALE / stage
+    for path in (outdir, CASES, LOGS):
+        path.mkdir(parents=True, exist_ok=True)
+    tag = f"{case}-{backend}-{units}u-{threads}t"
+    run_yaml = CASES / f"run-{tag}.yaml"
+    n = (STRONG if stage == "strong" else WEAK)[case]
+    strong = stage == "strong"
+    run_yaml.write_text(case_yaml(
+        case, n, STRONG_END if strong else WEAK_END, strong,
+        STRONG_DT if strong else WEAK_DT, outdir / tag))
+
+    partition, nodes, pernode, cpus, gpus = placement(backend, units, threads)
+    sbatch = ["sbatch", "--partition", partition, "--nodes", str(nodes),
+              "--ntasks", str(units), "--ntasks-per-node", str(pernode),
+              "--cpus-per-task", str(cpus), "--time", "04:00:00",
+              "--job-name", tag, "--output", str(LOGS / f"{tag}-%j.out"),
+              "--exclusive", "--export=ALL", "--wait",
+              "--wrap=" + command(backend, units, threads, run_yaml)]
+    if gpus:
+        sbatch.append("--gpus-per-task=1")
+    if dry:
+        print("  " + " ".join(shlex.quote(a) for a in sbatch))
+        return
+
+    started = time.time()
+    proc = subprocess.run(sbatch, env=env, text=True, capture_output=True)
+    if proc.returncode != 0 or not (outdir / f"{tag}.json").is_file():
+        sys.stderr.write(proc.stdout + proc.stderr)
+        show_log(tag)
+        sys.exit("error: %s failed (rc=%d)" % (tag, proc.returncode))
+    print("  %-32s %7.1f s" % (tag, time.time() - started))
+
+
+def load_backend(backend):
+    env_path = ENVFILE[backend]
+    if not env_path.is_file():
+        sys.exit("error: %s missing; run ./tools/compileSaturnCFD %s"
+                 % (env_path, backend))
+    if not os.access(BINARY[backend], os.X_OK):
+        sys.exit("error: %s missing; run ./tools/compileSaturnCFD %s"
+                 % (BINARY[backend], backend))
+    return json.loads(env_path.read_text())
+
+
+def collect(stage):
+    rows = []
+    for path in sorted((SCALE / stage).glob("*.json")):
+        match = TAG.match(path.stem)
+        if not match:
+            continue
+        meta = json.loads(path.read_text())
+        wall = float(meta.get("wallSeconds") or 0.0)
+        steps = int(meta.get("steps") or 0)
+        exact = meta.get("exact") or {}
+        rows.append({
+            "backend": match.group(2), "case": match.group(1),
+            "units": int(match.group(3)), "threads": int(match.group(4)),
+            "steps": steps, "wall": wall,
+            "spt": wall / steps if steps else 0.0,
+            "cells": int(exact.get("samples") or 0),
+            "l2": float(exact.get("l2") or 0.0),
+        })
+    rows.sort(key=lambda r: (r["backend"], r["case"], r["threads"], r["units"]))
+    if rows:
+        with open(SCALE / stage / f"{stage}.csv", "w", newline="") as fh:
+            writer = csv.DictWriter(fh, fieldnames=list(rows[0]))
+            writer.writeheader()
+            writer.writerows(rows)
+    return rows
+
+
+def summary(rows):
+    print("\n  %-3s %-14s %5s %3s %6s %9s %10s %8s"
+          % ("be", "case", "units", "thr", "steps", "wall[s]",
+             "s/step", "L2"))
+    for r in rows:
+        print("  %-3s %-14s %5d %3d %6d %9.1f %10.5f %8.2e"
+              % (r["backend"], r["case"], r["units"], r["threads"],
+                 r["steps"], r["wall"], r["spt"], r["l2"]))
+
+
+def series(rows, backend, case, threads=1):
+    data = [r for r in rows
+            if r["backend"] == backend and r["case"] == case
+            and r["threads"] == threads and r["spt"] > 0]
+    return sorted(data, key=lambda r: r["units"])
+
+
+def ones(rows, backend):
+    return sorted((r for r in rows if r["backend"] == backend and r["spt"] > 0),
+                  key=lambda r: r["units"])
+
+
+def pyplot():
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        return plt
+    except ImportError:
+        sys.exit("error: matplotlib missing; "
+                 "python3 -m pip install --user matplotlib")
+
+
+def save(plt, fig, outdir, name):
+    fig.tight_layout()
+    fig.savefig(outdir / f"{name}.png", dpi=150)
+    plt.close(fig)
+    print("  %s" % (outdir / f"{name}.png"))
+
+
+def plot_strong(rows, outdir):
+    plt = pyplot()
+    cpu = series(rows, "cpu", "heatStrong128")
+    gpu = series(rows, "gpu", "heatStrong128")
+
+    fig, axes = plt.subplots(1, 2, figsize=(9, 3.8))
+    for ax, data, label in ((axes[0], cpu, "CPU ranks"),
+                            (axes[1], gpu, "GPUs")):
+        if len(data) < 2:
+            ax.set_visible(False)
+            continue
+        x = [r["units"] for r in data]
+        speed = [data[0]["spt"] / r["spt"] for r in data]
+        ax.plot(x, speed, "o-", label="measured")
+        ax.plot(x, [v / x[0] for v in x], "k--", lw=1, label="ideal")
+        ax.set_xscale("log", base=2)
+        ax.set_yscale("log", base=2)
+        ax.set_xticks(x)
+        ax.set_xticklabels([str(v) for v in x])
+        ticks = [t for t in (1, 2, 4, 8, 16, 32, 64, 128, 256, 512)
+                 if t <= 1.3 * max(speed)]
+        ax.set_yticks(ticks)
+        ax.set_yticklabels([str(t) for t in ticks])
+        ax.set_xlabel(label)
+        ax.set_ylabel("speedup")
+        ax.grid(True, which="both", alpha=.3)
+        ax.legend()
+    fig.suptitle("Strong scaling, 128$^3$")
+    save(plt, fig, outdir, "speedup")
+
+    fig, axes = plt.subplots(1, 2, figsize=(9, 3.8))
+    for ax, data, label in ((axes[0], cpu, "CPU ranks"),
+                            (axes[1], gpu, "GPUs")):
+        if len(data) < 2:
+            ax.set_visible(False)
+            continue
+        x = [r["units"] for r in data]
+        speed = [data[0]["spt"] / r["spt"] for r in data]
+        eff = [100 * s / (v / x[0]) for s, v in zip(speed, x)]
+        ax.plot(x, eff, "s-", label="measured")
+        ax.axhline(100, color="k", ls="--", lw=1, label="ideal")
+        ax.set_xscale("log", base=2)
+        ax.set_xticks(x)
+        ax.set_xticklabels([str(v) for v in x])
+        ax.set_ylim(0, 110)
+        ax.set_xlabel(label)
+        ax.set_ylabel("parallel efficiency [%]")
+        ax.grid(True, which="both", alpha=.3)
+        ax.legend()
+    fig.suptitle("Strong-scaling efficiency, 128$^3$")
+    save(plt, fig, outdir, "efficiency")
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    for data, label in ((cpu, "CPU, 1 thread/rank"), (gpu, "1 A100/rank")):
+        if len(data) < 2:
+            continue
+        ax.plot([r["units"] for r in data], [r["spt"] for r in data],
+                "o-", label=label)
+    threads = series(rows, "cpu", "heatStrong128", threads=CORES_PER_NODE)
+    if threads:
+        ax.plot([threads[0]["units"]], [threads[0]["spt"]], "D",
+                label="CPU, 1 rank x 48 threads")
+    ax.set_yscale("log")
+    unit_ticks(ax, [cpu, gpu])
+    ax.set_xlabel("ranks / GPUs")
+    ax.set_ylabel("seconds per step")
+    ax.grid(True, which="both", alpha=.3)
+    ax.legend()
+    ax.set_title("Time per step, 128$^3$")
+    save(plt, fig, outdir, "timePerStep")
+
+    bars = []
+    one_core = next((r for r in cpu if r["units"] == 1), None)
+    for label, data in (("1 CPU core", one_core),
+                        ("1 CPU node (48 thr)", threads[0] if threads else None),
+                        ("1 A100", next((r for r in gpu if r["units"] == 1), None)),
+                        ("8 A100", next((r for r in gpu if r["units"] == 8), None))):
+        if data:
+            bars.append((label, data["spt"]))
+    if bars:
+        fig, ax = plt.subplots(figsize=(6.4, 4))
+        names = [b[0] for b in bars]
+        values = [b[1] for b in bars]
+        ax.bar(names, values, color="#4c78a8")
+        if one_core:
+            for i, value in enumerate(values):
+                ax.text(i, value, "x%.1f" % (one_core["spt"] / value),
+                        ha="center", va="bottom", fontsize=9)
+        ax.set_ylabel("seconds per step")
+        ax.set_title("CPU vs A100, 128$^3$")
+        ax.grid(True, axis="y", alpha=.3)
+        save(plt, fig, outdir, "cpuVsGpu")
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    for data, label in ((cpu, "CPU"), (gpu, "GPU")):
+        if len(data) < 2:
+            continue
+        ax.plot([r["units"] for r in data], [r["l2"] for r in data],
+                "o-", label=label)
+    ax.set_xscale("log", base=2)
+    ax.set_xlabel("ranks / GPUs")
+    ax.set_ylabel("L2 error")
+    ax.grid(True, which="both", alpha=.3)
+    ax.legend()
+    ax.set_title("Accuracy, 128$^3$")
+    save(plt, fig, outdir, "accuracy")
+
+
+def unit_ticks(ax, groups):
+    units = sorted({r["units"] for group in groups for r in group})
+    ax.set_xscale("log", base=2)
+    ax.set_xticks(units)
+    ax.set_xticklabels([str(u) for u in units])
+
+
+def plot_weak(rows, outdir):
+    plt = pyplot()
+    data = {backend: ones(rows, backend) for backend in ("cpu", "gpu")}
+    data = {k: v for k, v in data.items() if v}
+    if not data:
+        return
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    for backend, points_ in data.items():
+        eff = [100 * points_[0]["spt"] / r["spt"] for r in points_]
+        ax.plot([r["units"] for r in points_], eff, "o-", label=backend.upper())
+    ax.axhline(100, color="k", ls="--", lw=1, label="ideal")
+    ax.set_ylim(0, 110)
+    unit_ticks(ax, data.values())
+    ax.set_xlabel("ranks / GPUs (32$^3$ per unit)")
+    ax.set_ylabel("weak efficiency [%]")
+    ax.grid(True, which="both", alpha=.3)
+    ax.legend()
+    ax.set_title("Weak scaling")
+    save(plt, fig, outdir, "efficiency")
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    for backend, points_ in data.items():
+        ax.plot([r["units"] for r in points_], [r["spt"] for r in points_],
+                "o-", label=backend.upper())
+    ax.set_yscale("log")
+    unit_ticks(ax, data.values())
+    ax.set_xlabel("ranks / GPUs (32$^3$ per unit)")
+    ax.set_ylabel("seconds per step")
+    ax.grid(True, which="both", alpha=.3)
+    ax.legend()
+    ax.set_title("Weak scaling, time per step")
+    save(plt, fig, outdir, "timePerStep")
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    for backend, points_ in data.items():
+        ax.plot([r["units"] for r in points_], [r["l2"] for r in points_],
+                "o-", label=backend.upper())
+    unit_ticks(ax, data.values())
+    ax.set_xlabel("ranks / GPUs (32$^3$ per unit)")
+    ax.set_ylabel("L2 error")
+    ax.grid(True, which="both", alpha=.3)
+    ax.legend()
+    ax.set_title("Weak scaling, accuracy")
+    save(plt, fig, outdir, "accuracy")
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(
+        description="Run the Heat CPU/GPU scaling campaign and plot it.")
+    ap.add_argument("backends", nargs="*", choices=sorted(BINARY),
+                    help="cpu, gpu (default: both)")
+    ap.add_argument("--stage", choices=("strong", "weak", "both"),
+                    default="both")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="print the jobs, submit nothing")
+    ap.add_argument("--plot-only", action="store_true",
+                    help="re-plot the existing results")
+    args = ap.parse_args(argv)
+
+    if not args.dry_run:
+        pyplot()  # fail before the campaign, not after an hour
+    stages = ("strong", "weak") if args.stage == "both" else (args.stage,)
+    if not args.plot_only:
+        for backend in args.backends or list(BINARY):
+            env = None if args.dry_run else load_backend(backend)
+            for stage in stages:
+                print("\n== %s %s ==" % (backend, stage))
+                for case, units, threads in points(backend, stage):
+                    submit(backend, stage, case, units, threads, env,
+                           args.dry_run)
+
+    if args.dry_run:
+        return 0
+
+    for stage in stages:
+        outdir = SCALE / stage
+        rows = collect(stage)
+        if not rows:
+            print("\nno results for %s" % stage)
+            continue
+        print("\n== %s results ==" % stage)
+        summary(rows)
+        print()
+        (plot_strong if stage == "strong" else plot_weak)(rows, outdir)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,276 @@
+#!/usr/bin/env python3
+"""Check PARAM Shakthi and build saturnCFD for the Heat scaling campaign.
+
+    ./tools/compileSaturnCFD            # check, then build CPU + GPU
+    ./tools/compileSaturnCFD cpu        # one backend
+    ./tools/compileSaturnCFD --check    # environment check only
+
+On success it writes tools/envCpu.json / tools/envGpu.json, the login-node
+environment that tests/runScaling hands to Slurm (the compute nodes have no
+Lmod, so the jobs cannot call `module` themselves).
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import platform
+import re
+import shlex
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+TOOLS = Path(__file__).resolve().parent
+HPC = TOOLS.parent
+REPO = HPC.parents[1]
+HOME = Path.home()
+
+KOKKOS_VERSION = "4.7.04"
+KOKKOS_URL = "https://github.com/kokkos/kokkos.git"
+KOKKOS_SRC = HOME / f".cache/saturnCFD/kokkos-{KOKKOS_VERSION}"
+CMAKE_MIN = (3, 24)
+
+BACKENDS = {
+    "cpu": {
+        "modules": ["compiler/gcc/12.4", "compiler/openmpi/5.0.6", "python/3.12"],
+        "kokkos_build": HOME / ".cache/saturnCFD/build-kokkos-cpu",
+        "prefix": HOME / f".local/kokkos-cpu-{KOKKOS_VERSION}",
+        "build": REPO / "buildCPUHPC",
+        "kokkos_flags": [
+            "-DKokkos_ENABLE_OPENMP=ON",
+            "-DKokkos_ENABLE_SERIAL=ON",
+            "-DKokkos_ARCH_NATIVE=ON",
+        ],
+        "saturn_flags": ["-DSATURN_BACKEND=openmp"],
+    },
+    "gpu": {
+        "modules": [
+            "compiler/gcc/12.4",
+            "nvhpc-24.5/nvhpc-hpcx-cuda12/24.5",
+            "python/3.12",
+        ],
+        "kokkos_build": HOME / ".cache/saturnCFD/build-kokkos-cuda",
+        "prefix": HOME / f".local/kokkos-cuda-{KOKKOS_VERSION}",
+        "build": REPO / "buildGPUHPC",
+        "kokkos_flags": [
+            "-DKokkos_ENABLE_CUDA=ON",
+            "-DKokkos_ENABLE_CUDA_LAMBDA=ON",
+            "-DKokkos_ENABLE_OPENMP=OFF",
+            "-DKokkos_ENABLE_SERIAL=ON",
+            "-DKokkos_ARCH_AMPERE80=ON",
+        ],
+        "saturn_flags": ["-DSATURN_BACKEND=cuda"],
+    },
+}
+
+# The compute nodes have no Lmod; drop the login-node module bookkeeping.
+DROP_EXACT = {
+    "BASH_ENV", "FPATH", "MODULEPATH", "MODULESHOME", "LOADEDMODULES",
+    "which_declare", "OLDPWD", "PWD", "SHLVL", "_",
+}
+DROP_PREFIX = ("BASH_FUNC_", "LMOD_", "_ModuleTable", "__LMOD_", "_LMFILES_")
+
+
+def run(cmd, env=None, check=True):
+    p = subprocess.run([str(c) for c in cmd], env=env, text=True,
+                       capture_output=True)
+    if check and p.returncode != 0:
+        sys.stderr.write(p.stdout + p.stderr)
+        sys.exit("error: %s failed" % " ".join(str(c) for c in cmd))
+    return p
+
+
+def which(tool, env):
+    found = shutil.which(tool, path=env.get("PATH"))
+    if not found:
+        sys.exit("error: %s not found after loading the modules" % tool)
+    return found
+
+
+def scrub(env):
+    return {k: v for k, v in env.items()
+            if k not in DROP_EXACT and not k.startswith(DROP_PREFIX)}
+
+
+def login_env(kind):
+    """Run the module setup in a login shell and return the resulting env."""
+    modules = " ".join(BACKENDS[kind]["modules"])
+    code = "import json,os;print(json.dumps(dict(os.environ)))"
+    script = " ; ".join([
+        "module purge >/dev/null 2>&1",
+        "module use /home/apps/modulefiles >/dev/null 2>&1",
+        "module load %s >/dev/null 2>&1" % modules,
+        "%s -c %s" % (shlex.quote(sys.executable), shlex.quote(code)),
+    ])
+    p = run(["bash", "-l", "-c", script], check=False)
+    for line in reversed(p.stdout.splitlines()):
+        if line.startswith("{"):
+            return json.loads(line)
+    sys.stderr.write(p.stdout + p.stderr)
+    sys.exit("error: could not load the %s modules" % kind)
+
+
+def prepare_env(kind):
+    cfg = BACKENDS[kind]
+    env = login_env(kind)
+    env["PATH"] = "%s/.local/bin:%s" % (HOME, env.get("PATH", ""))
+    conda = env.get("CONDA_PREFIX", "")
+    if conda and os.access(os.path.join(conda, "bin", "cmake"), os.X_OK):
+        env["PATH"] = "%s/bin:%s" % (conda, env["PATH"])
+    prefix = cfg["prefix"]
+    libpath = env.get("LD_LIBRARY_PATH", "").rstrip(":")
+    env["LD_LIBRARY_PATH"] = "%s/lib64:%s/lib%s" % (
+        prefix, prefix, ":" + libpath if libpath else "")
+    env["OMP_NUM_THREADS"] = "1"
+    env["CC"] = which("gcc", env)
+    env["CXX"] = which("g++", env)
+    env["MPI_C_COMPILER"] = which("mpicc", env)
+    env["MPI_CXX_COMPILER"] = which("mpicxx", env)
+    for key in ("OMP_PROC_BIND", "OMP_PLACES", "OMP_DYNAMIC",
+                "OMP_THREAD_LIMIT"):
+        env.pop(key, None)
+    if kind == "cpu":
+        env["KOKKOS_CPU_ROOT"] = str(prefix)
+    else:
+        env["KOKKOS_CUDA_ROOT"] = str(prefix)
+        env["NVCC_WRAPPER_DEFAULT_COMPILER"] = env["CXX"]
+        env["KOKKOS_ROOT"] = str(prefix)
+    return scrub(env)
+
+
+def hpc_report():
+    print("== host ==")
+    print("  node       : %s" % platform.node())
+    if not shutil.which("sbatch"):
+        sys.exit("error: sbatch not found; run this on a PARAM Shakthi node")
+    p = run(["sinfo", "-h", "-o", "%P"], check=False)
+    parts = sorted({x.rstrip("*") for x in p.stdout.split()})
+    print("  partitions : %s" % (" ".join(parts) or "unknown"))
+
+
+def report(kind, env):
+    cfg = BACKENDS[kind]
+    print("\n== %s ==" % kind)
+    print("  modules    : %s" % " ".join(cfg["modules"]))
+    print("  cmake      : %s" % which("cmake", env))
+    version = re.search(r"version (\d+)\.(\d+)",
+                        run(["cmake", "--version"], env).stdout)
+    if not version or tuple(map(int, version.groups())) < CMAKE_MIN:
+        sys.exit("error: cmake >= %d.%d is required" % CMAKE_MIN)
+    print("  gcc        : %s" % run([env["CC"], "--version"], env)
+          .stdout.splitlines()[0])
+    print("  mpicxx     : %s" % env["MPI_CXX_COMPILER"])
+    if kind == "gpu":
+        print("  nvcc       : %s" % which("nvcc", env))
+    print("  kokkos     : %s (%s)" % (
+        cfg["prefix"], "installed" if kokkos_ready(cfg["prefix"]) else "missing"))
+    required = [REPO / "CMakeLists.txt", REPO / "apps" / "main.cpp"]
+    if kind == "gpu":
+        required.append(REPO / "cmake" / "toolchains" / "cuda-kokkos.cmake")
+    missing = [str(p) for p in required if not p.is_file()]
+    if missing:
+        sys.exit("error: missing sources: %s" % ", ".join(missing))
+
+
+def kokkos_ready(prefix):
+    return any((prefix / lib / "cmake/Kokkos/KokkosConfig.cmake").is_file()
+               for lib in ("lib64", "lib"))
+
+
+def ensure_kokkos(kind, env, jobs):
+    cfg = BACKENDS[kind]
+    if kokkos_ready(cfg["prefix"]):
+        print("  kokkos     : reusing %s" % cfg["prefix"])
+        return
+    if not KOKKOS_SRC.is_dir():
+        print("  kokkos     : cloning %s" % KOKKOS_VERSION)
+        KOKKOS_SRC.parent.mkdir(parents=True, exist_ok=True)
+        run(["git", "clone", "--depth", "1", "--branch", KOKKOS_VERSION,
+             KOKKOS_URL, KOKKOS_SRC], env)
+    print("  kokkos     : building %s Kokkos" % kind)
+    args = ["cmake", "-S", KOKKOS_SRC, "-B", cfg["kokkos_build"]]
+    if kind == "gpu":
+        args.append("-DCMAKE_CXX_COMPILER=%s/bin/nvcc_wrapper" % KOKKOS_SRC)
+    args += ["-DCMAKE_BUILD_TYPE=Release",
+             "-DCMAKE_INSTALL_PREFIX=%s" % cfg["prefix"],
+             "-DCMAKE_CXX_STANDARD=20", "-DCMAKE_CXX_EXTENSIONS=OFF",
+             *cfg["kokkos_flags"],
+             "-DKokkos_ENABLE_TESTS=OFF", "-DKokkos_ENABLE_EXAMPLES=OFF"]
+    run(args, env)
+    run(["cmake", "--build", cfg["kokkos_build"], "-j", str(jobs)], env)
+    run(["cmake", "--install", cfg["kokkos_build"]], env)
+    if kind == "gpu":
+        wrapper = cfg["prefix"] / "bin" / "nvcc_wrapper"
+        wrapper.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(KOKKOS_SRC / "bin" / "nvcc_wrapper", wrapper)
+        wrapper.chmod(0o755)
+
+
+def build_saturn(kind, env, jobs):
+    cfg = BACKENDS[kind]
+    prefix = cfg["prefix"]
+    args = ["cmake"]
+    if kind == "gpu":
+        args.append("-DCMAKE_TOOLCHAIN_FILE=%s/cmake/toolchains/"
+                    "cuda-kokkos.cmake" % REPO)
+    else:
+        args.append("-DCMAKE_CXX_COMPILER=%s" % env["CXX"])
+    args += ["-S", REPO, "-B", cfg["build"],
+             "-DCMAKE_BUILD_TYPE=Release",
+             "-DCMAKE_C_STANDARD=11", "-DCMAKE_CXX_STANDARD=20",
+             "-DCMAKE_CXX_EXTENSIONS=OFF",
+             "-DCMAKE_C_COMPILER=%s" % env["CC"],
+             "-DMPI_C_COMPILER=%s" % env["MPI_C_COMPILER"],
+             "-DMPI_CXX_COMPILER=%s" % env["MPI_CXX_COMPILER"],
+             "-DSATURN_ENABLE_MPI=ON", "-DSATURN_ENABLE_KOKKOS=ON",
+             *cfg["saturn_flags"],
+             "-DSATURN_USE_SYSTEM_KOKKOS=ON", "-DKokkos_ROOT=%s" % prefix,
+             "-DSATURN_ENABLE_PETSC=OFF",
+             "-DSATURN_BUILD_TESTS=OFF", "-DSATURN_BUILD_DOCS=OFF"]
+    print("  configure  : %s" % cfg["build"])
+    run(args, env)
+    print("  build      : -j %d" % jobs)
+    run(["cmake", "--build", cfg["build"], "-j", str(jobs)], env)
+    binary = cfg["build"] / "saturnCFD"
+    if not os.access(binary, os.X_OK):
+        sys.exit("error: %s was not produced" % binary)
+    print("  binary     : %s" % binary)
+
+
+def dump_env(kind, env):
+    path = TOOLS / ("env%s.json" % kind.capitalize())
+    path.write_text(json.dumps(scrub(env), indent=1))
+    print("  runtime    : %s" % path)
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(
+        description="Check PARAM Shakthi and build saturnCFD.")
+    ap.add_argument("backends", nargs="*", choices=sorted(BACKENDS),
+                    help="cpu, gpu (default: both)")
+    ap.add_argument("--check", action="store_true",
+                    help="check the environment only")
+    ap.add_argument("--jobs", type=int, default=min(16, os.cpu_count() or 1))
+    args = ap.parse_args(argv)
+    jobs = max(1, args.jobs)
+
+    hpc_report()
+    for kind in args.backends or list(BACKENDS):
+        env = prepare_env(kind)
+        report(kind, env)
+        if args.check:
+            continue
+        ensure_kokkos(kind, env, jobs)
+        build_saturn(kind, env, jobs)
+        dump_env(kind, env)
+
+    if not args.check:
+        print("\nnext: ./tests/runScaling --dry-run")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

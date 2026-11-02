@@ -1,6 +1,10 @@
-logs/
-results/
-cases/run-*
+# Generated cases, runs, logs and figures.
+tests/scaling/
+
+# Captured login environment (machine-specific paths).
+tools/envCpu.json
+tools/envGpu.json
+
+# Python bytecode.
 __pycache__/
-envCpuRuntime
-envGpuRuntime
+*.pyc

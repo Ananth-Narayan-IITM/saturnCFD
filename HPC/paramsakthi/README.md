@@ -1,268 +1,145 @@
 # PARAM Shakthi Heat scaling
 
-This directory runs the **3D heat / convection–diffusion** solver on the
-PARAM Shakthi cluster to compare CPU and GPU.
-
-The cluster document says:
-
-| node | specification |
-|---|---|
-| CPU | 2× Intel Xeon Gold 6240R, 48 cores, 192 GB |
-| high memory | same CPU, 768 GB |
-| GPU | 2× NVIDIA A100 80 GB, 48 cores, 192 GB |
-| network | InfiniBand NDR |
-| scheduler | Slurm 23.11.10 |
-
-Partitions used here:
-
-| partition | useful limit |
-|---|---|
-| `small` | 1–48 cores, one CPU node |
-| `medium` | 49–384 cores, 2–8 CPU nodes |
-| `large` | 385–6144 cores |
-| `sgpu` | 1 core / 1 GPU |
-| `gpu` | 1 core / 2 GPUs up to 192 cores / 8 GPUs |
-
-The GPU nodes have **NVIDIA A100**, not Intel GPUs. The Kokkos CUDA backend is
-therefore the target.
-
-## Why Heat first
-
-Heat is a Kokkos scalar solver and is already GPU-enabled. Stokes is a PETSc
-DMDA solver and is not yet GPU-accelerated; it will be a separate PETSc/CUDA
-work package. This campaign answers:
-
-- how much faster is one A100 than one CPU core / one CPU node for the same
-  Heat problem;
-- how well does the Heat solver scale on 1, 2, 4 and 8 A100s;
-- how well does it scale on 1–8 CPU nodes.
-
-## File roles
+Two scripts run the CPU-vs-GPU Heat campaign on PARAM Shakthi (PARAM Rudra):
 
 | file | role |
 |---|---|
-| `envCpu` | loads GCC 12.4 + OpenMPI 5.0.6 + Python, sets the CPU Kokkos path and compilers |
-| `envGpu` | loads GCC 12.4 + nvhpc/CUDA 12 + HPC-X, sets the CUDA Kokkos path and `nvcc_wrapper` host compiler |
-| `cpuBuild` | builds a local Kokkos OpenMP install if needed, then builds `buildCPUHPC/saturnCFD` |
-| `gpuBuild` | builds a local Kokkos CUDA (SM80) install if needed, then builds `buildGPUHPC/saturnCFD` |
-| `generateCases.py` | writes the Heat YAML cases into `cases/` |
-| `cpuStrong` | Slurm job: one CPU strong-scaling point (`mpirun -np $SLURM_NTASKS`) |
-| `cpuWeak` | Slurm job: one CPU weak-scaling point |
-| `cpuThreads` | Slurm job: one rank with 48 OpenMP threads |
-| `gpuStrong` | Slurm job: one GPU strong-scaling point, one rank per GPU |
-| `gpuWeak` | Slurm job: one GPU weak-scaling point |
-| `submitCpu` | submits the CPU series one job at a time and waits |
-| `submitGpu` | submits the GPU series one job at a time and waits |
-| `collectResults.py` | merges the JSON runs into `results/scaling.csv` |
-| `plotScaling.py` | draws speedup, efficiency, time/step and accuracy figures |
-| `diagnose` | prints modules, tool versions, binaries, Kokkos, Slurm and recent logs |
+| `tools/compileSaturnCFD` | checks the cluster, builds Kokkos if needed, builds `buildCPUHPC` and `buildGPUHPC` |
+| `tests/runScaling` | generates the cases, runs strong/weak scaling, collects JSON, plots |
 
-## First checks on the login node
+Both are Python 3 and are run from this directory.
 
-```bash
-module load nvhpc-24.5/nvhpc-hpcx-cuda12/24.5
-nvcc --version
-cmake --version || echo "cmake missing"
-python3 -c "import numpy, matplotlib; print(numpy.__version__, matplotlib.__version__)"
-```
-
-`module avail petsc`, `module avail kokkos` and `module avail cmake` are empty
-on this cluster. Kokkos and CMake are therefore built/installed locally; PETSc
-is not needed for Heat.
-
-To confirm the GPU model inside an allocation:
-
-```bash
-srun --partition=sgpu --gres=gpu:1 --ntasks=1 nvidia-smi -L
-```
-
-The node manual says 2×A100 80 GB per GPU node.
-
-## Build on the login node
-
-The compute nodes have no internet access. Build on a login node, where
-`git`/CMake can fetch yaml-cpp, doctest and Kokkos.
+## Quick start
 
 ```bash
 cd HPC/paramsakthi
-./cpuBuild
-./gpuBuild
+./tools/compileSaturnCFD          # check + build CPU and GPU
+./tests/runScaling --dry-run      # print the jobs
+./tests/runScaling                # run everything (tmux/nohup, takes ~1 h CPU)
 ```
 
-- `cpuBuild` uses GCC 12.4 + OpenMPI 5.0.6 and a local Kokkos OpenMP build.
-- `gpuBuild` uses the `nvhpc-24.5/nvhpc-hpcx-cuda12/24.5` module and a local
-  Kokkos CUDA build with `Kokkos_ARCH_AMPERE80`.
-- If `cmake` is missing, install it on the login node, for example:
-  `python3 -m pip install --user 'cmake>=3.24'` or use the conda base
-  environment if it already provides `cmake`.
-- Run the builds from `HPC/paramsakthi`; they write `buildCPUHPC` and
-  `buildGPUHPC` in the repository root.
-- After a successful build, capture the login-node environment for the batch
-  nodes:
-  ```bash
-  ./writeRuntime cpu
-  ./writeRuntime gpu
-  ```
-  The jobs source `envCpuRuntime`/`envGpuRuntime` instead of calling Lmod.
-  This is needed because the compute nodes do not initialize the login-node
-  `/opt/ohpc` Lmod path. Regenerate the runtime files if you change modules.
-- Kokkos is cloned into `~/.cache/saturnCFD` and installed under
-  `~/.local/kokkos-cpu-4.7.04` / `~/.local/kokkos-cuda-4.7.04`.
-- Binaries are `buildCPUHPC/saturnCFD` and `buildGPUHPC/saturnCFD` in the
-  repository root.
-
-If a module name differs, edit `envCpu`/`envGpu`; the module list on the login
-node shows `compiler/gcc/12.4`, `compiler/openmpi/5.0.6` and
-`nvhpc-24.5/nvhpc-hpcx-cuda12/24.5`.
-
-## Cases
+One backend, one stage:
 
 ```bash
-python3 generateCases.py
+./tools/compileSaturnCFD cpu
+./tests/runScaling cpu --stage strong
+./tests/runScaling gpu --stage weak
+./tests/runScaling --plot-only    # re-plot without resubmitting
 ```
 
-generates:
+## Cluster facts
 
-| file | mesh | time control | purpose |
-|---|---|---|---|
-| `heatStrong64.yaml` | 64³ | adaptive, 200 steps | one CPU core vs one GPU |
-| `heatStrong96.yaml` | 96³ | adaptive | intermediate |
-| `heatStrong128.yaml` | 128³ | adaptive, 200 steps | CPU/GPU node comparison |
-| `heatStrong256.yaml` | 256³ | adaptive | dense GPU scaling |
-| `heatWeak032.yaml` | 32³ | fixed 100 steps | 1 rank |
-| `heatWeak064.yaml` | 64³ | fixed 100 steps | 8 ranks (32³/rank) |
-| `heatWeak096.yaml` | 96³ | fixed 100 steps | 27 ranks |
-| `heatWeak128.yaml` | 128³ | fixed 100 steps | 64 ranks |
+| node | specification |
+|---|---|
+| CPU | 2× Xeon Gold 6240R, 48 cores, 192 GB |
+| GPU | 2× NVIDIA A100 80 GB PCIe, 48 cores, 192 GB |
+| scheduler | Slurm 23.11.10 |
 
-The strong cases keep the physical end time and the timestep fixed, so every
-rank count performs the same number of steps. The weak cases use a fixed
-timestep and 100 steps, so work per rank is constant.
+| partition | limit |
+|---|---|
+| `small` | 1 node, 1–48 cores |
+| `medium` | 2–8 nodes, 49–384 cores |
+| `sgpu` | 1 GPU |
+| `gpu` | 2–8 GPUs, 2 per node |
 
-## Submit
+Modules: `compiler/gcc/12.4`, `compiler/openmpi/5.0.6`,
+`nvhpc-24.5/nvhpc-hpcx-cuda12/24.5`, `python/3.12`. There is no
+PETSc/Kokkos/CMake module; Kokkos is built locally by `compileSaturnCFD` and
+PETSc is not needed for Heat.
 
-```bash
-./submitCpu     # small/medium strong + weak + one 48-thread run
-./submitGpu     # 1 GPU on sgpu, 2/4/8 GPUs on gpu
-```
+## tools/compileSaturnCFD
 
-### What the submit scripts do
+It runs `module purge` + the backend's modules in a login shell, then checks
+`cmake` (>= 3.24), `git`, `gcc`, `mpicxx` (and `nvcc` for GPU), the source
+tree, and the Slurm partitions. If anything is missing it stops with the
+reason; nothing is built.
 
-`submitCpu` and `submitGpu` do **not** run the solver themselves. They:
+Then, per backend:
 
-1. check that the matching binary and case file exist;
-2. submit one `sbatch` job with the right partition, nodes, tasks, GPUs and
-   `CASE`;
-3. wait until `squeue` no longer lists the job;
-4. read the final state with `sacct` and stop immediately on
-   `FAILED`/`CANCELLED`/`TIMEOUT`;
-5. repeat for the next point.
+1. build and install Kokkos `4.7.04` under `~/.local/kokkos-<kind>-4.7.04`
+   if the install is missing (`Kokkos_ARCH_NATIVE` for CPU,
+   `Kokkos_ARCH_AMPERE80` for GPU);
+2. configure `buildCPUHPC` (`SATURN_BACKEND=openmp`) or `buildGPUHPC`
+   (`SATURN_BACKEND=cuda`, `cmake/toolchains/cuda-kokkos.cmake`);
+3. write `tools/envCpu.json` / `tools/envGpu.json`.
 
-This is why the script stays in the foreground: it waits for the first job,
-then submits the second, and so on. Run it in `tmux`/`nohup`, not in a login
-shell you intend to close.
+`--check` stops after the checks. The JSON files hold the login-node `PATH`,
+`LD_LIBRARY_PATH` and compiler variables. They matter because the compute
+nodes have **no Lmod**: the batch jobs cannot call `module`, so `runScaling`
+hands them this environment through `sbatch --export=ALL`. Re-run
+`compileSaturnCFD` after changing modules.
 
-Point list (`./submitCpu`):
+The GPU build needs GCC 12.4 as the `nvcc_wrapper` host compiler and CMake
+`3.24`; `CMAKE_CXX_EXTENSIONS=OFF` keeps the test at `-std=c++20` instead of
+`gnu++2a`, which `nvcc` rejects.
 
-| point | case | ranks × threads |
+## tests/runScaling
+
+Cases are written to `tests/scaling/cases`. Every point is one `sbatch
+--wait` job, so the queue limits are respected and no two points overlap.
+Results go to `tests/scaling/strong` and `tests/scaling/weak`.
+
+| stage | backend | points |
 |---|---|---|
-| smoke test | `heatStrong64` | 1 × 1 |
-| one node, threads | `heatStrong128` | 1 × 48 |
-| strong 128³ | `heatStrong128` | 1, 2, 4, 8, 16, 24, 48 ranks × 1 |
-| strong 128³, multi-node | `heatStrong128` | 96 (2 nodes), 192 (4), 384 (8) |
-| weak | `heatWeak032/064/096/128` | 1, 8, 27, 64 ranks |
-| dense 256³ | `heatStrong256` | 48, 192, 384 ranks |
+| strong | CPU | 64³ 1 core; 128³ with 1, 2, 4, 8, 16, 24, 48, 96, 192, 384 ranks; 128³ 1 rank × 48 threads; 256³ with 48, 192, 384 ranks |
+| strong | GPU | 64³ 1 A100; 128³ with 1, 2, 4, 8 A100; 256³ 8 A100 |
+| weak | CPU | 32³/rank at 1, 8, 27, 64 ranks (32³, 64³, 96³, 128³) |
+| weak | GPU | 32³/GPU at 1 and 8 A100 (32³, 64³) |
 
-Point list (`./submitGpu`):
+Strong cases run 100 adaptive steps (`end 0.1`, `dtMax 1e-3`); weak cases run
+100 fixed steps (`dt 5e-4`). The GPU weak series has only 1 and 8 GPUs because
+only those give an integer cube with 32³ cells per GPU.
 
-| point | case | GPUs |
-|---|---|---|
-| smoke test | `heatStrong64` | 1 |
-| one A100 | `heatStrong128` | 1 |
-| strong 128³ | `heatStrong128` | 2, 4, 8 |
-| dense 256³ | `heatStrong256` | 8 |
-| weak, 32³/GPU | `heatWeak032`, `heatWeak064` | 1, 8 |
+Expected wall time for the full CPU chain is about one hour, dominated by the
+single-core 128³ point (~26 min at ~2 s/step, measured from the 64³ smoke
+test). GPU points take seconds to minutes. Run the campaign in `tmux` or
+`nohup`.
 
-The weak GPU series has only 1 and 8 GPUs because only those give an integer
-cube with exactly 32³ cells per GPU; strong scaling carries the 2/4/8 GPU
-curve.
-
-Preview the chain without submitting anything:
-
-```bash
-DRY_RUN=1 ./submitCpu
-DRY_RUN=1 ./submitGpu
-```
-
-A successful job prints `state=COMPLETED` and `log=logs/...`. A failed job
-prints `state=FAILED`, the log path and its last 40 lines, then the chain stops.
-
-Watch progress:
-
-```bash
-squeue -u "$USER"
-tail -f logs/heatCpuStrong-*.out
-ls -lt results/cpu results/gpu
-```
-
-If a job fails, the submit script stops; inspect the log named in the error
-and run `./diagnose cpu` or `./diagnose gpu`.
-
-`WAIT=0 ./submitCpu` queues all points without waiting, but then the queue
-limits and cross-job timing noise apply. The default `WAIT=1` is the clean
-mode.
-
-The job scripts write YAML copies with a unique `output.prefix` under
-`results/`. Each job stores its JSON and log.
-
-Slurm limits: at most 3 running small jobs and 4 running medium jobs per user;
-1 running GPU job. `submitCpu` and `submitGpu` submit one job at a time and
-wait for it to finish, so the timings are clean and the queue limits are
-respected. Run them inside `tmux` or `nohup`:
-
-```bash
-tmux new -s heatscale
-cd HPC/paramsakthi
-./submitCpu
-# then, in another window/session:
-./submitGpu
-```
-
-Set `WAIT=0` only if you want to queue everything at once.
-
-## Collect and plot
-
-```bash
-python3 collectResults.py
-python3 plotScaling.py
-```
-
-Outputs:
+## Outputs
 
 ```text
-results/scaling.csv
-results/figures/cpuStrong.png / .pdf
-results/figures/gpuStrong.png / .pdf
-results/figures/cpuVsGpu.png / .pdf
-results/figures/accuracy.png / .pdf
+tests/scaling/
+  strong/  <tag>.json  strong.csv  speedup.png  efficiency.png
+           timePerStep.png  cpuVsGpu.png  accuracy.png
+  weak/    <tag>.json  weak.csv    efficiency.png
+           timePerStep.png  accuracy.png
+  cases/   run-<tag>.yaml
+  logs/    <tag>-<jobid>.out
 ```
 
-The plots show speedup, parallel efficiency, time per step, cells×steps/s and
-the analytic error. The CSV keeps the raw measurements.
+`<tag>` is `<case>-<backend>-<units>u-<threads>t`. The JSON is the solver
+output; the CSV merges it (`backend, case, units, threads, steps, wall, spt,
+cells, l2`). All figures are PNG at 150 dpi.
 
-## Fairness notes
+If a job fails, `runScaling` prints the Slurm log tail and stops, so the
+campaign never continues on a broken environment.
 
-- CPU strong scaling uses 1 thread per MPI rank; the 48-thread run is a
-  separate node-level comparison.
-- GPU runs use one MPI rank per GPU, with 4 host cores per rank.
-- CPU and GPU runs use the same YAML, mesh, end time and timestep.
-- The GPU number is one A100; CPU numbers are one core, 48 cores (one node)
-  and multi-node.
-- The Heat solver is explicit, so time per step is the clean metric; total
-  time includes I/O and startup.
+## Fairness
 
-## What is not in this campaign
+- CPU strong scaling uses one thread per MPI rank; the 48-thread run is the
+  node-level comparison.
+- GPU runs use one MPI rank per GPU, 4 host cores per rank, and pin each rank
+  to its own device with `SLURM_LOCALID % GPUs/node`.
+- Both backends run the same YAML, mesh, end time and timestep.
+- Heat is explicit, so time per step is the main metric; total time also
+  includes start-up and I/O.
 
-- Stokes GPU scaling. `saturnStokes` is a PETSc DMDA solver and the GPU preset
-  disables PETSc. A GPU Stokes benchmark needs a PETSc CUDA build and a
-  GPU-capable preconditioner, or a matrix-free GPU Stokes solver.
-- PETSc installation. Not needed for Heat.
+## Troubleshooting
+
+- `mpirun: command not found` or a stale Lmod error in a log: the job did not
+  inherit the captured environment. Re-run `./tools/compileSaturnCFD`, then
+  `./tests/runScaling`.
+- `UCP API version is incompatible ... actual 1.16.0` comes from mixing the
+  module OpenMPI with the system UCX. It is only a warning in the captured
+  environment; keep using `compileSaturnCFD` so the module libraries stay
+  first on `LD_LIBRARY_PATH`.
+- GPU job fails with "does not report a GPU backend": the binary fell back to
+  the CPU. Check `nvcc --version` and rebuild with
+  `./tools/compileSaturnCFD gpu`.
+- `cmake` too old: `python3 -m pip install --user 'cmake>=3.24'`.
+
+## Not in this campaign
+
+Stokes GPU scaling. `saturnStokes` is a PETSc DMDA solver and the GPU preset
+disables PETSc, so a meaningful GPU Stokes benchmark needs a PETSc CUDA build
+plus a GPU-capable preconditioner, or a matrix-free GPU Stokes solver.
