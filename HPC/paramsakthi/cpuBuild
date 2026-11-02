@@ -1,0 +1,81 @@
+#!/bin/bash
+# Build the CPU Heat binary (Kokkos OpenMP + MPI) on a login node.
+# No PETSc is needed for saturnHeat.
+
+set -euo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO="$(cd "$HERE/../.." && pwd)"
+source "$HERE/envCpu"
+
+KOKKOS_VERSION="${KOKKOS_VERSION:-4.7.04}"
+KOKKOS_SRC="${KOKKOS_SRC:-$HOME/.cache/saturnCFD/kokkos-$KOKKOS_VERSION}"
+KOKKOS_BUILD="${KOKKOS_BUILD:-$HOME/.cache/saturnCFD/build-kokkos-cpu}"
+KOKKOS_CPU_ROOT="${KOKKOS_CPU_ROOT:-$HOME/.local/kokkos-cpu-$KOKKOS_VERSION}"
+BUILD_CPU="${BUILD_CPU:-$REPO/buildCPUHPC}"
+JOBS="${BUILD_JOBS:-16}"
+
+command -v cmake >/dev/null || {
+  echo "error: cmake not found."
+  echo "       on the login node: python3 -m pip install --user 'cmake>=3.24'"
+  exit 1
+}
+command -v git >/dev/null || {
+  echo "error: git not found; it is needed to fetch Kokkos/yaml-cpp/doctest"
+  exit 1
+}
+
+kokkos_config() {
+  for d in lib64 lib; do
+    local f="$KOKKOS_CPU_ROOT/$d/cmake/Kokkos/KokkosConfig.cmake"
+    [ -f "$f" ] && return 0
+  done
+  return 1
+}
+
+if ! kokkos_config; then
+  if [ ! -d "$KOKKOS_SRC" ]; then
+    echo "== clone Kokkos $KOKKOS_VERSION =="
+    mkdir -p "$(dirname "$KOKKOS_SRC")"
+    git clone --depth 1 --branch "$KOKKOS_VERSION" \
+      https://github.com/kokkos/kokkos.git "$KOKKOS_SRC"
+  fi
+  echo "== build Kokkos CPU (OpenMP) =="
+  cmake -S "$KOKKOS_SRC" -B "$KOKKOS_BUILD" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX="$KOKKOS_CPU_ROOT" \
+    -DCMAKE_CXX_STANDARD=20 \
+    -DKokkos_ENABLE_OPENMP=ON \
+    -DKokkos_ENABLE_SERIAL=ON \
+    -DKokkos_ARCH_NATIVE=ON \
+    -DKokkos_ENABLE_TESTS=OFF \
+    -DKokkos_ENABLE_EXAMPLES=OFF
+  cmake --build "$KOKKOS_BUILD" -j "$JOBS"
+  cmake --install "$KOKKOS_BUILD"
+fi
+export KOKKOS_CPU_ROOT
+
+echo "== configure saturnCFD CPU =="
+cmake -S "$REPO" -B "$BUILD_CPU" \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_C_STANDARD=11 \
+  -DCMAKE_CXX_STANDARD=20 \
+  -DCMAKE_C_COMPILER="$CC" \
+  -DCMAKE_CXX_COMPILER="$CXX" \
+  -DMPI_C_COMPILER="$MPI_C_COMPILER" \
+  -DMPI_CXX_COMPILER="$MPI_CXX_COMPILER" \
+  -DSATURN_ENABLE_MPI=ON \
+  -DSATURN_ENABLE_KOKKOS=ON \
+  -DSATURN_BACKEND=openmp \
+  -DSATURN_USE_SYSTEM_KOKKOS=ON \
+  -DKokkos_ROOT="$KOKKOS_CPU_ROOT" \
+  -DSATURN_ENABLE_PETSC=OFF \
+  -DSATURN_BUILD_TESTS=OFF \
+  -DSATURN_BUILD_DOCS=OFF
+
+echo "== build saturnCFD CPU =="
+cmake --build "$BUILD_CPU" -j "$JOBS"
+
+echo
+echo "CPU binary: $BUILD_CPU/saturnCFD"
+echo "Kokkos    : $KOKKOS_CPU_ROOT"

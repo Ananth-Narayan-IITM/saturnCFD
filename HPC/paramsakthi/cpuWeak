@@ -1,0 +1,25 @@
+#!/bin/bash
+#SBATCH --job-name=heatCpuWeak
+#SBATCH --partition=small
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=04:00:00
+#SBATCH --output=logs/heatCpuWeak-%j.out
+
+set -euo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO="$(cd "$HERE/../.." && pwd)"
+source "$HERE/envCpu"
+
+CASE="${CASE:-heatWeak032}"
+BIN="${BIN:-$REPO/buildCPUHPC/saturnCFD}"
+NTASKS="${SLURM_NTASKS:-1}"
+TAG="${CASE}-${SLURM_JOB_ID:-manual}"
+mkdir -p "$HERE/logs" "$HERE/results/cpu"
+RUN="$HERE/cases/run-${TAG}.yaml"
+sed "s|^  prefix: .*|  prefix: $HERE/results/cpu/${TAG}|" \
+  "$HERE/cases/${CASE}.yaml" > "$RUN"
+
+echo "case=$CASE ranks=$NTASKS threads=$OMP_NUM_THREADS"
+mpirun -np "$NTASKS" --bind-to core --map-by core "$BIN" "$RUN"

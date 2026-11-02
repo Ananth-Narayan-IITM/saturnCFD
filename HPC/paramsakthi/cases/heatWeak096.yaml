@@ -1,0 +1,51 @@
+# saturnHeat 3D scaling case: heatWeak096
+solver: saturnHeat
+
+units:
+  system: SI
+
+mesh:
+  type: box
+  nx: 96
+  ny: 96
+  nz: 96
+  box:
+    xmin: 0.0
+    xmax: 1.0
+    ymin: 0.0
+    ymax: 1.0
+    zmin: 0.0
+    zmax: 1.0
+
+time:
+  start: 0.0
+  end: 0.05
+  scheme: ssprk3
+  adaptive: false
+  cfl: 0.3
+  dtMax: 0.0005
+  maxSteps: 100000
+
+heat:
+  alpha: 0.01
+  velocityX: 1.0
+  velocityY: 0.5
+  velocityZ: 0.25
+  source: 0.0
+  periodic: true
+  initial: fourier
+  amplitude: 1.0
+  kx: 6.283185307179586
+  ky: 6.283185307179586
+  kz: 6.283185307179586
+
+numerics:
+  convection: muscl
+  limiter: vanLeer
+
+output:
+  prefix: results/heatWeak096
+  csv: false
+  json: true
+  exact: true
+  vtkEvery: 0

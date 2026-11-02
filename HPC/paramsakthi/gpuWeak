@@ -1,0 +1,35 @@
+#!/bin/bash
+#SBATCH --job-name=heatGpuWeak
+#SBATCH --partition=sgpu
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --gpus-per-task=1
+#SBATCH --cpus-per-task=4
+#SBATCH --time=04:00:00
+#SBATCH --output=logs/heatGpuWeak-%j.out
+
+set -euo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO="$(cd "$HERE/../.." && pwd)"
+source "$HERE/envGpu"
+
+CASE="${CASE:-heatWeak032}"
+BIN="${BIN:-$REPO/buildGPUHPC/saturnCFD}"
+NTASKS="${SLURM_NTASKS:-1}"
+GPUS_PER_NODE="${GPUS_PER_NODE:-1}"
+TAG="${CASE}-${SLURM_JOB_ID:-manual}"
+mkdir -p "$HERE/logs" "$HERE/results/gpu"
+RUN="$HERE/cases/run-${TAG}.yaml"
+sed "s|^  prefix: .*|  prefix: $HERE/results/gpu/${TAG}|" \
+  "$HERE/cases/${CASE}.yaml" > "$RUN"
+
+if [ -z "${CUDA_VISIBLE_DEVICES:-}" ]; then
+  export CUDA_VISIBLE_DEVICES="${SLURM_LOCALID:-0}"
+elif [[ "${CUDA_VISIBLE_DEVICES}" == *,* ]]; then
+  idx=$(( ${SLURM_LOCALID:-0} + 1 ))
+  export CUDA_VISIBLE_DEVICES="$(echo "$CUDA_VISIBLE_DEVICES" | cut -d, -f"$idx")"
+fi
+
+echo "case=$CASE ranks=$NTASKS gpu=$CUDA_VISIBLE_DEVICES"
+mpirun -np "$NTASKS" --map-by "ppr:${GPUS_PER_NODE}:node" --bind-to none \
+  "$BIN" "$RUN"

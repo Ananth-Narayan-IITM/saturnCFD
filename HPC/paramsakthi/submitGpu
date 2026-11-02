@@ -1,0 +1,57 @@
+#!/bin/bash
+# Submit the GPU Heat scaling runs. Each job waits for the previous one, so
+# timings are not disturbed by this campaign's other jobs. Run this from a
+# tmux/nohup session; the campaign can take a while.
+
+set -euo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$HERE"
+mkdir -p logs results
+
+waitForJob() {
+  local jid="$1"
+  if [ "${WAIT:-1}" = "0" ]; then
+    return 0
+  fi
+  while squeue -h -j "$jid" | grep -q .; do
+    sleep 20
+  done
+}
+
+runGpu() {
+  local gpus="$1" case="$2" name="$3"
+  local partition nodes pernode
+  if [ "$gpus" -eq 1 ]; then
+    partition=sgpu
+    nodes=1
+    pernode=1
+  else
+    partition=gpu
+    nodes=$((gpus / 2))
+    pernode=2
+  fi
+  local out jid
+  out=$(sbatch --parsable --partition="$partition" --nodes="$nodes" \
+    --ntasks="$gpus" --ntasks-per-node="$pernode" --cpus-per-task=4 \
+    --time=04:00:00 --job-name="$name" --exclusive \
+    --gpus-per-task=1 \
+    --export="ALL,CASE=${case},GPUS_PER_NODE=${pernode}" gpuStrong)
+  jid="${out%%;*}"
+  echo "submitted $name  gpus=$gpus  job=$jid"
+  waitForJob "$jid"
+}
+
+# one GPU: per-device and node-level comparison
+runGpu 1 heatStrong64 heatGpu1x64
+runGpu 1 heatStrong128 heatGpu1x128
+
+# multi-GPU strong scaling on 128^3
+runGpu 2 heatStrong128 heatGpu2x128
+runGpu 4 heatStrong128 heatGpu4x128
+runGpu 8 heatStrong128 heatGpu8x128
+
+# dense point
+runGpu 8 heatStrong256 heatGpu8x256
+
+echo "GPU campaign finished"
+echo "collect with: python3 collectResults.py"

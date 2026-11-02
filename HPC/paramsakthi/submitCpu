@@ -1,0 +1,34 @@
+#!/bin/bash
+# Submit the CPU Heat scaling chain. Jobs run one after another through Slurm
+# dependencies, so timings are not disturbed by this campaign's other jobs.
+
+set -euo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$HERE"
+mkdir -p logs results
+
+waitForJob() {
+  local jid="$1"
+  if [ "${WAIT:-1}" = "0" ]; then
+    return 0
+  fi
+  while squeue -h -j "$jid" | grep -q .; do
+    sleep 20
+  done
+}
+
+runJob() {
+  local script="$1" partition="$2" nodes="$3" ntasks="$4" cpus="$5"
+  local case="$6" name="$7" extra="${8:-}"
+  local out jid
+  out=$(sbatch --parsable --partition="$partition" --nodes="$nodes" \
+    --ntasks="$ntasks" --cpus-per-task="$cpus" --time=04:00:00 \
+    --job-name="$name" --exclusive \
+    --export="ALL,CASE=${case}" $extra "$script")
+  jid="${out%%;*}"
+  echo "submitted $name  job=$jid"
+  waitForJob "$jid"
+}
+
+echo "CPU campaign finished"
+echo "collect with: python3 collectResults.py"

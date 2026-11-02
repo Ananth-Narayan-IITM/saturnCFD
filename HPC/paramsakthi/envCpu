@@ -1,0 +1,22 @@
+#!/bin/bash
+# CPU environment for the Heat scaling campaign.
+# Source this file from the job/build scripts: source ./envCpu
+
+set -euo pipefail
+
+module purge
+module load compiler/gcc/12.4
+module load compiler/openmpi/5.0.6
+module load python/3.12 2>/dev/null || true
+
+export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
+export OMP_PROC_BIND="${OMP_PROC_BIND:-close}"
+export OMP_PLACES="${OMP_PLACES:-cores}"
+
+export KOKKOS_CPU_ROOT="${KOKKOS_CPU_ROOT:-$HOME/.local/kokkos-cpu-4.7.04}"
+export LD_LIBRARY_PATH="$KOKKOS_CPU_ROOT/lib64:$KOKKOS_CPU_ROOT/lib:${LD_LIBRARY_PATH:-}"
+
+export CC="$(command -v gcc)"
+export CXX="$(command -v g++)"
+export MPI_C_COMPILER="$(command -v mpicc)"
+export MPI_CXX_COMPILER="$(command -v mpicxx)"

@@ -1,0 +1,28 @@
+#!/bin/bash
+#SBATCH --job-name=heatCpuThreads
+#SBATCH --partition=small
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=48
+#SBATCH --time=04:00:00
+#SBATCH --output=logs/heatCpuThreads-%j.out
+
+set -euo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO="$(cd "$HERE/../.." && pwd)"
+source "$HERE/envCpu"
+
+CASE="${CASE:-heatStrong128}"
+BIN="${BIN:-$REPO/buildCPUHPC/saturnCFD}"
+THREADS="${SLURM_CPUS_PER_TASK:-48}"
+TAG="${CASE}-threads-${SLURM_JOB_ID:-manual}"
+mkdir -p "$HERE/logs" "$HERE/results/cpu"
+RUN="$HERE/cases/run-${TAG}.yaml"
+sed "s|^  prefix: .*|  prefix: $HERE/results/cpu/${TAG}|" \
+  "$HERE/cases/${CASE}.yaml" > "$RUN"
+
+export OMP_NUM_THREADS="$THREADS"
+export OMP_PROC_BIND=close
+export OMP_PLACES=cores
+echo "case=$CASE ranks=1 threads=$THREADS"
+"$BIN" -threads "$THREADS" "$RUN"
