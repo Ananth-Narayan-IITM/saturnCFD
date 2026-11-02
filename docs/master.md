@@ -494,6 +494,88 @@ limitation, not a hidden error.
 **Figure/demo:** compare the wall MMS error slice from the generated CSV, or
 show the order table and the `docs/validation/fieldsplit.md` solver comparison.
 
+### 6.6 Order of accuracy: the simple version
+
+**What “second order” means.** Halve the mesh spacing $h$:
+
+- first order: the error halves ($2\times$ smaller);
+- second order: the error quarters ($4\times$ smaller);
+- fourth order: the error drops by $16\times$.
+
+The order is the slope of the error-versus-$h$ line on a log-log plot. It is
+a property of the **scheme**, not of the PDE.
+
+**A second-order PDE does not force a second-order solver.** Stokes has second
+derivatives, but a second-order PDE can be discretised to first, second,
+fourth or spectral order. The current scheme uses central face
+gradients/divergences, a second-order pressure Laplacian and second-order wall
+ghosts, so its **design order is two**. MMS confirms that the code delivers
+the design order; a lower or non-monotone rate would indicate a bug.
+
+**First order versus second order.** A first-order scheme is robust and
+monotone but numerically diffusive: it needs many cells to resolve a smooth
+profile. A second-order scheme is the usual production baseline: much less
+diffusion at the same resolution, but it can oscillate near sharp gradients
+unless a limiter is used. The current solver uses second-order central/MUSCL
+operators and second-order wall closures; the observed order of two is the
+intended accuracy, not an accident.
+
+**Can the order be increased?** Yes, with a different discretisation:
+
+- compact or wide-stencil diffusion, higher-order reconstruction and face
+  quadrature;
+- higher-order wall ghost/one-sided closures;
+- staggered/MAC or LBB-stable pressure spaces;
+- higher-order pressure stabilisation/Rhie–Chow;
+- spectral/compact methods for smooth flows.
+
+Higher order is not free:
+
+- wider stencils mean more halo layers, MPI messages and memory;
+- conditioning worsens and boundary closures become more delicate;
+- robustness near sharp gradients or discontinuities decreases (limiters
+  reduce the order);
+- implementation and verification cost rises.
+
+For this project, second order is the robust baseline; third/fourth order is a
+research extension, not a switch.
+
+**Why the 3D pressure order looks low (~1).** Pressure is a Lagrange
+multiplier: it enforces div(u) = 0. Its error is sensitive to
+the divergence constraint and the wall pressure closure, not only to the
+momentum stencil.
+
+- 2D wall: pressure order 1.64 at $16^2\to32^2$, 1.88 at $32^2\to64^2$.
+- 3D wall: 1.02 at $8^3\to16^3$, 1.30 at $16^3\to24^3$, 1.53 at
+  $24^3\to32^3$.
+- The 3D rate is **rising with refinement**: it is pre-asymptotic, not a fixed
+  first-order method. The pressure error is a wall boundary layer, and the
+  affordable 3D meshes are coarse relative to it.
+- The velocity is clean second order (1.97), so the coupled formulation is
+  consistent. A gated 3D pressure order needs a finer sequence or a better
+  pressure wall closure.
+
+**What to say in one line:**
+
+- “The solver is second order by design; the PDE order does not set the solver
+  order.”
+- “Higher order is possible with compact/staggered schemes, but boundary
+  closures, conditioning and cost make it a research step.”
+- “The 3D pressure rate is pre-asymptotic: it rises from 1.0 to 1.5 as the
+  wall layer is resolved; 2D reaches 1.9.”
+
+**30-second version for the student.**
+
+- Halve the mesh: a second-order error should drop about $4\times$.
+- Our solver is built second order; the measured velocity orders are 1.96–2.03.
+- The 3D pressure error is a wall boundary-layer effect on coarse meshes: 2D
+  reaches 1.9, 3D rises from 1.0 to 1.5 as the mesh is refined.
+- Higher order is possible, but it is a different discretisation with real
+  boundary, conditioning and cost penalties.
+
+**Do not claim** that 3D pressure is second order on these meshes, or that the
+solver is limited by the PDE order.
+
 ---
 
 ## 7. What to show the professor
@@ -561,11 +643,18 @@ memory is 3.4x lower. At 3D 24³ fieldsplit is 56x faster and uses 9x less
 memory. The default is chosen for the memory scaling, not the smallest 2D
 case.
 
+**Can the order be increased beyond two?**
+Yes, with higher-order compact/wide-stencil operators, higher-order wall
+closures, or staggered/LBB-stable pressure spaces. It is a new discretisation,
+not a parameter: expect wider halos, worse conditioning, more delicate
+boundaries and higher cost. The current scheme is second order by design.
+
 **Why is the 3D wall MMS pressure order only ~1.5?**
-The velocity is 1.97 (second order). The pressure order is pre-asymptotic on
-the affordable 3D meshes: 1.30 at 16³->24³, 1.53 at 24³->32³; the 2D wall case
-is 1.64 and gated. Refining 3D is expensive with direct LU; fieldsplit makes
-the next step feasible.
+The velocity is 1.97 (second order). Pressure is a Lagrange multiplier and its
+error lives in the wall boundary layer. The 3D rate is pre-asymptotic:
+1.02 at 8³->16³, 1.30 at 16³->24³, 1.53 at 24³->32³; the 2D wall case reaches
+1.88. The rate is rising with refinement, not stuck at one. A gated 3D
+pressure order needs a finer sequence or a better pressure wall closure.
 
 **Why the 1e-6 gauges for fully periodic domains?**
 Fully periodic Stokes has a constant-pressure and a constant-velocity
