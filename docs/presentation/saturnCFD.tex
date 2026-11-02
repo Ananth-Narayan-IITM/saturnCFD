@@ -407,9 +407,9 @@ time:
 
   \begin{block}{Status}
     Poiseuille and Couette pass in 2D/3D; 2D runs on 1/2/4/8 ranks and 3D on
-    1/2/4. Fieldsplit (FGMRES + GAMG, 11--20 outer iterations in 2D) is the
-    default and matches direct to the linear-solve tolerance. MMS and
-    exit-boundary cases follow.
+    1/2/4. Fieldsplit (FGMRES + GAMG) is the default and matches direct to the
+    linear-solve tolerance. The periodic MMS is source-consistent and second
+    order in velocity (2.01 in 2D, 2.03 in 3D); the exit-boundary case follows.
   \end{block}
 \end{frame}
 

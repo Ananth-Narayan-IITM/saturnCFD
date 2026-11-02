@@ -175,7 +175,8 @@ CTest and ship independent `compareAnalytic.py` scripts.
 
 ## Stokes solver tests
 
-`testSaturnStokes` checks the coupled FV system under the `solver` label:
+`testSaturnStokes` checks the coupled FV system under the `solver` label,
+including fieldsplit-vs-direct and the periodic MMS order:
 
 - **Poiseuille 2D:** 16$^2$ and 32$^2$; $L^2$ 4.88e-4 -> 1.22e-4, second order.
 - **Couette 2D:** 24$^2$; linear profile to roundoff.

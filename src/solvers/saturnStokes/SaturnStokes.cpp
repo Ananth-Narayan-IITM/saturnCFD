@@ -527,6 +527,13 @@ void SaturnStokes::assemble() {
             add(i, py(j - 1), k, 3, -betaY);
             add(i, py(j + 1), k, 3, -betaY);
             diag += 2 * betaY;
+          } else if (bottom) {
+            // Neumann ghost p_ghost = p_j at the wall.
+            add(i, j + 1, k, 3, -betaY);
+            diag += betaY;
+          } else {
+            add(i, j - 1, k, 3, -betaY);
+            diag += betaY;
           }
           if (mDim == 3) {
             if (periodicZ || k > 0) {
@@ -539,6 +546,8 @@ void SaturnStokes::assemble() {
             }
           }
           add(i, j, k, 3, diag);
+          if (mOptions.continuitySource)
+            bv[k][j][i][3] += mOptions.continuitySource({xc, yc, zc});
           addMomentum(3, cols, vals);
         }
       }

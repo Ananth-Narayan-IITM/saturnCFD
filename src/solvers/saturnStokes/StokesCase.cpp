@@ -1,5 +1,6 @@
 #include "solvers/saturnStokes/StokesCase.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <utility>
 
@@ -8,46 +9,9 @@
 #include "mesh/MeshFactory.hpp"
 #include "simulation/Registry.hpp"
 #include "solvers/saturnStokes/SaturnStokes.hpp"
+#include "solvers/saturnStokes/StokesMms.hpp"
 
 namespace saturn {
-namespace {
-
-constexpr Real kPi = 3.14159265358979323846264338327950288;
-
-Vec3 mmsVelocity(const Vec3& x, int dim) {
-  const Real k = 2 * kPi;
-  const Real u = std::sin(k * x.x) * std::cos(k * x.y) *
-                 (dim == 3 ? std::cos(k * x.z) : Real(1));
-  const Real v = -std::cos(k * x.x) * std::sin(k * x.y) *
-                 (dim == 3 ? std::cos(k * x.z) : Real(1));
-  return {u, v, 0};
-}
-
-Real mmsPressure(const Vec3& x, int dim) {
-  const Real k = 2 * kPi;
-  return std::sin(k * x.x) * std::sin(k * x.y) *
-         (dim == 3 ? std::sin(k * x.z) : Real(1));
-}
-
-Vec3 mmsForce(const Vec3& x, int dim, Real mu) {
-  const Real k = 2 * kPi;
-  const Vec3 u = mmsVelocity(x, dim);
-  const Real lapFactor = (dim == 3) ? Real(3) : Real(2);
-  const Real k2 = k * k;
-  Vec3 f;
-  f.x =
-      lapFactor * mu * k2 * u.x + k * std::cos(k * x.x) * std::sin(k * x.y) *
-                                      (dim == 3 ? std::sin(k * x.z) : Real(1));
-  f.y =
-      lapFactor * mu * k2 * u.y + k * std::sin(k * x.x) * std::cos(k * x.y) *
-                                      (dim == 3 ? std::sin(k * x.z) : Real(1));
-  f.z = (dim == 3)
-            ? k * std::sin(k * x.x) * std::sin(k * x.y) * std::cos(k * x.z)
-            : Real(0);
-  return f;
-}
-
-}  // namespace
 
 ConfigSchema stokesSchema() {
   ConfigSchema s = commonSchema();
@@ -65,6 +29,8 @@ ConfigSchema stokesSchema() {
               Dimension::Velocity);
   s.addBool("stokes.periodicY", false,
             "periodic y boundaries (MMS only); otherwise walls");
+  s.addBool("stokes.mmsWall", false,
+            "MMS variant: wall-bounded (true) or fully periodic (false)");
   s.addEnum("stokes.linearSolver", "fieldsplit", {"direct", "fieldsplit"},
             "coupled PETSc linear solve: fieldsplit/Schur by default "
             "(O(N) memory), direct LU for validation or very high memory");
@@ -117,16 +83,38 @@ std::unique_ptr<Solver> makeSaturnStokes(const Config& cfg) {
     options.exactPressure = [](const Vec3&) { return Real(0); };
   } else if (test == "mms") {
     options.force = {0, 0, 0};
-    options.periodicY = true;
+    const MmsVariant variant = cfg.getBool("stokes.mmsWall", false)
+                                   ? MmsVariant::Wall
+                                   : MmsVariant::Periodic;
+    options.periodicY = (variant == MmsVariant::Periodic);
     const int dim = mesh.dimension;
-    options.bodyForce = [dim, mu = options.mu](const Vec3& x) {
-      return mmsForce(x, dim, mu);
+    const Real hx =
+        (mesh.bboxMax.x - mesh.bboxMin.x) / static_cast<Real>(mesh.nx);
+    const Real hy =
+        (mesh.bboxMax.y - mesh.bboxMin.y) / static_cast<Real>(mesh.ny);
+    const Real hz = (dim == 3) ? (mesh.bboxMax.z - mesh.bboxMin.z) /
+                                     static_cast<Real>(mesh.nz)
+                               : hy;
+    const Real hMin = std::min(hx, std::min(hy, hz));
+    const Real beta = options.stabilization * hMin * hMin / options.mu;
+    // The pressure reference row pins p = 0 at the first cell centre. Shift
+    // the manufactured pressure so that it is exactly zero there; a constant
+    // shift does not change grad(p) or lap(p), hence not f or g either.
+    const Vec3 pinPoint{mesh.bboxMin.x + Real(0.5) * hx,
+                        mesh.bboxMin.y + Real(0.5) * hy,
+                        (dim == 3 ? mesh.bboxMin.z + Real(0.5) * hz : Real(0))};
+    const Real pPin = mmsPressure(pinPoint, dim, variant);
+    options.bodyForce = [dim, variant, mu = options.mu](const Vec3& x) {
+      return mmsForce(x, dim, variant, mu);
     };
-    options.exactVelocity = [dim](const Vec3& x) {
-      return mmsVelocity(x, dim);
+    options.continuitySource = [dim, variant, beta](const Vec3& x) {
+      return -beta * mmsPressureLaplacian(x, dim, variant);
     };
-    options.exactPressure = [dim](const Vec3& x) {
-      return mmsPressure(x, dim);
+    options.exactVelocity = [dim, variant](const Vec3& x) {
+      return mmsVelocity(x, dim, variant);
+    };
+    options.exactPressure = [dim, variant, pPin](const Vec3& x) {
+      return mmsPressure(x, dim, variant) - pPin;
     };
   } else {
     throw ConfigError("unsupported stokes.case '" + test + "'");

@@ -68,8 +68,10 @@ src/solvers/saturnStokes/
 - `poiseuille` — body force `forceX = G`, exact
   $u=G/(2\mu)y(H-y)$;
 - `couette` — moving top wall `wallVelocityX = U`, exact $u=Uy/H$;
-- `mms` — periodic manufactured solution (the MMS source-consistent test is
-  still being finished).
+- `mms` — source-consistent manufactured solution. `stokes.mmsWall: false`
+  (default) is fully periodic; `true` selects a wall-bounded variant
+  (experimental: the velocity order is correct, the wall pressure order is
+  still being investigated).
 
 The core requires periodic `x` and `z`; `y` is either a wall pair or
 periodic (`stokes.periodicY` for MMS).
@@ -86,10 +88,28 @@ Output is CSV (`x,y,z,u,v,w,p,u_exact,v_exact,w_exact,p_exact,error`) and JSON
 `output.vtkEvery > 0`, one `.vtu` file contains all four cell arrays `u`, `v`,
 `w`, `p` for ParaView.
 
+## MMS
+
+The `mms` case supplies the momentum source
+`f = -mu lap(u_m) + grad(p_m)` and the continuity source
+`g = div(u_m) - beta lap(p_m)`. Both manufactured velocities are
+divergence-free, so `g = -beta lap(p_m)`. The pressure is shifted so the
+reference cell has `p = 0`; a fully periodic problem is still defined only up
+to a constant velocity, so the order test removes the mean velocity error.
+
+The fully periodic case is run with the direct solver; the fieldsplit pressure
+gauge is not yet configured for its nullspace. Measured periodic orders:
+
+| case | meshes | velocity order | pressure order |
+|---|---|---|---|
+| 2D | 16$^2$ -> 32$^2$ | 2.01 | 1.89 |
+| 3D | 8$^3$ -> 16$^3$ | 2.03 | 1.71 |
+
 ## Tests
 
 - `tests/TestSaturnStokes.cpp` — 2D Poiseuille order 2, 2D Couette exact,
-  3D Poiseuille, 3D Couette.
+  3D Poiseuille, 3D Couette, fieldsplit-vs-direct, periodic MMS order, and a
+  finite-difference check of the MMS sources.
 - `tests/CMakeLists.txt` — `stokes_np1/2/4` under the `solver` label.
 - Both 2D and 3D run on 1/2/4 ranks; 2D is also run on 8 ranks.
 

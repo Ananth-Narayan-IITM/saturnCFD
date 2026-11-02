@@ -39,6 +39,9 @@ struct StokesOptions {
   bool direct = true;
 
   std::function<Vec3(const Vec3&)> bodyForce;
+  /// Right-hand side of the stabilised continuity equation. Zero for the
+  /// physical cases; the MMS test supplies -beta lap(p_m).
+  std::function<Real(const Vec3&)> continuitySource;
   std::function<Vec3(const Vec3&)> exactVelocity;
   std::function<Real(const Vec3&)> exactPressure;
 };

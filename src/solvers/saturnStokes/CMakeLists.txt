@@ -1,6 +1,7 @@
 add_library(saturnStokes STATIC
   SaturnStokes.cpp
   StokesCase.cpp
+  StokesMms.cpp
 )
 add_library(saturn::Stokes ALIAS saturnStokes)
 

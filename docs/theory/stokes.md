@@ -155,15 +155,20 @@ finite-volume coupled saddle-point discretisation, not BEM.
 
 Both 2D and 3D cases pass on 1/2/4 ranks; 2D also passes on 8 ranks.
 
-## 8. Next steps
+## 8. MMS status
 
-1. Fix the 3D multi-rank DMDA velocity assembly (2D MPI is green).
-2. Tune the fieldsplit/Schur preconditioner so the direct LU is no longer
-   required for larger meshes.
-3. Add the MMS source-consistent continuity test and the exit-boundary cases.
-4. Rebuild the validation figures and presentation.
+The periodic manufactured solution is source-consistent and second order in
+velocity (2.01 in 2D, 2.03 in 3D); the measured pressure order is 1.89 and
+1.71. The wall-bounded variant is implemented but its wall pressure order is
+still being investigated.
 
-## 9. Observations
+## 9. Next steps
+
+1. Resolve the wall-bounded MMS pressure order.
+2. Add the exit-boundary case from an imported Gmsh `.msh` mesh.
+3. Rebuild the validation figures and presentation.
+
+## 10. Observations
 
 - The direct coupled LU solve converges in one iteration on the small
   validation meshes.
