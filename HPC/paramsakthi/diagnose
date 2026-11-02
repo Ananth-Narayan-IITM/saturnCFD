@@ -3,6 +3,10 @@
 set -u
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
+case "${1:-}" in
+  cpu) source "$HERE/envCpu" ;;
+  gpu) source "$HERE/envGpu" ;;
+esac
 
 echo "=== host ==="
 hostname
