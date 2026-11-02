@@ -159,8 +159,11 @@ Both 2D and 3D cases pass on 1/2/4 ranks; 2D also passes on 8 ranks.
 
 The periodic manufactured solution is source-consistent and second order in
 velocity (2.01 in 2D, 2.03 in 3D); the measured pressure order is 1.89 and
-1.71. The wall-bounded variant is implemented but its wall pressure order is
-still being investigated.
+1.71. The wall-bounded variant is now consistent: the top-wall one-sided divergence
+had a sign error, and after fixing it the 2D wall velocity order is 1.96 and
+the 2D wall pressure order 1.64 on 16²->32² (gated). The 3D wall velocity is
+1.97 and the pressure order rises from 1.30 (16³->24³) to 1.53
+(24³->32³), so the 3D wall case is measured but not gated.
 
 ## 9. Next steps
 

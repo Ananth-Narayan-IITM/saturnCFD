@@ -36,6 +36,11 @@ struct StokesOptions {
   Real wallBottomU = 0;
   Real wallTopU = 0;
   Real stabilization = 1.0;
+  /// Small diagonal gauges used only for a fully periodic domain, where both
+  /// the constant pressure and the constant velocity are nullspaces. They
+  /// leave wall-bounded cases (including p = 0) untouched.
+  Real pressureGauge = 1e-6;
+  Real velocityGauge = 1e-6;
   bool direct = true;
   /// Fieldsplit sub-solver choices. The defaults are the production
   /// configuration (GAMG/GAMG); the comparison example can select ILU and

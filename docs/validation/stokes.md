@@ -32,7 +32,7 @@ cases verify the formal order. The exit-boundary case is the bridge to the
 - Velocity block: GMRES + GAMG (production) or GMRES + ILU (serial-tuned); pressure block: preonly + GAMG or Jacobi.
 - Pressure nullspace for all-Neumann cases.
 - Tolerances: outer `rtol = 1e-12`, `atol = 1e-14`; velocity inner `rtol = 1e-10`; failure is an error.
-- The fully periodic case is direct-only until both nullspaces are attached.
+- Fully periodic cases use pressure and velocity gauges; both solvers are supported.
 
 ## 3. Error norms
 
@@ -111,11 +111,20 @@ $g = \nabla\cdot u_m - \beta\nabla^2 p_m$. Measured with direct LU:
 |---|---|---|---|
 | periodic 2D | $16^2 \to 32^2$ | 2.01 | 1.89 |
 | periodic 3D | $8^3 \to 16^3$ | 2.03 | 1.71 |
+| wall 2D | $16^2 \to 32^2$ | 1.96 | 1.64 |
+| wall 3D | $16^3 \to 24^3$ | 1.97 | 1.30 |
+| wall 3D | $24^3 \to 32^3$ | 1.96 | 1.53 |
+
+The wall 2D case is gated. The wall 3D pressure order is still rising with
+refinement (1.30 at 24³, 1.53 at 24³→32³), so the 3D wall case is measured but
+not gated. The top-wall continuity row previously had a sign error in the
+one-sided divergence; fixing it reduced the wall MMS pressure error by about
+an order of magnitude.
 
 A fully periodic Stokes problem has a constant-velocity nullspace; the order
-test removes the mean velocity error. The periodic MMS is run with the direct
-solver: the fieldsplit pressure gauge is not yet configured for the fully
-periodic nullspace. The pressure pin is shifted to match the
+test removes the mean velocity error. Fully periodic domains now use tiny
+pressure and velocity gauges (`1e-6`) so both the direct and fieldsplit paths
+are nonsingular; the fieldsplit periodic MMS is part of the regression suite. The pressure pin is shifted to match the
 manufactured pressure at the reference cell. The wall-bounded MMS variant is
 implemented and its sources pass a finite-difference check, but the wall
 pressure order is still under investigation, so it is not part of the gated
@@ -152,8 +161,8 @@ cli_checkConfig_example_stokes3d
 ```
 
 The `testSaturnStokes` binary covers Poiseuille and Couette in 2D/3D on
-1/2/4/8 ranks (2D) and 1/2/4 ranks (3D), and checks fieldsplit against
-direct. Each example writes `u`, `v`, `w`, `p`, the analytic comparison
+1/2/4/8 ranks (2D) and 1/2/4 ranks (3D), checks fieldsplit against direct,
+and runs periodic and 2D wall MMS order tests. Each example writes `u`, `v`, `w`, `p`, the analytic comparison
 and the PETSc iteration diagnostics. The CTest label is `solver`.
 
 ## 6. Reproduction

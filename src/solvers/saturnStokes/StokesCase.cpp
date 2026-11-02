@@ -132,12 +132,6 @@ std::unique_ptr<Solver> makeSaturnStokes(const Config& cfg) {
     throw ConfigError("unsupported stokes.case '" + test + "'");
   }
 
-  if (!options.direct && options.periodicY)
-    throw ConfigError(
-        "stokes.linearSolver: fieldsplit does not support a fully periodic "
-        "Stokes domain yet (constant pressure and velocity nullspaces); use "
-        "linearSolver: direct or keep y as a wall pair");
-
   return std::make_unique<SaturnStokes>(std::move(mesh), std::move(options));
 }
 

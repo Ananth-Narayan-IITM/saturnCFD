@@ -64,9 +64,8 @@ src/solvers/saturnStokes/
 - 2D cases use the 3D core with `nz = 1`; `w` is constrained to zero.
 - 2D runs on 1/2/4/8 ranks and 3D on 1/2/4 ranks; the 3D tests no longer skip
   multi-rank runs. A fieldsplit-vs-direct test guards the default solver.
-- A fully periodic domain is direct-only until the pressure and velocity
-  nullspaces are attached to the fieldsplit path; requesting fieldsplit there
-  raises a configuration error.
+- Fully periodic domains use small pressure and velocity gauges; both direct
+  and fieldsplit are supported.
 
 ## Cases
 
@@ -76,9 +75,9 @@ src/solvers/saturnStokes/
   $u=G/(2\mu)y(H-y)$;
 - `couette` — moving top wall `wallVelocityX = U`, exact $u=Uy/H$;
 - `mms` — source-consistent manufactured solution. `stokes.mmsWall: false`
-  (default) is fully periodic; `true` selects a wall-bounded variant
-  (experimental: the velocity order is correct, the wall pressure order is
-  still being investigated).
+  (default) is fully periodic; `true` selects a wall-bounded variant. The
+  wall variant is gated in 2D (velocity 1.96, pressure 1.64); the 3D wall
+  pressure order is measured (1.53 on 24³→32³) but not yet gated.
 
 The core requires periodic `x` and `z`; `y` is either a wall pair or
 periodic (`stokes.periodicY` for MMS).
@@ -104,13 +103,16 @@ divergence-free, so `g = -beta lap(p_m)`. The pressure is shifted so the
 reference cell has `p = 0`; a fully periodic problem is still defined only up
 to a constant velocity, so the order test removes the mean velocity error.
 
-The fully periodic case is run with the direct solver; the fieldsplit pressure
-gauge is not yet configured for its nullspace. Measured periodic orders:
+Fully periodic domains add tiny pressure and velocity gauges (`1e-6`) to
+remove both nullspaces; wall cases keep the pressure reference row, so `p = 0`
+is exact. Both solvers handle periodic cases. Measured orders:
 
 | case | meshes | velocity order | pressure order |
 |---|---|---|---|
-| 2D | 16$^2$ -> 32$^2$ | 2.01 | 1.89 |
-| 3D | 8$^3$ -> 16$^3$ | 2.03 | 1.71 |
+| periodic 2D | 16$^2$ -> 32$^2$ | 2.01 | 1.89 |
+| periodic 3D | 8$^3$ -> 16$^3$ | 2.03 | 1.71 |
+| wall 2D | 16$^2$ -> 32$^2$ | 1.96 | 1.64 |
+| wall 3D | 16$^3$ -> 24$^3$ | 1.97 | 1.30 |
 
 ## Tests
 

@@ -63,18 +63,18 @@ Two implementation details matter:
 ## Fully periodic domains
 
 A fully periodic Stokes problem has both a constant-pressure nullspace and a
-constant-velocity nullspace. The direct path fixes the pressure with a
-reference row (and the velocity mean is a free gauge); the fieldsplit path
-does not yet attach both nullspaces. Requesting `fieldsplit` with
-`periodicY: true` now raises a clear configuration error:
+constant-velocity nullspace. For **fully periodic domains only**, the assembly
+adds two tiny diagonal gauges:
 
-```text
-stokes.linearSolver: fieldsplit does not support a fully periodic Stokes
-domain yet (constant pressure and velocity nullspaces); use
-linearSolver: direct or keep y as a wall pair
-```
+- `pressureGauge = 1e-6` to every continuity row, which fixes the pressure
+  constant without removing a continuity equation;
+- `velocityGauge = 1e-6` to the velocity rows, which fixes the velocity mean.
 
-The periodic MMS therefore uses `direct`.
+Wall-bounded cases keep the pressure reference row and no velocity gauge, so
+`p = 0` remains exact there. The gauges perturb a fully periodic nonzero
+solution by about `1e-6`, which is far below the discretisation error. Both
+the direct and fieldsplit paths now solve fully periodic cases; the periodic
+MMS regression test covers fieldsplit on 1/2/4/8 ranks.
 
 ## Known-good sub-solver configurations
 
@@ -148,7 +148,7 @@ and its MPI children, sampled from `/proc`.
 
 ## Limitations
 
-- Fully periodic domains are direct-only until the pressure and velocity
-  nullspaces are attached to the fieldsplit path.
-- The wall-bounded MMS pressure order is still under investigation; the
-  periodic MMS is the gated order test.
+- The wall-bounded MMS is gated in 2D (velocity order 1.96, pressure order
+  1.64 on 16^2 -> 32^2). In 3D the velocity is second order (1.97 on
+  16^3 -> 24^3) and the pressure converges more slowly (1.53 on
+  24^3 -> 32^3), so it is a measured but not yet gated order.

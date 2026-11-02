@@ -199,9 +199,10 @@ preonly + GAMG on the pressure block. The velocity inner tolerance is `1e-10`
 and the outer tolerance is `1e-12`. This keeps memory `O(N)`, avoids local
 factorisations of the singular Neumann pressure block, and converges in 11–20
 outer iterations in 2D and 3–13 in 3D on 1/2/4/8 ranks. It is the schema
-default; `direct` remains the validation reference. A fully periodic domain is
-direct-only until both the constant-pressure and constant-velocity nullspaces
-are attached to the fieldsplit path.
+default; `direct` remains the validation reference. Fully periodic domains
+use small diagonal pressure and velocity gauges (1e-6) to remove the two
+nullspaces; wall-bounded cases keep the pressure reference row and are not
+perturbed.
 
 ## 5. Navier–Stokes extension
 

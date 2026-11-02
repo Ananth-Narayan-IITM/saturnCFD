@@ -273,6 +273,12 @@ void SaturnStokes::assemble() {
   const bool periodicX = mOptions.periodicX && mNx > 1;
   const bool periodicY = mOptions.periodicY && mNy > 1;
   const bool periodicZ = (mDim == 3) && mOptions.periodicZ && mNz > 1;
+  // A fully periodic domain has both a constant-pressure and a
+  // constant-velocity nullspace. Tiny diagonal gauges remove both without
+  // touching wall-bounded cases.
+  const bool fullyPeriodic = periodicX && periodicY && (mDim == 2 || periodicZ);
+  const Real velGauge = fullyPeriodic ? mOptions.velocityGauge : Real(0);
+  const Real presGauge = fullyPeriodic ? mOptions.pressureGauge : Real(0);
 
   // MatSetValuesStencil applies the DMDA periodic wrap itself, so keep the
   // logical neighbour index unwrapped (i-1 and i+1 may fall outside [0,M)).
@@ -359,6 +365,7 @@ void SaturnStokes::assemble() {
             add(px(i - 1), j, k, 3, -Real(0.5) / mHx);
           if (periodicX || i + 1 < mNx)
             add(px(i + 1), j, k, 3, Real(0.5) / mHx);
+          diag += velGauge;
           add(i, j, k, 0, diag);
           bv[k][j][i][0] += f.x;
           addMomentum(0, cols, vals);
@@ -419,6 +426,7 @@ void SaturnStokes::assemble() {
             add(i, py(j - 1), k, 3, -Real(0.5) / mHy);
             add(i, py(j + 1), k, 3, Real(0.5) / mHy);
           }
+          diag += velGauge;
           add(i, j, k, 1, diag);
           bv[k][j][i][1] += f.y;
           addMomentum(1, cols, vals);
@@ -471,6 +479,7 @@ void SaturnStokes::assemble() {
             add(i, j, pz(k - 1), 3, -Real(0.5) / mHz);
           if (periodicZ || k + 1 < mNz)
             add(i, j, pz(k + 1), 3, Real(0.5) / mHz);
+          diag += velGauge;
           add(i, j, k, 2, diag);
           bv[k][j][i][2] += f.z;
           addMomentum(2, cols, vals);
@@ -483,7 +492,7 @@ void SaturnStokes::assemble() {
         }
 
         // ---------------- continuity ----------------
-        if (i == 0 && j == 0 && k == 0) {
+        if (!fullyPeriodic && i == 0 && j == 0 && k == 0) {
           std::vector<MatStencil> cols{stencil(i, j, k, 3)};
           std::vector<PetscScalar> vals{1.0};
           addMomentum(3, cols, vals);
@@ -502,8 +511,10 @@ void SaturnStokes::assemble() {
             add(i, j, k, 1, Real(0.5) / mHy);
             add(i, j + 1, k, 1, Real(0.5) / mHy);
           } else if (top) {
-            add(i, j - 1, k, 1, Real(0.5) / mHy);
-            add(i, j, k, 1, Real(0.5) / mHy);
+            // Ghost v_ghost = -v_j at the no-slip wall, so the one-sided
+            // divergence at the top cell is -(v_{j-1} + v_j) / (2 h).
+            add(i, j - 1, k, 1, -Real(0.5) / mHy);
+            add(i, j, k, 1, -Real(0.5) / mHy);
           } else {
             add(i, py(j - 1), k, 1, -Real(0.5) / mHy);
             add(i, py(j + 1), k, 1, Real(0.5) / mHy);
@@ -549,6 +560,7 @@ void SaturnStokes::assemble() {
               diag += betaZ;
             }
           }
+          diag += presGauge;
           add(i, j, k, 3, diag);
           if (mOptions.continuitySource)
             bv[k][j][i][3] += mOptions.continuitySource({xc, yc, zc});

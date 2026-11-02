@@ -273,3 +273,38 @@ TEST_CASE("saturnStokes: MMS sources satisfy the PDE by finite differences") {
     }
   }
 }
+
+TEST_CASE("saturnStokes: wall MMS is second order in 2D") {
+  const VectorError e16 = solve(mms(16, 16, 1, MmsVariant::Wall));
+  const VectorError e32 = solve(mms(32, 32, 1, MmsVariant::Wall));
+  const Real orderU = std::log2(e16.l2 / e32.l2);
+  const Real orderP = std::log2(e16.pL2 / e32.pL2);
+  MESSAGE("Stokes wall MMS 2D: L2 " << e16.l2 << " " << e32.l2 << " order "
+                                    << orderU << " pL2 order " << orderP);
+  CHECK(orderU > 1.8);
+  CHECK(orderP > 1.5);
+  // Absolute bounds catch the top-wall sign error even when the coarse pair
+  // happens to look superconvergent.
+  CHECK(e16.l2 < 0.1);
+  CHECK(e32.l2 < 0.02);
+  CHECK(e16.pL2 < 0.3);
+  CHECK(e32.pL2 < 0.06);
+}
+
+TEST_CASE("saturnStokes: periodic MMS fieldsplit matches direct") {
+  StokesCase f2 = mms(16, 16, 1, MmsVariant::Periodic);
+  f2.options.direct = false;
+  const VectorError e2 = solvePeriodic(std::move(f2));
+  MESSAGE("Stokes periodic MMS 2D fieldsplit L2: " << e2.l2 << " pL2 "
+                                                   << e2.pL2);
+  CHECK(e2.l2 < 0.02);
+  CHECK(e2.pL2 < 0.02);
+
+  StokesCase f3 = mms(8, 8, 8, MmsVariant::Periodic);
+  f3.options.direct = false;
+  const VectorError e3 = solvePeriodic(std::move(f3));
+  MESSAGE("Stokes periodic MMS 3D fieldsplit L2: " << e3.l2 << " pL2 "
+                                                   << e3.pL2);
+  CHECK(e3.l2 < 0.05);
+  CHECK(e3.pL2 < 0.05);
+}
