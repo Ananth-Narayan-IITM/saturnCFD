@@ -2,110 +2,43 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="174.74994mm"
-   height="123.12848mm"
-   viewBox="0 0 174.74994 123.12848"
+   width="80.783936mm"
+   height="71.019463mm"
+   viewBox="0 0 80.783934 71.019463"
    version="1.1"
    id="svg1"
-   inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
-   sodipodi:docname="saturnCFD.svg"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg">
-  <sodipodi:namedview
-     id="namedview1"
-     pagecolor="#ffffff"
-     bordercolor="#000000"
-     borderopacity="0.25"
-     inkscape:showpageshadow="2"
-     inkscape:pageopacity="0.0"
-     inkscape:pagecheckerboard="0"
-     inkscape:deskcolor="#d1d1d1"
-     inkscape:document-units="mm"
-     inkscape:zoom="1.0116647"
-     inkscape:cx="468.5347"
-     inkscape:cy="298.02366"
-     inkscape:window-width="1920"
-     inkscape:window-height="1011"
-     inkscape:window-x="0"
-     inkscape:window-y="32"
-     inkscape:window-maximized="1"
-     inkscape:current-layer="layer1"
-     showguides="true" />
   <defs
      id="defs1" />
   <g
-     inkscape:label="Layer 1"
-     inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(-1.8809919)">
-    <rect
-       style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.763844"
-       id="rect10"
-       width="85.207802"
-       height="72.053757"
-       x="91.423134"
-       y="6.2172489e-15"
-       inkscape:export-filename="rect10.png"
-       inkscape:export-xdpi="96"
-       inkscape:export-ydpi="96" />
-    <rect
-       style="fill:#00ff40;fill-opacity:1;stroke:none;stroke-width:0.864955"
-       id="rect3"
-       width="37.536678"
-       height="33.484425"
-       x="1.8809919"
-       y="89.644058" />
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22.5778px;font-family:'Latin Modern Mono';-inkscape-font-specification:'Latin Modern Mono';writing-mode:lr-tb;direction:ltr;fill:#00ff40;fill-opacity:1;stroke:none;stroke-width:1.5"
-       x="23.116438"
-       y="116.22945"
-       id="text5"><tspan
-         sodipodi:role="line"
-         id="tspan5"
-         style="stroke-width:1.5"
-         x="23.116438"
-         y="116.22945"></tspan></text>
-    <rect
-       style="fill:#ec5b2b;fill-opacity:1;stroke:none;stroke-width:0.86495"
-       id="rect5"
-       width="37.536999"
-       height="33.484001"
-       x="93.515869"
-       y="89.644272" />
+     transform="translate(-2.1166666,-1.0342903)">
     <g
-       id="g11"
-       transform="translate(-5.5909514,-6.6575342)"
-       inkscape:export-filename="saturnCFD.pdf"
-       inkscape:export-xdpi="96"
-       inkscape:export-ydpi="96">
+       id="g11">
       <text
          xml:space="preserve"
          style="font-size:71.3127px;writing-mode:lr-tb;direction:ltr;fill:#bf3f12;fill-opacity:1;stroke:#000000;stroke-width:4.7378"
-         x="19.543896"
-         y="59.783524"
+         x="13.952945"
+         y="53.125988"
          id="text1"><tspan
-           sodipodi:role="line"
            id="tspan1"
            style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'JetBrainsMono Nerd Font Mono';-inkscape-font-specification:'JetBrainsMono Nerd Font Mono';fill:#bf3f12;fill-opacity:1;stroke:none;stroke-width:4.7378"
-           x="19.543896"
-           y="59.783524">♄</tspan></text>
+           x="13.952945"
+           y="53.125988">♄</tspan></text>
       <text
          xml:space="preserve"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.4565px;font-family:'JetBrainsMono Nerd Font Mono';-inkscape-font-specification:'JetBrainsMono Nerd Font Mono';writing-mode:lr-tb;direction:ltr;fill:#00b32d;fill-opacity:1;stroke:none;stroke-width:0.694697"
-         x="6.8188252"
-         y="76.833687"
+         x="1.2278738"
+         y="70.176155"
          id="text2"><tspan
-           sodipodi:role="line"
            id="tspan2"
            style="fill:#00b32d;fill-opacity:1;stroke-width:0.694697"
-           x="6.8188252"
-           y="76.833687">&gt;</tspan></text>
+           x="1.2278738"
+           y="70.176155">&gt;</tspan></text>
       <g
          id="g6"
-         transform="translate(-35.845942,-26.117173)"
+         transform="translate(-41.436893,-32.774707)"
          style="fill:#bf3f12;fill-opacity:1">
         <text
            xml:space="preserve"
@@ -113,7 +46,6 @@
            x="49.095531"
            y="104.1891"
            id="text3"><tspan
-             sodipodi:role="line"
              id="tspan3"
              style="fill:#bf3f12;fill-opacity:1;stroke-width:0.943985"
              x="49.095531"
@@ -122,80 +54,13 @@
       <text
          xml:space="preserve"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.2087px;font-family:'JetBrainsMono Nerd Font Mono';-inkscape-font-specification:'JetBrainsMono Nerd Font Mono';writing-mode:lr-tb;direction:ltr;fill:#00b32d;fill-opacity:1;stroke:none;stroke-width:0.943985"
-         x="64.166237"
-         y="78.569229"
+         x="58.575287"
+         y="71.911697"
          id="text6"><tspan
-           sodipodi:role="line"
            id="tspan6"
            style="fill:#00b32d;fill-opacity:1;stroke-width:0.943985"
-           x="64.166237"
-           y="78.569229">CFD</tspan></text>
+           x="58.575287"
+           y="71.911697">CFD</tspan></text>
     </g>
-    <rect
-       style="fill:#00b32d;fill-opacity:1;stroke:none;stroke-width:0.864953"
-       id="rect7"
-       width="37.536999"
-       height="33.484001"
-       x="47.698269"
-       y="89.644272" />
-    <g
-       id="g12"
-       transform="translate(-26.630137,-66.362994)">
-      <text
-         xml:space="preserve"
-         style="font-size:71.3127px;writing-mode:lr-tb;direction:ltr;fill:#ec5b2b;fill-opacity:1;stroke:#000000;stroke-width:4.7378"
-         x="132.14038"
-         y="119.48899"
-         id="text7"><tspan
-           sodipodi:role="line"
-           id="tspan7"
-           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'JetBrainsMono Nerd Font Mono';-inkscape-font-specification:'JetBrainsMono Nerd Font Mono';fill:#ec5b2b;fill-opacity:1;stroke:none;stroke-width:4.7378"
-           x="132.14038"
-           y="119.48899">♄</tspan></text>
-      <text
-         xml:space="preserve"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.4565px;font-family:'JetBrainsMono Nerd Font Mono';-inkscape-font-specification:'JetBrainsMono Nerd Font Mono';writing-mode:lr-tb;direction:ltr;fill:#00ff40;fill-opacity:1;stroke:none;stroke-width:0.694697"
-         x="119.41531"
-         y="136.53914"
-         id="text8"><tspan
-           sodipodi:role="line"
-           id="tspan8"
-           style="fill:#00ff40;fill-opacity:1;stroke-width:0.694697"
-           x="119.41531"
-           y="136.53914">&gt;</tspan></text>
-      <g
-         id="g9"
-         transform="translate(76.750543,33.588284)">
-        <text
-           xml:space="preserve"
-           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.2087px;font-family:'JetBrainsMono Nerd Font Mono';-inkscape-font-specification:'JetBrainsMono Nerd Font Mono';writing-mode:lr-tb;direction:ltr;fill:#ec5b2b;fill-opacity:1;stroke:none;stroke-width:0.943985"
-           x="49.095531"
-           y="104.1891"
-           id="text9"><tspan
-             sodipodi:role="line"
-             id="tspan9"
-             style="fill:#ec5b2b;fill-opacity:1;stroke-width:0.943985"
-             x="49.095531"
-             y="104.1891">saturn</tspan></text>
-      </g>
-      <text
-         xml:space="preserve"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.2087px;font-family:'JetBrainsMono Nerd Font Mono';-inkscape-font-specification:'JetBrainsMono Nerd Font Mono';writing-mode:lr-tb;direction:ltr;fill:#00ff40;fill-opacity:1;stroke:none;stroke-width:0.943985"
-         x="176.76273"
-         y="138.27469"
-         id="text10"><tspan
-           sodipodi:role="line"
-           id="tspan10"
-           style="fill:#00ff40;fill-opacity:1;stroke-width:0.943985"
-           x="176.76273"
-           y="138.27469">CFD</tspan></text>
-    </g>
-    <rect
-       style="fill:#bf3f12;fill-opacity:1;stroke:none;stroke-width:0.86495"
-       id="rect11"
-       width="37.536999"
-       height="33.484001"
-       x="139.33347"
-       y="89.644272" />
   </g>
 </svg>
