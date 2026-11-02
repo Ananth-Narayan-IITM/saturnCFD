@@ -5,14 +5,23 @@
 set -euo pipefail
 
 module purge
+# GCC supplies a C++20 host compiler; nvhpc supplies CUDA and HPC-X.
+module load compiler/gcc/12.4
 module load nvhpc-24.5/nvhpc-hpcx-cuda12/24.5
 module load python/3.12 2>/dev/null || true
+
+if [ -n "${CONDA_PREFIX:-}" ] && [ -x "$CONDA_PREFIX/bin/cmake" ]; then
+  export PATH="$CONDA_PREFIX/bin:$PATH"
+fi
 
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
 export KOKKOS_CUDA_ROOT="${KOKKOS_CUDA_ROOT:-$HOME/.local/kokkos-cuda-4.7.04}"
 export LD_LIBRARY_PATH="$KOKKOS_CUDA_ROOT/lib64:$KOKKOS_CUDA_ROOT/lib:${LD_LIBRARY_PATH:-}"
 
-export CC="$(command -v nvc)"
-export CXX="$(command -v nvc++)"
+# nvcc_wrapper uses g++ by default; make the choice explicit. GCC 8.5 cannot
+# provide the C++20 support the project needs.
+export CC="$(command -v gcc)"
+export CXX="$(command -v g++)"
+export NVCC_WRAPPER_DEFAULT_COMPILER="$CXX"
 export MPI_C_COMPILER="$(command -v mpicc)"
 export MPI_CXX_COMPILER="$(command -v mpicxx)"

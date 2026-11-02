@@ -37,6 +37,26 @@ work package. This campaign answers:
 - how well does the Heat solver scale on 1, 2, 4 and 8 A100s;
 - how well does it scale on 1–8 CPU nodes.
 
+## File roles
+
+| file | role |
+|---|---|
+| `envCpu` | loads GCC 12.4 + OpenMPI 5.0.6 + Python, sets the CPU Kokkos path and compilers |
+| `envGpu` | loads GCC 12.4 + nvhpc/CUDA 12 + HPC-X, sets the CUDA Kokkos path and `nvcc_wrapper` host compiler |
+| `cpuBuild` | builds a local Kokkos OpenMP install if needed, then builds `buildCPUHPC/saturnCFD` |
+| `gpuBuild` | builds a local Kokkos CUDA (SM80) install if needed, then builds `buildGPUHPC/saturnCFD` |
+| `generateCases.py` | writes the Heat YAML cases into `cases/` |
+| `cpuStrong` | Slurm job: one CPU strong-scaling point (`mpirun -np $SLURM_NTASKS`) |
+| `cpuWeak` | Slurm job: one CPU weak-scaling point |
+| `cpuThreads` | Slurm job: one rank with 48 OpenMP threads |
+| `gpuStrong` | Slurm job: one GPU strong-scaling point, one rank per GPU |
+| `gpuWeak` | Slurm job: one GPU weak-scaling point |
+| `submitCpu` | submits the CPU series one job at a time and waits |
+| `submitGpu` | submits the GPU series one job at a time and waits |
+| `collectResults.py` | merges the JSON runs into `results/scaling.csv` |
+| `plotScaling.py` | draws speedup, efficiency, time/step and accuracy figures |
+| `diagnose` | prints modules, tool versions, binaries, Kokkos, Slurm and recent logs |
+
 ## First checks on the login node
 
 ```bash

@@ -20,6 +20,13 @@ command -v cmake >/dev/null || {
   echo "       on the login node: python3 -m pip install --user 'cmake>=3.24'"
   exit 1
 }
+cmake_version="$(cmake --version | awk 'NR==1{print $3}')"
+if [ "$(printf '%s\n' 3.24 "$cmake_version" | sort -V | head -n1)" != "3.24" ]; then
+  echo "error: cmake $cmake_version is too old; the project needs >= 3.24."
+  echo "       which cmake: $(command -v cmake)"
+  echo "       install a newer one, e.g. python3 -m pip install --user 'cmake>=3.24'"
+  exit 1
+fi
 command -v nvcc >/dev/null || {
   echo "error: nvcc not found after loading the nvhpc module"
   exit 1
@@ -50,6 +57,7 @@ if ! kokkos_config; then
     -DCMAKE_INSTALL_PREFIX="$KOKKOS_CUDA_ROOT" \
     -DCMAKE_CXX_COMPILER="$KOKKOS_SRC/bin/nvcc_wrapper" \
     -DCMAKE_CXX_STANDARD=20 \
+    -DCMAKE_CXX_EXTENSIONS=OFF \
     -DKokkos_ENABLE_CUDA=ON \
     -DKokkos_ENABLE_CUDA_LAMBDA=ON \
     -DKokkos_ENABLE_OPENMP=OFF \
@@ -71,6 +79,7 @@ cmake -S "$REPO" -B "$BUILD_GPU" \
   -DCMAKE_TOOLCHAIN_FILE="$REPO/cmake/toolchains/cuda-kokkos.cmake" \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_CXX_STANDARD=20 \
+    -DCMAKE_CXX_EXTENSIONS=OFF \
   -DMPI_C_COMPILER="$MPI_C_COMPILER" \
   -DMPI_CXX_COMPILER="$MPI_CXX_COMPILER" \
   -DSATURN_ENABLE_MPI=ON \

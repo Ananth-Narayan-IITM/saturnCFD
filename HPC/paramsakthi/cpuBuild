@@ -20,6 +20,13 @@ command -v cmake >/dev/null || {
   echo "       on the login node: python3 -m pip install --user 'cmake>=3.24'"
   exit 1
 }
+cmake_version="$(cmake --version | awk 'NR==1{print $3}')"
+if [ "$(printf '%s\n' 3.24 "$cmake_version" | sort -V | head -n1)" != "3.24" ]; then
+  echo "error: cmake $cmake_version is too old; the project needs >= 3.24."
+  echo "       which cmake: $(command -v cmake)"
+  echo "       install a newer one, e.g. python3 -m pip install --user 'cmake>=3.24'"
+  exit 1
+fi
 command -v git >/dev/null || {
   echo "error: git not found; it is needed to fetch Kokkos/yaml-cpp/doctest"
   exit 1
@@ -45,6 +52,7 @@ if ! kokkos_config; then
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX="$KOKKOS_CPU_ROOT" \
     -DCMAKE_CXX_STANDARD=20 \
+    -DCMAKE_CXX_EXTENSIONS=OFF \
     -DKokkos_ENABLE_OPENMP=ON \
     -DKokkos_ENABLE_SERIAL=ON \
     -DKokkos_ARCH_NATIVE=ON \
@@ -60,6 +68,7 @@ cmake -S "$REPO" -B "$BUILD_CPU" \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_C_STANDARD=11 \
   -DCMAKE_CXX_STANDARD=20 \
+    -DCMAKE_CXX_EXTENSIONS=OFF \
   -DCMAKE_C_COMPILER="$CC" \
   -DCMAKE_CXX_COMPILER="$CXX" \
   -DMPI_C_COMPILER="$MPI_C_COMPILER" \

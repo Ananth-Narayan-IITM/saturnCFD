@@ -18,6 +18,16 @@ BIN="${BIN:-$REPO/buildGPUHPC/saturnCFD}"
 NTASKS="${SLURM_NTASKS:-1}"
 GPUS_PER_NODE="${GPUS_PER_NODE:-1}"
 TAG="${CASE}-${SLURM_JOB_ID:-manual}"
+[ -x "$BIN" ] || {
+  echo "error: missing binary $BIN"
+  echo "       run ./cpuBuild (CPU) or ./gpuBuild (GPU) first"
+  exit 1
+}
+[ -f "$HERE/cases/${CASE}.yaml" ] || {
+  echo "error: missing case $HERE/cases/${CASE}.yaml"
+  echo "       run python3 generateCases.py first"
+  exit 1
+}
 mkdir -p "$HERE/logs" "$HERE/results/gpu"
 RUN="$HERE/cases/run-${TAG}.yaml"
 sed "s|^  prefix: .*|  prefix: $HERE/results/gpu/${TAG}|" \

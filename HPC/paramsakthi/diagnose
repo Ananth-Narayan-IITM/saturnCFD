@@ -1,0 +1,48 @@
+#!/bin/bash
+# Print the information needed to debug a build or Slurm run.
+set -u
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO="$(cd "$HERE/../.." && pwd)"
+
+echo "=== host ==="
+hostname
+date
+
+echo
+echo "=== modules ==="
+module list 2>&1 || true
+
+echo
+echo "=== tools ==="
+for tool in cmake nvcc mpicxx gcc g++; do
+  if command -v "$tool" >/dev/null 2>&1; then
+    echo "--- $tool: $(command -v "$tool")"
+    "$tool" --version 2>&1 | head -n 2
+  else
+    echo "--- $tool: missing"
+  fi
+done
+echo "CONDA_PREFIX=${CONDA_PREFIX:-unset}"
+
+echo
+echo "=== binaries ==="
+ls -l "$REPO/buildCPUHPC/saturnCFD" "$REPO/buildGPUHPC/saturnCFD" 2>&1
+
+echo
+echo "=== Kokkos ==="
+ls -d "$HOME/.local/kokkos-cpu-4.7.04" "$HOME/.local/kokkos-cuda-4.7.04" 2>&1
+find "$HOME/.local" -name KokkosConfig.cmake 2>/dev/null | head
+
+echo
+echo "=== Slurm ==="
+squeue -u "$USER" 2>&1 || true
+sacct -X --starttime today --format=JobID,JobName,State,ExitCode,Elapsed \
+  -u "$USER" 2>&1 | head -40 || true
+
+echo
+echo "=== recent logs ==="
+ls -lt "$HERE/logs" 2>/dev/null | head -10
+for f in $(ls -t "$HERE/logs"/*.out 2>/dev/null | head -3); do
+  echo "--- $f"
+  tail -40 "$f"
+done

@@ -6,6 +6,12 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$HERE"
 mkdir -p logs results
+BIN="${BIN:-$HERE/../buildCPUHPC/saturnCFD}"
+if [ ! -x "$BIN" ]; then
+  echo "error: missing binary $BIN"
+  echo "       run ./cpuBuild or ./gpuBuild first"
+  exit 1
+fi
 
 waitForJob() {
   local jid="$1"
@@ -26,8 +32,22 @@ runJob() {
     --job-name="$name" --exclusive \
     --export="ALL,CASE=${case}" $extra "$script")
   jid="${out%%;*}"
+  if [[ ! "$jid" =~ ^[0-9]+$ ]]; then
+    echo "error: sbatch failed for $name: $out"
+    exit 1
+  fi
   echo "submitted $name  job=$jid"
   waitForJob "$jid"
+  state="$(sacct -j "$jid" --format=State -n 2>/dev/null | head -n1 | tr -d ' ')"
+  if [ -n "$state" ]; then
+    echo "  state=$state"
+    case "$state" in
+      FAILED*|CANCELLED*|TIMEOUT*|NODE_FAIL*)
+        echo "error: $name failed; inspect logs/${script}-${jid}.out"
+        exit 1
+        ;;
+    esac
+  fi
 }
 
 echo "CPU campaign finished"

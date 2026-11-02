@@ -7,6 +7,12 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$HERE"
 mkdir -p logs results
+BIN="${BIN:-$HERE/../buildGPUHPC/saturnCFD}"
+if [ ! -x "$BIN" ]; then
+  echo "error: missing binary $BIN"
+  echo "       run ./cpuBuild or ./gpuBuild first"
+  exit 1
+fi
 
 waitForJob() {
   local jid="$1"
