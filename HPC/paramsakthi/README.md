@@ -27,6 +27,7 @@ One backend, one stage:
 ./tests/runScaling cpu --stage strong
 ./tests/runScaling gpu --stage weak
 ./tests/runScaling --plot-only    # re-plot without resubmitting
+./tests/runScaling --weak-n 64    # weak series with 64^3 per rank
 ```
 
 ## Cluster facts
@@ -115,8 +116,10 @@ Results go to `tests/scaling/strong` and `tests/scaling/weak`.
 | weak | CPU | 32³/rank at 1, 8, 27, 64 ranks (32³, 64³, 96³, 128³) |
 | weak | GPU | 32³/GPU at 1 and 8 A100 (32³, 64³) |
 
-Strong cases run 100 adaptive steps (`end 0.1`, `dtMax 1e-3`); weak cases run
-100 fixed steps (`dt 5e-4`). The GPU weak series has only 1 and 8 GPUs because
+Strong cases run 100 adaptive steps (`end 0.1`, `dtMax 1e-3`; the controller
+takes 197 steps on 128³ because the CFL bound is below `dtMax`). Weak cases run
+100 fixed steps (`dt 5e-4`) with `--weak-n` cells per rank edge (default 32;
+use 64 on a machine with tens of cores, where 32³ per rank is too small). The GPU weak series has only 1 and 8 GPUs because
 only those give an integer cube with 32³ cells per GPU.
 
 Expected wall time for the full CPU chain is about 45 minutes, dominated by
@@ -150,6 +153,14 @@ scaling curve on that machine — but the CPU curve up to the core count and the
 
 `--dry-run` prints the exact commands without running them, so the capping can
 be checked before a long run.
+
+## First campaign (CPU, PARAM Shakthi)
+
+The measured strong/weak tables, the figures, the CSV and the interpretation
+are in [`docs/validation/scaling.md`](../../docs/validation/scaling.md). Short
+version: one node gives 24.3× on 48 cores (51%); beyond one node the run gets
+slower, because each rank holds only 5,461 cells at 384 ranks and the compute
+nodes cannot load a compatible UCX, so the MPI transport dominates.
 
 ## Outputs
 

@@ -588,6 +588,7 @@ solver is limited by the PDE order.
 | Fieldsplit matches direct | solution diff, time, memory | `examples/saturnStokes/results/{2d,3d}/figures/*_solvers.png` |
 | MMS is second order | order tables | `docs/validation/stokes.md`, this page |
 | Mesh/config is checked | `-checkMesh`/`-checkConfig` logs | run the commands live |
+| CPU scaling, single node | speedup/efficiency figures | `docs/validation/scaling/strong/*.png` |
 
 Regenerate the example plots:
 
@@ -687,6 +688,24 @@ The GPU numbers are re-measured by the campaign.
 - On the GPU axis `n` is GPUs, on the CPU axis `n` is ranks; say which.
 - One CPU core and one A100 are not comparable units of **cost**. Report the
   ratio with its units (“one core vs one accelerator”), not as a price claim.
+
+### 8.8 Measured on PARAM Shakthi (CPU only)
+
+| point | result |
+|---|---|
+| 128³, 48 ranks (one node) | **24.3× on 48 cores, 51% efficiency** |
+| 128³, 1 rank × 48 threads | 0.208 s/step, 1.23× faster than 48 ranks |
+| 128³, 96 / 192 / 384 ranks | 23.6× / 16.5× / 9.0× — worse beyond one node |
+| 256³, 192 ranks (4 nodes) | 1.014 s/step, the best dense point |
+| weak, 32³ per rank | 60% at 8 ranks, 39% at 27, 19% at 64 |
+
+The single-node number is the honest CPU claim. The collapse beyond one node
+has two causes: at 384 ranks each rank owns only 5,461 cells, and every job log
+shows `UCP API version is incompatible: required >= 1.17, actual 1.16.0`, so
+OpenMPI cannot use UCX and inter-node messages take far longer than the halo
+exchange expects. Full tables, figures and the raw CSV are in
+[`docs/validation/scaling.md`](validation/scaling.md). Do not quote a GPU
+number from this campaign: the GPU queue never allocated a slot.
 
 ---
 

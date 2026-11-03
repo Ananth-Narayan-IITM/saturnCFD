@@ -124,7 +124,7 @@ output:
 """
 
 
-def points(backend, stage, cores=None, gpus=None):
+def points(backend, stage, cores=None, gpus=None, weak_n=32):
     """(case, units, threads) for one backend and stage.
 
     `cores` and `gpus` cap the list to one machine; None keeps the cluster
@@ -147,13 +147,15 @@ def points(backend, stage, cores=None, gpus=None):
         if gpus is None or gpus >= 8:
             out.append(("heatStrong256", 8, 1))
         return out
-    if backend == "cpu":
-        weak = [("heatWeak032", 1, 1), ("heatWeak064", 8, 1),
-                ("heatWeak096", 27, 1), ("heatWeak128", 64, 1)]
-    else:
-        weak = [("heatWeak032", 1, 1), ("heatWeak064", 8, 1)]
     cap = cores if backend == "cpu" else gpus
-    return [p for p in weak if cap is None or p[1] <= cap]
+    units = (1, 8, 27, 64) if backend == "cpu" else (1, 8)
+    weak = []
+    for u in units:
+        if cap is not None and u > cap:
+            continue
+        side = weak_n * int(round(u ** (1.0 / 3.0)))
+        weak.append(("heatWeak%03d" % side, u, 1))
+    return weak
 
 
 def local_cores():
@@ -179,6 +181,14 @@ def local_gpus():
 
 def mpi_launcher():
     return shutil.which("mpirun") or shutil.which("mpiexec")
+
+
+def mesh_size(case):
+    if case in STRONG:
+        return STRONG[case]
+    if case in WEAK:
+        return WEAK[case]
+    return int(case[len("heatWeak"):])  # generated weak name
 
 
 def placement(backend, units, threads):
@@ -230,7 +240,7 @@ def submit(backend, stage, case, units, threads, env, dry, slurm, launcher):
         path.mkdir(parents=True, exist_ok=True)
     tag = f"{case}-{backend}-{units}u-{threads}t"
     run_yaml = CASES / f"run-{tag}.yaml"
-    n = (STRONG if stage == "strong" else WEAK)[case]
+    n = mesh_size(case)
     strong = stage == "strong"
     run_yaml.write_text(case_yaml(
         case, n, STRONG_END if strong else WEAK_END, strong,
@@ -373,12 +383,11 @@ def plot_strong(rows, outdir):
         print("  fewer than two 128^3 points: skipping scaling figures")
         return
 
-    fig, axes = plt.subplots(1, 2, figsize=(9, 3.8))
-    for ax, data, label in ((axes[0], cpu, "CPU ranks"),
-                            (axes[1], gpu, "GPUs")):
-        if len(data) < 2:
-            ax.set_visible(False)
-            continue
+    panels = [(d, l) for d, l in ((cpu, "CPU ranks"), (gpu, "GPUs"))
+              if len(d) >= 2]
+    fig, axes = plt.subplots(1, len(panels), figsize=(4.5 * len(panels), 3.8),
+                             squeeze=False)
+    for ax, (data, label) in zip(axes[0], panels):
         x = [r["units"] for r in data]
         speed = [data[0]["spt"] / r["spt"] for r in data]
         ax.plot(x, speed, "o-", label="measured")
@@ -398,12 +407,9 @@ def plot_strong(rows, outdir):
     fig.suptitle("Strong scaling, 128$^3$")
     save(plt, fig, outdir, "speedup")
 
-    fig, axes = plt.subplots(1, 2, figsize=(9, 3.8))
-    for ax, data, label in ((axes[0], cpu, "CPU ranks"),
-                            (axes[1], gpu, "GPUs")):
-        if len(data) < 2:
-            ax.set_visible(False)
-            continue
+    fig, axes = plt.subplots(1, len(panels), figsize=(4.5 * len(panels), 3.8),
+                             squeeze=False)
+    for ax, (data, label) in zip(axes[0], panels):
         x = [r["units"] for r in data]
         speed = [data[0]["spt"] / r["spt"] for r in data]
         eff = [100 * s / (v / x[0]) for s, v in zip(speed, x)]
@@ -543,6 +549,8 @@ def main(argv=None):
                     help="re-plot the existing results")
     ap.add_argument("--smoke", action="store_true",
                     help="only one 64^3 point per backend")
+    ap.add_argument("--weak-n", type=int, default=32, metavar="N",
+                    help="cells per rank edge in the weak series (default 32)")
     args = ap.parse_args(argv)
 
     if not args.dry_run:
@@ -572,7 +580,8 @@ def main(argv=None):
             for stage in stages:
                 print("\n== %s %s ==" % (backend, stage))
                 todo = ([("heatStrong64", 1, 1)] if args.smoke
-                        else points(backend, stage, cores, gpus))
+                        else points(backend, stage, cores, gpus,
+                                    args.weak_n))
                 for case, units, threads in todo:
                     submit(backend, stage, case, units, threads, env,
                            args.dry_run, slurm, launcher)

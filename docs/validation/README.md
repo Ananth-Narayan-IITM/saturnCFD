@@ -15,6 +15,7 @@ expected files are maintained.
 | [`heat.md`](heat.md) | 1D/2D/3D `saturnHeat` | implemented; 3D order 2.28/2.44, 2D 2.37/2.20 |
 | [`stokes.md`](stokes.md) | 2D/3D `saturnStokes` | implemented; 2D 1/2/4/8, 3D 1/2/4 ranks |
 | [`fieldsplit.md`](fieldsplit.md) | direct vs fieldsplit | time, memory and accuracy comparison |
+| [`scaling.md`](scaling.md) | `saturnHeat` strong/weak scaling | measured on PARAM Shakthi; single node 24×/48 cores, multi-node limited by the MPI transport |
 | `incompressible.md` | incompressible Navier–Stokes | waiting for Phase 5 |
 | `mesh.md` | `checkMesh` | waiting for Phase 1 |
 | `config.md` | YAML validation | waiting for Phase 1 |
