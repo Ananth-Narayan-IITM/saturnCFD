@@ -55,7 +55,8 @@ numerics:
 
 output:
   prefix: results/saturnBurger3D/traveling
-  csv: true
+  csv: false
   json: true
   exact: true
-  vtkEvery: 0
+  vtkEvery: 100
+  checkpointEvery: 100

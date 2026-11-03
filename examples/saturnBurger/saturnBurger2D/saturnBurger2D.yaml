@@ -24,8 +24,8 @@ units:
 
 mesh:
   type: box
-  nx: 128          # cells in x
-  ny: 128          # cells in y
+  nx: 256          # cells in x
+  ny: 256          # cells in y
   nz: 1            # 2D: must stay 1
   box:
     xmin: -1.0
@@ -58,8 +58,8 @@ numerics:
   limiter: vanLeer
 
 output:
-  prefix: results/saturnBurger2D/traveling
-  csv: true       # x, y, u_numerical, u_exact, error
+  prefix: output/saturnBurger2D
+  csv: false       # x, y, u_numerical, u_exact, error
   json: true      # L1, L2, Linf and exact norms
   exact: true     # compare against the analytic diagonal wave
-  vtkEvery: 0
+  vtkEvery: 100
