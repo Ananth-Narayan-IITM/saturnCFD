@@ -1,6 +1,7 @@
 # PARAM Shakthi Heat scaling
 
-Two scripts run the CPU-vs-GPU Heat campaign on PARAM Shakthi (PARAM Rudra):
+Two scripts run the CPU-vs-GPU Heat campaign on PARAM Shakthi (PARAM Rudra),
+and the same two also run on a workstation with one GPU:
 
 | file | role |
 |---|---|
@@ -48,6 +49,33 @@ Modules: `compiler/gcc/12.4`, `compiler/openmpi/5.0.6`,
 PETSc/Kokkos/CMake module; Kokkos is built locally by `compileSaturnCFD` and
 PETSc is not needed for Heat.
 
+## Terminology
+
+| term | meaning |
+|---|---|
+| **node** | one machine: 2 sockets, 48 cores, 192 GB; GPU nodes add 2× A100 80 GB |
+| **core** | one physical CPU pipeline; Slurm allocates cores |
+| **thread** | an execution stream inside a process; OpenMP creates them, they share memory |
+| **rank** | one MPI process; `mpirun -np 48` starts 48 ranks, each with its own memory |
+| **task** | Slurm's word for one launched process; with MPI, 1 task = 1 rank |
+| **unit** | this campaign's x-axis: **ranks** on the CPU, **GPUs** on the GPU |
+| **`thr`** | OpenMP threads **per rank** (1 in the strong series, 48 in the node run) |
+| **kernel** | a function launched on the GPU by one `parallel_for` |
+| **warp** | 32 consecutive GPU lanes executing one instruction together |
+| **coalescing** | consecutive lanes reading consecutive addresses, one memory transaction |
+
+MPI spreads work across processes and exchanges messages (halo exchange);
+OpenMP spreads work across threads that share the arrays. One A100 is driven
+by one rank, so **"2 GPU units" means two ranks on two GPUs**, and "48 ranks"
+means 48 processes, one core each.
+
+Speedup is `S(n) = T(1)/T(n)` and efficiency is `S(n)/n`, where `n` is ranks on
+the CPU axis and GPUs on the GPU axis. One core and one A100 are not
+comparable units of cost: report the ratio with its units.
+
+The full version, with the hardware/software ladder and the four run
+configurations, is in `docs/master.md` section 8.
+
 ## tools/compileSaturnCFD
 
 It runs `module purge` + the backend's modules in a login shell, then checks
@@ -94,6 +122,34 @@ only those give an integer cube with 32³ cells per GPU.
 Expected wall time for the full CPU chain is about 45 minutes, dominated by
 the single-core 128³ point (~16 min). GPU points take seconds to minutes. Run
 the campaign in `tmux` or `nohup`.
+
+## Workstation / single GPU
+
+Neither script needs Slurm. When `sbatch` is absent they run in local mode:
+
+- `compileSaturnCFD` skips the partition check and uses the current shell
+  environment instead of `module` (a missing `module` is not an error), and it
+  selects the Kokkos CUDA arch from `nvidia-smi` (`AMPERE80` on an A100).
+- `runScaling` caps the campaign to the machine: CPU points up to the cores
+  available to the process, GPU points up to the GPUs `nvidia-smi` reports,
+  and it skips the GPU stage when there is none. If `mpirun` is missing it runs
+  a single process at a time.
+- Points run directly, one after another, with logs in `tests/scaling/logs/`.
+
+With one GPU only the 1-GPU points exist (64³ and 128³), so there is no GPU
+scaling curve on that machine — but the CPU curve up to the core count and the
+1-core-vs-1-GPU comparison are still valid and use the same cases and code.
+
+```
+== local mode ==
+  cores 24, GPUs 1, launcher /usr/bin/mpirun
+
+== cpu strong ==
+  heatStrong64-cpu-1u-1t      ...
+```
+
+`--dry-run` prints the exact commands without running them, so the capping can
+be checked before a long run.
 
 ## Outputs
 

@@ -29,6 +29,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import time
@@ -41,8 +42,17 @@ SCALE = TESTS / "scaling"
 CASES = SCALE / "cases"
 LOGS = SCALE / "logs"
 
-BINARY = {"cpu": REPO / "buildCPUHPC" / "saturnCFD",
-          "gpu": REPO / "buildGPUHPC" / "saturnCFD"}
+def find_binary(*names):
+    """First existing build, so a workstation buildCPU/buildGPU also works."""
+    for name in names:
+        path = REPO / name / "saturnCFD"
+        if os.access(path, os.X_OK):
+            return path
+    return REPO / names[0] / "saturnCFD"
+
+
+BINARY = {"cpu": find_binary("buildCPUHPC", "buildCPU"),
+          "gpu": find_binary("buildGPUHPC", "buildGPU")}
 ENVFILE = {"cpu": HPC / "tools" / "envCpu.json",
            "gpu": HPC / "tools" / "envGpu.json"}
 
@@ -114,21 +124,61 @@ output:
 """
 
 
-def points(backend, stage):
-    """(case, units, threads) for one backend and stage."""
+def points(backend, stage, cores=None, gpus=None):
+    """(case, units, threads) for one backend and stage.
+
+    `cores` and `gpus` cap the list to one machine; None keeps the cluster
+    defaults. One unit is one MPI rank on the CPU and one GPU on the GPU.
+    """
     if stage == "strong" and backend == "cpu":
-        return ([("heatStrong64", 1, 1)]
-                + [("heatStrong128", n, 1) for n in CPU_RANKS]
-                + [("heatStrong128", 1, CORES_PER_NODE)]
-                + [("heatStrong256", n, 1) for n in (48, 192, 384)])
+        ranks = [n for n in CPU_RANKS if cores is None or n <= cores]
+        out = [("heatStrong64", 1, 1)]
+        out += [("heatStrong128", n, 1) for n in ranks]
+        threads = CORES_PER_NODE if cores is None else min(cores, CORES_PER_NODE)
+        if threads >= 2:
+            out.append(("heatStrong128", 1, threads))
+        out += [("heatStrong256", n, 1) for n in (48, 192, 384)
+                if cores is None or n <= cores]
+        return out
     if stage == "strong":
-        return ([("heatStrong64", 1, 1)]
-                + [("heatStrong128", n, 1) for n in GPU_COUNT]
-                + [("heatStrong256", 8, 1)])
+        count = [g for g in GPU_COUNT if gpus is None or g <= gpus]
+        out = [("heatStrong64", 1, 1)]
+        out += [("heatStrong128", g, 1) for g in count]
+        if gpus is None or gpus >= 8:
+            out.append(("heatStrong256", 8, 1))
+        return out
     if backend == "cpu":
-        return [("heatWeak032", 1, 1), ("heatWeak064", 8, 1),
+        weak = [("heatWeak032", 1, 1), ("heatWeak064", 8, 1),
                 ("heatWeak096", 27, 1), ("heatWeak128", 64, 1)]
-    return [("heatWeak032", 1, 1), ("heatWeak064", 8, 1)]
+    else:
+        weak = [("heatWeak032", 1, 1), ("heatWeak064", 8, 1)]
+    cap = cores if backend == "cpu" else gpus
+    return [p for p in weak if cap is None or p[1] <= cap]
+
+
+def local_cores():
+    try:
+        return len(os.sched_getaffinity(0))
+    except AttributeError:
+        return os.cpu_count() or 1
+
+
+def local_gpus():
+    smi = shutil.which("nvidia-smi")
+    if smi:
+        proc = subprocess.run([smi, "-L"], capture_output=True, text=True)
+        found = sum(1 for line in proc.stdout.splitlines()
+                    if line.startswith("GPU"))
+        if found:
+            return found
+    visible = os.environ.get("CUDA_VISIBLE_DEVICES", "").strip()
+    if visible:
+        return len([x for x in visible.split(",") if x.strip()])
+    return 0
+
+
+def mpi_launcher():
+    return shutil.which("mpirun") or shutil.which("mpiexec")
 
 
 def placement(backend, units, threads):
@@ -142,22 +192,28 @@ def placement(backend, units, threads):
     return "medium", nodes, (units + nodes - 1) // nodes, 1, 0
 
 
-def command(backend, units, threads, yaml):
+def command(backend, units, threads, yaml, launcher):
+    """Shell command for one point. `launcher` is mpirun/mpiexec or None."""
     binary = str(BINARY[backend])
     yaml = str(yaml)
     if backend == "gpu":
         pernode = 2 if units > 1 else 1
-        inner = (f"export CUDA_VISIBLE_DEVICES="
-                 f"$(( ${{SLURM_LOCALID:-0}} % {pernode} )); "
-                 f"exec mpirun -np {units} --map-by ppr:{pernode}:node "
-                 f"--bind-to none {binary} {yaml}")
+        pin = ("export CUDA_VISIBLE_DEVICES=$(( "
+               "${SLURM_LOCALID:-${OMPI_COMM_WORLD_LOCAL_RANK:-0}} "
+               f"% {pernode} )); ")
+        if launcher:
+            inner = (pin + f"exec {launcher} -np {units} "
+                     f"--map-by ppr:{pernode}:node --bind-to none "
+                     f"{binary} {yaml}")
+        else:
+            inner = pin + f"exec {binary} {yaml}"
         return shlex.join(["bash", "-c", inner])
-    if threads == 1:
-        return shlex.join(["mpirun", "-np", str(units), "--bind-to", "core",
+    if launcher and threads == 1:
+        return shlex.join([launcher, "-np", str(units), "--bind-to", "core",
                            "--map-by", "core", binary, yaml])
     return shlex.join(["env", f"OMP_NUM_THREADS={threads}",
                        "OMP_PROC_BIND=close", "OMP_PLACES=cores",
-                       binary, "-threads", str(threads), str(yaml)])
+                       binary, "-threads", str(threads), yaml])
 
 
 def show_log(tag):
@@ -168,7 +224,7 @@ def show_log(tag):
     print("".join(logs[-1].read_text().splitlines(True)[-25:]))
 
 
-def submit(backend, stage, case, units, threads, env, dry):
+def submit(backend, stage, case, units, threads, env, dry, slurm, launcher):
     outdir = SCALE / stage
     for path in (outdir, CASES, LOGS):
         path.mkdir(parents=True, exist_ok=True)
@@ -180,25 +236,38 @@ def submit(backend, stage, case, units, threads, env, dry):
         case, n, STRONG_END if strong else WEAK_END, strong,
         STRONG_DT if strong else WEAK_DT, outdir / tag))
 
-    partition, nodes, pernode, cpus, gpus = placement(backend, units, threads)
-    sbatch = ["sbatch", "--partition", partition, "--nodes", str(nodes),
-              "--ntasks", str(units), "--ntasks-per-node", str(pernode),
-              "--cpus-per-task", str(cpus), "--time", "04:00:00",
-              "--job-name", tag, "--output", str(LOGS / f"{tag}-%j.out"),
-              "--exclusive", "--export=ALL", "--wait",
-              "--wrap=" + command(backend, units, threads, run_yaml)]
-    if gpus:
-        sbatch.append("--gpus-per-task=1")
-    if dry:
-        print("  " + " ".join(shlex.quote(a) for a in sbatch))
-        return
-
-    started = time.time()
-    proc = subprocess.run(sbatch, env=env, text=True, capture_output=True)
-    if proc.returncode != 0 or not (outdir / f"{tag}.json").is_file():
-        sys.stderr.write(proc.stdout + proc.stderr)
-        show_log(tag)
-        sys.exit("error: %s failed (rc=%d)" % (tag, proc.returncode))
+    cmd = command(backend, units, threads, run_yaml, launcher)
+    if slurm:
+        partition, nodes, pernode, cpus, gpus = placement(
+            backend, units, threads)
+        job = ["sbatch", "--partition", partition, "--nodes", str(nodes),
+               "--ntasks", str(units), "--ntasks-per-node", str(pernode),
+               "--cpus-per-task", str(cpus), "--time", "04:00:00",
+               "--job-name", tag, "--output", str(LOGS / f"{tag}-%j.out"),
+               "--exclusive", "--export=ALL", "--wait", "--wrap=" + cmd]
+        if gpus:
+            job.append("--gpus-per-task=1")
+        if dry:
+            print("  " + " ".join(shlex.quote(a) for a in job))
+            return
+        started = time.time()
+        proc = subprocess.run(job, env=env, text=True, capture_output=True)
+        if proc.returncode != 0 or not (outdir / f"{tag}.json").is_file():
+            sys.stderr.write(proc.stdout + proc.stderr)
+            show_log(tag)
+            sys.exit("error: %s failed (rc=%d)" % (tag, proc.returncode))
+    else:
+        if dry:
+            print("  " + cmd)
+            return
+        started = time.time()
+        proc = subprocess.run(["bash", "-c", cmd], env=env, text=True,
+                              capture_output=True)
+        (LOGS / f"{tag}.out").write_text(proc.stdout + proc.stderr)
+        if proc.returncode != 0 or not (outdir / f"{tag}.json").is_file():
+            sys.stderr.write((proc.stdout + proc.stderr)[-4000:])
+            sys.exit("error: %s failed (rc=%d); log %s"
+                     % (tag, proc.returncode, LOGS / f"{tag}.out"))
     if backend == "gpu":
         meta = json.loads((outdir / f"{tag}.json").read_text())
         backend_name = str(meta.get("backend", ""))
@@ -208,14 +277,18 @@ def submit(backend, stage, case, units, threads, env, dry):
     print("  %-32s %7.1f s" % (tag, time.time() - started))
 
 
-def load_backend(backend):
+def load_backend(backend, slurm):
+    if not os.access(BINARY[backend], os.X_OK):
+        sys.exit("error: %s missing; run ./tools/compileSaturnCFD %s"
+                 % (BINARY[backend], backend))
+    if not slurm:
+        env = dict(os.environ)
+        env["OMP_NUM_THREADS"] = "1"
+        return env
     env_path = ENVFILE[backend]
     if not env_path.is_file():
         sys.exit("error: %s missing; run ./tools/compileSaturnCFD %s"
                  % (env_path, backend))
-    if not os.access(BINARY[backend], os.X_OK):
-        sys.exit("error: %s missing; run ./tools/compileSaturnCFD %s"
-                 % (BINARY[backend], backend))
     return json.loads(env_path.read_text())
 
 
@@ -474,19 +547,35 @@ def main(argv=None):
 
     if not args.dry_run:
         pyplot()  # fail before the campaign, not after an hour
+    slurm = shutil.which("sbatch") is not None
+    if slurm:
+        cores = gpus = None
+        launcher = "mpirun"
+    else:
+        cores, gpus = local_cores(), local_gpus()
+        launcher = mpi_launcher()
+        if launcher is None:
+            cores = 1  # no mpirun: a single process at a time
+        print("== local mode ==")
+        print("  cores %d, GPUs %d, launcher %s"
+              % (cores, gpus, launcher or "none (single process)"))
+
     stages = ("strong", "weak") if args.stage == "both" else (args.stage,)
     if args.smoke:
         stages = ("strong",)
     if not args.plot_only:
         for backend in args.backends or list(BINARY):
-            env = None if args.dry_run else load_backend(backend)
+            if backend == "gpu" and not slurm and gpus == 0:
+                print("\nskip gpu: no GPU found on this machine")
+                continue
+            env = None if args.dry_run else load_backend(backend, slurm)
             for stage in stages:
                 print("\n== %s %s ==" % (backend, stage))
                 todo = ([("heatStrong64", 1, 1)] if args.smoke
-                        else points(backend, stage))
+                        else points(backend, stage, cores, gpus))
                 for case, units, threads in todo:
                     submit(backend, stage, case, units, threads, env,
-                           args.dry_run)
+                           args.dry_run, slurm, launcher)
 
     if args.dry_run:
         return 0

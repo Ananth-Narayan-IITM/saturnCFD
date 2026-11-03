@@ -600,7 +600,97 @@ python3 validate.py --dim both --cli saturnCPU
 
 ---
 
-## 8. Likely “why / why not” questions
+## 8. Parallel terminology and the scaling campaign
+
+These words are the most common place to lose the thread in a viva; use them
+precisely.
+
+### 8.1 Hardware, from small to large
+
+| term | meaning |
+|---|---|
+| **core** | one physical CPU pipeline. The Xeon Gold 6240R has 24, so a node has 2 × 24 = **48 cores**. |
+| **hardware thread** (SMT) | a second register set on the same core. It shares the arithmetic units, so it is worth tens of percent, not 2×. Slurm allocates cores. |
+| **socket** | one CPU chip; two per node. |
+| **node** | one machine: 2 sockets, 48 cores, 192 GB. GPU nodes add 2× A100 80 GB. |
+| **SM / GPU lane** | the A100 has 108 streaming multiprocessors with 64 FP32 lanes each. Thousands of lanes hide memory latency. |
+
+### 8.2 Software, from large to small
+
+| term | meaning |
+|---|---|
+| **program** | the file `saturnCFD`. |
+| **process** | a running instance with its own private memory. |
+| **thread** | an execution stream inside a process; threads share memory. |
+| **MPI rank** | one process in an MPI job. `mpirun -np 48` starts 48 ranks; `ranks` in the JSON is the size of `MPI_COMM_WORLD`. |
+| **communicator** | the group that may exchange messages; `MPI_COMM_WORLD` is all ranks. |
+| **Slurm task** | one launched process. With MPI, 1 task = 1 rank, so `--ntasks=48` is 48 processes. |
+| **unit** (this campaign) | **ranks** on the CPU, **GPUs** on the GPU; the x-axis of every plot. |
+| **`thr`** (this campaign) | OpenMP threads **per rank**. |
+
+MPI parallelises **across processes** (distributed memory, explicit messages);
+OpenMP parallelises **across threads** (shared memory, no messages).
+
+### 8.3 Why one thread per rank
+
+48 ranks × 48 threads would put 2304 threads on 48 cores and the scaling curve
+would measure thread contention, not the solver. The strong series therefore
+uses `OMP_NUM_THREADS=1`, so one rank owns one core. The single 48-thread run
+is the opposite configuration on purpose: one process using a whole node, no
+MPI traffic.
+
+### 8.4 The GPU side
+
+One rank drives one A100 (`CUDA_VISIBLE_DEVICES = SLURM_LOCALID % 2`), with 4
+host cores to feed it and run MPI. Inside the rank Kokkos launches CUDA
+kernels: a kernel runs as a grid of blocks, each block as warps of 32 lanes.
+Consecutive lanes reading consecutive addresses coalesce into one memory
+transaction. `LayoutLeft` storage has `i` contiguous, so the 3D ranges use
+`Kokkos::Iterate::Left` (`src/core/Policy.hpp`): a 64³ stencil goes from 14.1
+to 5.1 ns/cell, the 32³ Heat case from 31.6 s to 19.4 s with identical errors,
+and the GPU gets coalesced loads from the same setting. **“2 GPU units” means
+two ranks on two devices.**
+
+### 8.5 The configurations actually run
+
+| run | processes | cores | communication |
+|---|---|---|---|
+| 128³, 1 rank × 1 thread | 1 | 1 of 48 | none |
+| 128³, 48 ranks × 1 thread | 48 | 48 of 48 | MPI halo over shared memory |
+| 128³, 1 rank × 48 threads | 1 | 48 of 48 | none, shared arrays |
+| 128³, 8 GPU units | 8 | 32 host cores | MPI over IB + CUDA kernels |
+
+Work per unit matters as much as the count: 128³ is 2,097,152 cells, so 48
+ranks hold 43,690 cells each while 384 ranks hold only 5,461, where halo
+exchange competes with useful work. That is where efficiency falls.
+
+### 8.6 Reading one result
+
+| column | meaning |
+|---|---|
+| `be` | backend: `cpu` (Kokkos OpenMP) or `gpu` (Kokkos CUDA) |
+| `case` | mesh and step count, e.g. `heatStrong128` |
+| `units` | ranks (CPU) or GPUs (GPU) |
+| `thr` | OpenMP threads per rank |
+| `steps` | time steps taken |
+| `wall` | solver seconds, maximum over ranks |
+| `s/step` | `wall/steps`; the fair metric for an explicit solver |
+| `L2` | error against the analytic solution |
+
+Measured after the policy fix: 64³, 100 steps, 1 core = **74.6 s** (0.746
+s/step). The same case at 200 steps before the fix was 386.9 s (1.93 s/step).
+The GPU numbers are re-measured by the campaign.
+
+### 8.7 Speedup, efficiency, and what not to claim
+
+- speedup `S(n) = T(1) / T(n)`, efficiency `E(n) = S(n) / n`.
+- On the GPU axis `n` is GPUs, on the CPU axis `n` is ranks; say which.
+- One CPU core and one A100 are not comparable units of **cost**. Report the
+  ratio with its units (“one core vs one accelerator”), not as a price claim.
+
+---
+
+## 9. Likely “why / why not” questions
 
 **Why not OpenFOAM / FEniCS / SU2?**
 We need a small code where the full path (mesh -> FV -> PETSc -> validation) is
@@ -682,7 +772,7 @@ performance study, not the correctness claim shown here.
 
 ---
 
-## 9. Known limitations (say them before the professor does)
+## 10. Known limitations (say them before the professor does)
 
 - 3D wall MMS pressure order is measured (1.53 at 24³->32³) but not gated;
   2D wall MMS is gated.

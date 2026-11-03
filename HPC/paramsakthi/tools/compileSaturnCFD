@@ -60,7 +60,6 @@ BACKENDS = {
             "-DKokkos_ENABLE_CUDA_LAMBDA=ON",
             "-DKokkos_ENABLE_OPENMP=OFF",
             "-DKokkos_ENABLE_SERIAL=ON",
-            "-DKokkos_ARCH_AMPERE80=ON",
         ],
         "saturn_flags": ["-DSATURN_BACKEND=cuda"],
     },
@@ -86,8 +85,27 @@ def run(cmd, env=None, check=True):
 def which(tool, env):
     found = shutil.which(tool, path=env.get("PATH"))
     if not found:
-        sys.exit("error: %s not found after loading the modules" % tool)
+        sys.exit("error: %s not found (load the cluster modules, or install "
+                 "it on this machine)" % tool)
     return found
+
+
+KOKKOS_ARCH = {"7.0": "VOLTA70", "7.5": "TURING75", "8.0": "AMPERE80",
+               "8.6": "AMPERE86", "8.9": "ADA89", "9.0": "HOPPER90"}
+CUDA_ARCH = "AMPERE80"
+
+
+def cuda_arch():
+    """Kokkos arch name for the local GPU, AMPERE80 (A100) by default."""
+    smi = shutil.which("nvidia-smi")
+    if not smi:
+        return "AMPERE80"
+    proc = run([smi, "--query-gpu=compute_cap", "--format=csv,noheader"],
+               check=False)
+    caps = {line.strip() for line in proc.stdout.splitlines() if line.strip()}
+    if len(caps) != 1:
+        return "AMPERE80"
+    return KOKKOS_ARCH.get(caps.pop(), "AMPERE80")
 
 
 def scrub(env):
@@ -144,11 +162,12 @@ def prepare_env(kind):
 def hpc_report():
     print("== host ==")
     print("  node       : %s" % platform.node())
-    if not shutil.which("sbatch"):
-        sys.exit("error: sbatch not found; run this on a PARAM Shakthi node")
-    p = run(["sinfo", "-h", "-o", "%P"], check=False)
-    parts = sorted({x.rstrip("*") for x in p.stdout.split()})
-    print("  partitions : %s" % (" ".join(parts) or "unknown"))
+    if shutil.which("sbatch"):
+        p = run(["sinfo", "-h", "-o", "%P"], check=False)
+        parts = sorted({x.rstrip("*") for x in p.stdout.split()})
+        print("  partitions : %s" % (" ".join(parts) or "unknown"))
+    else:
+        print("  scheduler  : none (workstation mode)")
 
 
 def report(kind, env):
@@ -165,6 +184,7 @@ def report(kind, env):
     print("  mpicxx     : %s" % env["MPI_CXX_COMPILER"])
     if kind == "gpu":
         print("  nvcc       : %s" % which("nvcc", env))
+        print("  cuda arch  : %s" % CUDA_ARCH)
     print("  kokkos     : %s (%s)" % (
         cfg["prefix"], "installed" if kokkos_ready(cfg["prefix"]) else "missing"))
     required = [REPO / "CMakeLists.txt", REPO / "apps" / "main.cpp"]
@@ -194,10 +214,13 @@ def ensure_kokkos(kind, env, jobs):
     args = ["cmake", "-S", KOKKOS_SRC, "-B", cfg["kokkos_build"]]
     if kind == "gpu":
         args.append("-DCMAKE_CXX_COMPILER=%s/bin/nvcc_wrapper" % KOKKOS_SRC)
+    flags = list(cfg["kokkos_flags"])
+    if kind == "gpu":
+        flags.append("-DKokkos_ARCH_%s=ON" % CUDA_ARCH)
     args += ["-DCMAKE_BUILD_TYPE=Release",
              "-DCMAKE_INSTALL_PREFIX=%s" % cfg["prefix"],
              "-DCMAKE_CXX_STANDARD=20", "-DCMAKE_CXX_EXTENSIONS=OFF",
-             *cfg["kokkos_flags"],
+             *flags,
              "-DKokkos_ENABLE_TESTS=OFF", "-DKokkos_ENABLE_EXAMPLES=OFF"]
     run(args, env)
     run(["cmake", "--build", cfg["kokkos_build"], "-j", str(jobs)], env)
@@ -247,6 +270,7 @@ def dump_env(kind, env):
 
 
 def main(argv=None):
+    global CUDA_ARCH
     ap = argparse.ArgumentParser(
         description="Check PARAM Shakthi and build saturnCFD.")
     ap.add_argument("backends", nargs="*", choices=sorted(BACKENDS),
@@ -258,6 +282,8 @@ def main(argv=None):
     jobs = max(1, args.jobs)
 
     hpc_report()
+    if "gpu" in (args.backends or list(BACKENDS)):
+        CUDA_ARCH = cuda_arch()
     for kind in args.backends or list(BACKENDS):
         env = prepare_env(kind)
         report(kind, env)
