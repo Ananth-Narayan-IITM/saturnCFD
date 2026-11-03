@@ -90,8 +90,10 @@ def which(tool, env):
     return found
 
 
-KOKKOS_ARCH = {"7.0": "VOLTA70", "7.5": "TURING75", "8.0": "AMPERE80",
-               "8.6": "AMPERE86", "8.9": "ADA89", "9.0": "HOPPER90"}
+KOKKOS_ARCH = {"6.0": "PASCAL60", "6.1": "PASCAL61", "7.0": "VOLTA70",
+               "7.2": "VOLTA72", "7.5": "TURING75", "8.0": "AMPERE80",
+               "8.6": "AMPERE86", "8.7": "AMPERE87", "8.9": "ADA89",
+               "9.0": "HOPPER90"}
 CUDA_ARCH = "AMPERE80"
 
 
