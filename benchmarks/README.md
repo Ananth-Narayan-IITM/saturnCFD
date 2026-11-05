@@ -22,7 +22,7 @@ and a machine-readable `summary.json`.
 |---|---|---|---|
 | `benchmarkBurgers.py` | `saturnBurger` 2D | CPU + GPU | diagonal travelling wave |
 | `benchmarkHeat.py` | `saturnHeat` 2D | CPU + GPU | periodic Fourier mode |
-| `benchmarkStokes.py` | `saturnStokes` 2D/3D | CPU only | direct LU; no CUDA PETSc yet |
+| `benchmarkStokes.py` | `saturnStokes` 2D/3D | CPU + optional GPU | direct LU; GPU needs CUDA PETSc |
 
 `benchmarkCommon.py` contains the shared CSV/JSON readers and error helpers.
 
@@ -78,25 +78,30 @@ $$
 Use `--alpha`, `--velocity-x`, `--velocity-y`, `--kx`, `--ky` and
 `--amplitude` to change the case.
 
-## Stokes direct solver (CPU only)
+## Stokes direct solver (CPU, and GPU when PETSc supports it)
 
-The CUDA build keeps PETSc off (`cmake --preset gpu` sets
-`SATURN_ENABLE_PETSC=OFF`), so `saturnStokes` is only available in the CPU
-build. The benchmark therefore uses the CPU direct LU solver and validates it
-against the analytic Poiseuille or Couette profile:
+The direct path is PETSc `preonly` + LU. PETSc decides where the factorisation
+runs, so a GPU direct solve needs a **CUDA-enabled PETSc build with a
+GPU-capable LU** (for example cuSOLVER through PETSc). The repository's CUDA
+build currently keeps PETSc off (`cmake --preset gpu` sets
+`SATURN_ENABLE_PETSC=OFF`), so `saturnGPU` does not register `saturnStokes`.
+
+The benchmark runs the CPU direct solver and attempts the GPU binary by
+default. If the GPU binary has no `saturnStokes`, the GPU point is reported as
+**skipped** and the CPU result still passes/fails on its own. When a CUDA-PETSc
+build exists, the same command runs both backends and compares them:
 
 ```bash
-# 3D Poiseuille, 16^3
-python3 benchmarks/benchmarkStokes.py --cpu saturnCPU --dim 3d
+# CPU + GPU (GPU is skipped automatically with the current CUDA build)
+python3 benchmarks/benchmarkStokes.py --cpu saturnCPU --gpu saturnGPU --dim 3d
 
-# 2D Couette, 128^2
-python3 benchmarks/benchmarkStokes.py --cpu saturnCPU --dim 2d --case couette
+# CPU only
+python3 benchmarks/benchmarkStokes.py --cpu saturnCPU --dim 2d --case couette --no-gpu
 ```
 
-Use `--nx`, `--ny`, `--nz` to change the mesh. The script reports iterations,
-residual, wall time, velocity and pressure errors, and the solver JSON norms.
-When a CUDA-enabled PETSc build becomes available, pass that binary with
-`--cpu`; the script is backend-agnostic.
+Use `--nx`, `--ny`, `--nz` to change the mesh. The report includes iterations,
+residual, wall time, velocity and pressure errors, and the CPU/GPU solution
+difference when both backends run.
 
 ## GPU build
 

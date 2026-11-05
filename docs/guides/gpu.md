@@ -161,8 +161,8 @@ python3 benchmarks/benchmarkBurgers.py \
 It writes `report.txt` and `summary.json` under
 `benchmarks/results/burgers/`. The same layout is used by
 `benchmarks/benchmarkHeat.py` (CPU/GPU Fourier mode) and
-`benchmarks/benchmarkStokes.py` (CPU-only direct solve, because the CUDA build
-does not have PETSc).
+`benchmarks/benchmarkStokes.py` (direct solve; the GPU point is skipped unless
+a CUDA-enabled PETSc build is supplied).
 
 Measured on this machine (Quadro P620, 2 GB, 24-core CPU, CPU with 12 threads):
 

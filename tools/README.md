@@ -17,7 +17,7 @@ Related scripts outside this folder:
 | `validateBurgers.py` | `docs/validation/scripts/` | convergence table and validation figure |
 | `benchmarkBurgers.py` | `benchmarks/` | CPU/GPU timing plus analytic-error comparison |
 | `benchmarkHeat.py` | `benchmarks/` | CPU/GPU heat timing plus analytic-error comparison |
-| `benchmarkStokes.py` | `benchmarks/` | CPU direct Stokes timing plus analytic validation |
+| `benchmarkStokes.py` | `benchmarks/` | direct Stokes timing + validation (CPU, optional GPU) |
 | `doxygenMathFilter.py` | `docs/doxygen/` | Markdown math to Doxygen math |
 
 ## Rules
