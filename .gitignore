@@ -1,7 +1,9 @@
 build*/
 results/
+benchmarks/results/
 runs/
 output/
+__pycache__/
 *.o
 *.vtk
 *.vti

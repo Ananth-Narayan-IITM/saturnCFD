@@ -51,7 +51,10 @@ saturnCFD/
 
   benchmarks/
     README.md
-    benchmarkBurgers.py         # CPU vs GPU wall-clock comparison
+    benchmarkCommon.py          # shared CSV/JSON and error helpers
+    benchmarkBurgers.py         # CPU/GPU timing + analytic errors
+    benchmarkHeat.py            # CPU/GPU heat timing + analytic errors
+    benchmarkStokes.py          # CPU direct Stokes timing + validation
 
   examples/
     README.md

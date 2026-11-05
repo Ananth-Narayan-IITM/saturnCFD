@@ -148,7 +148,8 @@ it uses a CPU or a GPU.
 ## CPU/GPU benchmark
 
 `benchmarks/benchmarkBurgers.py` generates one 2D case, runs it through both
-binaries and reads `wallSeconds` from each JSON summary:
+binaries, reads `wallSeconds` from each JSON summary and also compares both
+profiles with an independently recomputed analytic travelling wave:
 
 ```bash
 python3 benchmarks/benchmarkBurgers.py \
@@ -157,15 +158,22 @@ python3 benchmarks/benchmarkBurgers.py \
   --nx 256 --ny 256 --t-end 0.2
 ```
 
+It writes `report.txt` and `summary.json` under
+`benchmarks/results/burgers/`. The same layout is used by
+`benchmarks/benchmarkHeat.py` (CPU/GPU Fourier mode) and
+`benchmarks/benchmarkStokes.py` (CPU-only direct solve, because the CUDA build
+does not have PETSc).
+
 Measured on this machine (Quadro P620, 2 GB, 24-core CPU, CPU with 12 threads):
 
 ```text
 grid       : 256 x 256
 t_end      : 0.2 s
 CPU threads: 12
-CPU wall   : 33.75 s
-GPU wall   : 16.74 s
-speedup    : 2.02 x
+CPU wall   : 29.38 s   L2 error vs analytic = 1.247e-4
+GPU wall   : 14.72 s   L2 error vs analytic = 1.247e-4
+speedup    : 2.00 x
+CPU/GPU relative L2 difference = 8.55e-15
 ```
 
 The GPU is a low-power Quadro P620 with only 2 GB, and the display uses about
