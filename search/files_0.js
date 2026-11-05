@@ -1,0 +1,21 @@
+var searchData=
+[
+  ['0000_2dtemplate_2emd_0',['0000-template.md',['../0000-template_8md.html',1,'']]],
+  ['0001_2dphysics_2droadmap_2emd_1',['0001-physics-roadmap.md',['../0001-physics-roadmap_8md.html',1,'']]],
+  ['0002_2dmesh_2dstrategy_2emd_2',['0002-mesh-strategy.md',['../0002-mesh-strategy_8md.html',1,'']]],
+  ['0003_2dlinear_2dalgebra_2dpetsc_2emd_3',['0003-linear-algebra-petsc.md',['../0003-linear-algebra-petsc_8md.html',1,'']]],
+  ['0004_2dcollocated_2dcoupling_2emd_4',['0004-collocated-coupling.md',['../0004-collocated-coupling_8md.html',1,'']]],
+  ['0005_2dsolver_2dlifecycle_2emd_5',['0005-solver-lifecycle.md',['../0005-solver-lifecycle_8md.html',1,'']]],
+  ['0006_2dconfiguration_2emd_6',['0006-configuration.md',['../0006-configuration_8md.html',1,'']]],
+  ['0007_2dmesh_2dvalidation_2emd_7',['0007-mesh-validation.md',['../0007-mesh-validation_8md.html',1,'']]],
+  ['0008_2dunits_2emd_8',['0008-units.md',['../0008-units_8md.html',1,'']]],
+  ['0009_2ddocumentation_2emd_9',['0009-documentation.md',['../0009-documentation_8md.html',1,'']]],
+  ['0010_2dcli_2emd_10',['0010-cli.md',['../0010-cli_8md.html',1,'']]],
+  ['0011_2duser_2dsolvers_2emd_11',['0011-user-solvers.md',['../0011-user-solvers_8md.html',1,'']]],
+  ['0012_2dtest_2dframework_2emd_12',['0012-test-framework.md',['../0012-test-framework_8md.html',1,'']]],
+  ['0013_2ddocumentation_2dpipeline_2emd_13',['0013-documentation-pipeline.md',['../0013-documentation-pipeline_8md.html',1,'']]],
+  ['0014_2dmpi_2dgpu_2emd_14',['0014-mpi-gpu.md',['../0014-mpi-gpu_8md.html',1,'']]],
+  ['0015_2dparallel_2dtesting_2emd_15',['0015-parallel-testing.md',['../0015-parallel-testing_8md.html',1,'']]],
+  ['0016_2dkokkos_2dfield_2dlayer_2emd_16',['0016-kokkos-field-layer.md',['../0016-kokkos-field-layer_8md.html',1,'']]],
+  ['0017_2dpetsc_2dlinalg_2emd_17',['0017-petsc-linalg.md',['../0017-petsc-linalg_8md.html',1,'']]]
+];
